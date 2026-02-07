@@ -43,8 +43,8 @@ set(TORQUESIM_SRCS
   ./ext/korkscript/torqueSim/sim/simFiberManager.cc
   ./ext/korkscript/torqueSim/sim/simFiberManager.h
   ./ext/korkscript/torqueSim/sim/simManager.cc
-  ./platform/platformProcess.cc
-  ./platform/platformFileIO.cc
+  ./src/platform/platformProcess.cc
+  ./src/platform/platformFileIO.cc
   ./ext/korkscript/torqueSim/platform/platformStrings.cc
   ./ext/korkscript/torqueSim/platform/platformThread.cc
   ./ext/korkscript/torqueSim/platform/platformNetAsync.cc
