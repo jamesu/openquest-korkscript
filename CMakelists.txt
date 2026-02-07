@@ -1,0 +1,81 @@
+cmake_minimum_required(VERSION 3.16)
+project(TestKorkscript LANGUAGES CXX)
+
+# ---- C++ settings ----
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# ---- Configure korkscript build ----
+# Force korkscript to build static before adding its CMakeLists.
+# CACHE + FORCE is important so it applies inside the subproject.
+set(KS_BUILD_MODE "static" CACHE STRING "korkscript build mode" FORCE)
+
+find_package(raylib CONFIG REQUIRED)
+
+# Add the external project
+add_subdirectory(ext/korkscript EXCLUDE_FROM_ALL)
+
+
+set(TORQUESIM_SRCS
+  ./ext/korkscript/torqueSim/core/idGenerator.cc
+  ./ext/korkscript/torqueSim/core/fileStream.cc
+  ./ext/korkscript/torqueSim/core/stringUnit.cc
+  ./ext/korkscript/torqueSim/core/stringTable.cc
+  ./ext/korkscript/torqueSim/core/unicode.cc
+  ./ext/korkscript/torqueSim/core/unicode.h
+  ./ext/korkscript/torqueSim/console/console.cc
+  ./ext/korkscript/torqueSim/console/console.h
+  ./ext/korkscript/torqueSim/console/consoleFunctions.cc
+  ./ext/korkscript/torqueSim/console/consoleLogger.cc
+  ./ext/korkscript/torqueSim/console/consoleLogger.h
+  ./ext/korkscript/torqueSim/console/consoleObject.cc
+  ./ext/korkscript/torqueSim/console/consoleObject.h
+  ./ext/korkscript/torqueSim/console/consoleTypes.cc
+  ./ext/korkscript/torqueSim/console/consoleTypes.h
+  ./ext/korkscript/torqueSim/console/typeValidators.cc
+  ./ext/korkscript/torqueSim/sim/dynamicTypes.cc
+  ./ext/korkscript/torqueSim/sim/scriptObject.cc
+  ./ext/korkscript/torqueSim/sim/simBase.cc
+  ./ext/korkscript/torqueSim/sim/simBase.h
+  ./ext/korkscript/torqueSim/sim/simDictionary.cc
+  ./ext/korkscript/torqueSim/sim/simDictionary.h
+  ./ext/korkscript/torqueSim/sim/simFiberManager.cc
+  ./ext/korkscript/torqueSim/sim/simFiberManager.h
+  ./ext/korkscript/torqueSim/sim/simManager.cc
+  ./platform/platformProcess.cc
+  ./platform/platformFileIO.cc
+  ./ext/korkscript/torqueSim/platform/platformStrings.cc
+  ./ext/korkscript/torqueSim/platform/platformThread.cc
+  ./ext/korkscript/torqueSim/platform/platformNetAsync.cc
+  ./ext/korkscript/torqueSim/platform/platformNetwork.cc
+  ./ext/korkscript/torqueSim/platform/platformTelnet.cc
+)
+
+set(GAME_SRCS
+  ./src/game/main.cc
+  ./src/math/mathTypes.cc
+  ./src/math/mathTypes.h
+  ./src/math/mPoint.cc
+  ./src/math/mPoint.h
+  ./src/math/mRect.h
+)
+
+
+# ---- Your program ----
+add_executable(test_program ${GAME_SRCS} ${TORQUESIM_SRCS})
+
+# Include paths requested
+target_include_directories(test_program
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/ext/korkscript/engine
+    ${CMAKE_CURRENT_SOURCE_DIR}/ext/korkscript/torqueSim
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# Link korkscript library
+target_link_libraries(test_program
+  PRIVATE
+    korkscript_ks
+    raylib
+)
