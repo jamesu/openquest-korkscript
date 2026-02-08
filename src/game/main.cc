@@ -8,8 +8,12 @@
 #include "platform/platform.h"
 #include "raylib.h"
 #include "console/console.h"
+#include "console/consoleTypes.h"
+#include "math/mathTypes.h"
 #include "sim/simBase.h"
 #include "core/freeListHandleHelpers.h"
+#include "core/memStream.h"
+#include "core/fileStream.h"
 #include <math.h>
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -37,6 +41,7 @@ typedef struct Input {
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
+#include <algorithm>
 
 #include "math/mPoint.h"
 #include "math/mRect.h"
@@ -143,18 +148,18 @@ public:
          TextureSlot* existSlot = getPtr();
          if (existSlot != newSlot)
          {
-            if (newSlot != NULL)
+            if (newSlot != nullptr)
                newSlot->incRef();
-            if (existSlot != NULL)
+            if (existSlot != nullptr)
                existSlot->decRef();
          }
       }
-      value = newSlot != NULL ? TextureHandle::makeValue(newSlot->mAllocNumber, newSlot->mGeneration, isHeavyRef()) :
+      value = newSlot != nullptr ? TextureHandle::makeValue(newSlot->mAllocNumber, newSlot->mGeneration, isHeavyRef()) :
                                 TextureHandle::makeValue(0,0, isHeavyRef());
    }
    
    inline TextureHandle& operator=(std::nullptr_t) {
-      setSlot(NULL);
+      setSlot(nullptr);
       return *this;
    }
    

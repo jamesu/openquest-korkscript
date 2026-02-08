@@ -172,7 +172,7 @@ static bool getPointDataImpl(
    KorkApi::Vm* vmPtr,
    KorkApi::TypeStorageInterface* inputStorage,
    KorkApi::TypeStorageInterface* outputStorage,
-   const EnumTable* tbl,
+                             void* fieldUserPtr,
    BitSet32 flag,
    U32 requestedType)
 {
@@ -291,7 +291,7 @@ static bool getPointDataImpl(
       KorkApi::TypeStorageInterface castInput =
          KorkApi::CreateRegisterStorageFromArgs(vmPtr->mInternal, Traits::N, vals);
 
-      return vmPtr->castValue(requestedType, &castInput, outputStorage, tbl, flag);
+      return vmPtr->castValue(requestedType, &castInput, outputStorage, fieldUserPtr, flag);
    }
 }
 
@@ -304,32 +304,32 @@ ConsoleType( RectF, TypeRectF, sizeof(RectF), sizeof(RectF), "" )
 
 ConsoleGetType( TypePoint2I )
 {
-   return getPointDataImpl<Point2I>(vmPtr, inputStorage, outputStorage, tbl, flag, requestedType);
+   return getPointDataImpl<Point2I>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
 ConsoleGetType( TypePoint2F )
 {
-   return getPointDataImpl<Point2F>(vmPtr, inputStorage, outputStorage, tbl, flag, requestedType);
+   return getPointDataImpl<Point2F>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
 ConsoleGetType( TypePoint3F )
 {
-   return getPointDataImpl<Point3F>(vmPtr, inputStorage, outputStorage, tbl, flag, requestedType);
+   return getPointDataImpl<Point3F>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
 ConsoleGetType( TypePoint4F )
 {
-   return getPointDataImpl<Point4F>(vmPtr, inputStorage, outputStorage, tbl, flag, requestedType);
+   return getPointDataImpl<Point4F>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
 ConsoleGetType( TypeRectI )
 {
-   return getPointDataImpl<RectI>(vmPtr, inputStorage, outputStorage, tbl, flag, requestedType);
+   return getPointDataImpl<RectI>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
 ConsoleGetType( TypeRectF )
 {
-   return getPointDataImpl<RectF>(vmPtr, inputStorage, outputStorage, tbl, flag, requestedType);
+   return getPointDataImpl<RectF>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
 template <class PointT, class SplatFn>

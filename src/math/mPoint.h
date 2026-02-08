@@ -176,6 +176,8 @@ class Point2F
 
    // Unary operators
    Point2F operator-() const;
+   
+   inline Point2I asPoint2I() const;
 
    //-------------------------------------- Public static constants
   public:
@@ -860,6 +862,11 @@ inline void Point2F::rotate( const F32 radians )
 
    set(  cosTheta * x - sinTheta * y,
          sinTheta * x + cosTheta * y );
+}
+
+inline Point2I Point2F::asPoint2I() const
+{
+   return Point2I(x, y);
 }
 
 inline bool Point2F::operator==(const Point2F& _test) const
@@ -1958,6 +1965,11 @@ inline F32 mDot(const Point3F &p1, const Point3F &p2)
 inline F64 mDot(const Point3D &p1, const Point3D &p2)
 {
    return (p1.x*p2.x + p1.y*p2.y + p1.z*p2.z);
+}
+
+inline S32 mCross(const Point2I &a, const Point2I &b, const Point2I &p)
+{
+   return (S32)(b.x - a.x) * (p.y - a.y) - (S32)(b.y - a.y) * (p.x - a.x);
 }
 
 inline void mCross(const Point3F &a, const Point3F &b, Point3F *res)
