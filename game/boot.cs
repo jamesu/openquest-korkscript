@@ -33,7 +33,27 @@ function evalInput()
     if (IsKeyDown(87) || IsKeyDown(265)) %my -= 1;
     if (IsKeyDown(83) || IsKeyDown(264)) %my += 1;
 
+    if (IsKeyDown(81)) // q
+    {
+    	TestRoom.setTransitionMode(2, 0, 0.25);
+    }
+
     //fib(7000000);
     SetInput(%mx, %my);
 }
+
+exec("scripts/costumes/costumes.cs");
+
+new Room(TestRoom)
+{
+	image = "graphics/rooms/back01_merged.bmp";
+   boxFile = "graphics/rooms/back01.box";
+};
+
+new RootUI(RootUI)
+{
+};
+
+RootUI.setContent(TestRoom);
+
 

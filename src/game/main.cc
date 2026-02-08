@@ -238,7 +238,7 @@ private:
     std::vector<TextureSlot*> mSlots;                             // id-1 indexing
 };
 
-TextureManager* gTextureManager = NULL;
+TextureManager* gTextureManager = nullptr;
 
 TextureSlot* TextureHandle::getPtr() const
 {
@@ -247,13 +247,130 @@ TextureSlot* TextureHandle::getPtr() const
 
 struct RoomRender
 {
-
+   enum TransitionMode : U8
+   {
+      TRANSITION_NONE,
+      TRANSITION_IRIS_IN,  // scissor towards center + shadow border, blank [then flip gfx after]
+      TRANSITION_IRIS_OUT, // inverse scissor towards center + shadow border [no gfx change]
+      TRANSITION_WIPE_HORIZONTAL_IN, // scissor horizontal
+      TRANSITION_WIPE_HORIZONTAL_OUT, // scissor horizontal
+      TRANSITION_WIPE_VERTICAL_IN, // scissor vertical
+      TRANSITION_WIPE_VERTICAL_OUT // scissor vertical
+   };
+   
+   enum TransitionWipeOrigin
+   {
+      WIPE_ORIG_LEFT,
+      WIPE_ORIG_RIGHT,
+      // aliases for above
+      WIPE_ORIG_TOP = WIPE_ORIG_LEFT,
+      WIPE_ORIG_BOTTOM = WIPE_ORIG_RIGHT
+   };
+   
+   struct TransitionParams
+   {
+      U8 mode : 4;
+      U8 params : 4;
+   };
+   
    enum
    {
        NumZPlanes = 3
    };
     TextureHandle backgroundImage;
     TextureHandle zPlanes[3];
+   
+   Point2I screenSize;
+   RectI backgroundSR;
+   RectI clipRect;
+   ColorI bgColor;
+   
+   TransitionParams currentTransition;
+   F32 transitionPos;
+   F32 transitionTime;
+   
+   static float smoothstep(float t) {
+       // clamp
+       if (t < 0) t = 0;
+       if (t > 1) t = 1;
+       return t*t*(3.0f - 2.0f*t);
+   }
+
+   static RectI computeWipeRect(int W, int H, float t01, TransitionMode mode, TransitionWipeOrigin origin)
+   {
+       float p = smoothstep(t01);
+       float s = (mode == TRANSITION_WIPE_HORIZONTAL_IN ||
+                  mode == TRANSITION_WIPE_VERTICAL_IN) ? p : (1.0f - p);  // size fraction: grows for IN, shrinks for OUT
+
+       float x = 0, y = 0, w = (float)W, h = (float)H;
+
+       if (mode == TRANSITION_WIPE_HORIZONTAL_IN || mode == TRANSITION_WIPE_HORIZONTAL_OUT) {
+           w = s * W;
+
+           if (origin == WIPE_ORIG_LEFT) {
+               x = 0;
+           } else { // WIPE_ORIG_RIGHT
+               x = W - w;
+           }
+           y = 0; h = H;
+       } else { // AXIS_V
+           h = s * H;
+
+           if (origin == WIPE_ORIG_TOP) {
+               y = 0;
+           } else { // WIPE_ORIG_BOTTOM
+               y = H - h;
+           }
+           x = 0; w = W;
+       }
+
+       // Avoid negative/NaN and tiny seams: clamp + round outward a bit
+       if (w < 0) w = 0; if (h < 0) h = 0;
+       if (x < 0) x = 0; if (y < 0) y = 0;
+       if (x + w > W) w = W - x;
+       if (y + h > H) h = H - y;
+
+       return RectI(x,y,w,h);
+   }
+   
+   void updateTransition(float dt)
+   {
+      transitionPos += dt * (1.0/transitionTime);
+      
+      if (transitionPos > 1.0)
+      {
+         transitionPos = 1.0;
+      }
+      
+      Point2F halfSize = Point2F(screenSize.x, screenSize.y) * 0.5f;
+      Point2I fullSize = Point2I(screenSize.x, screenSize.y);
+      
+      switch (currentTransition.mode)
+      {
+         case TRANSITION_IRIS_IN:
+            clipRect.point = (halfSize * transitionPos).asPoint2I();
+            clipRect.extent = (fullSize - clipRect.point) - (halfSize * transitionPos).asPoint2I();
+            break;
+         case TRANSITION_IRIS_OUT:
+            clipRect.point = (halfSize * (1.0f-transitionPos)).asPoint2I();
+            clipRect.extent = (fullSize - clipRect.point) - (halfSize * (1.0f-transitionPos)).asPoint2I();
+            break;
+         case TRANSITION_WIPE_HORIZONTAL_IN:
+         case TRANSITION_WIPE_HORIZONTAL_OUT:
+         case TRANSITION_WIPE_VERTICAL_IN:
+         case TRANSITION_WIPE_VERTICAL_OUT:
+            clipRect = computeWipeRect(screenSize.x,
+                                       screenSize.y,
+                                       transitionPos,
+                                       (TransitionMode)currentTransition.mode,
+                                       (TransitionWipeOrigin)currentTransition.params);
+            break;
+         default:
+            clipRect = RectI(0,0,screenSize.x, screenSize.y);
+            break;
+            
+      }
+   }
 
 };
 
@@ -316,6 +433,14 @@ struct CostumeRenderer
         std::vector<AnimLimbMap> mLimbMap;
         std::vector<AnimInfo> mAnims;
         std::vector<LimbState> mBaseState;
+       
+       void reset()
+       {
+          mFrames.clear();
+          mLimbMap.clear();
+          mAnims.clear();
+          mBaseState.clear();
+       }
     };
 
     // live state
@@ -328,6 +453,10 @@ struct CostumeRenderer
         U8 curDirection; // current direction
         Vector2 position; // display position
         std::vector<LimbState> mLimbState;
+       
+       void reset()
+       {
+       }
     };
 };
 
@@ -386,6 +515,175 @@ void MyLogger(U32 level, const char *consoleLine, void*)
 namespace SimWorld
 {
 
+class ITickable
+{
+   struct TickableInfo
+   {
+      ITickable* tickable;
+      bool registered;
+   };
+ 
+public:
+   virtual void onFixedTick(F32 dt) = 0;
+   
+   void registerTickable()
+   {
+      TickableInfo info = {};
+      info.tickable = this;
+      info.registered = true;
+      smTickList.push_back(info);
+   }
+   
+   void unregisterTickable()
+   {
+      auto itr = std::find_if(smTickList.begin(), smTickList.end(), [this](const TickableInfo& info){
+         return info.tickable == this;
+      });
+      
+      if (itr != smTickList.end())
+      {
+         itr->registered = false;
+      }
+   }
+   
+   static void doFixedTick(F32 dt)
+   {
+      for (TickableInfo info : smTickList)
+      {
+         info.tickable->onFixedTick(dt);
+      }
+      
+      smTickList.erase(
+          std::remove_if(smTickList.begin(), smTickList.end(),
+              [](const TickableInfo& info) {
+                  return !info.registered;
+              }),
+                       smTickList.end()
+      );
+   }
+   
+   static std::vector<TickableInfo> smTickList;
+};
+
+std::vector<ITickable::TickableInfo> ITickable::smTickList;
+
+typedef enum {
+    UI_EVENT_MOUSE_MOVE,
+    UI_EVENT_MOUSE_DOWN,
+    UI_EVENT_MOUSE_UP,
+    UI_EVENT_MOUSE_WHEEL,
+    UI_EVENT_KEY_DOWN,
+    UI_EVENT_KEY_UP,
+    UI_EVENT_CHAR
+} DBIEventType;
+
+struct DBIEvent
+{
+    DBIEventType type;
+   
+   struct MouseData
+   {
+      Vector2 pos;
+      S32 button;
+      F32 wheelPos;
+   };
+   
+   union
+   {
+      U32 key;
+      U32 codePoint;
+   };
+   
+};
+
+class DisplayBase : public SimGroup
+{
+   typedef SimGroup Parent;
+public:
+   Point2I mPosition;
+   Point2I mExtent;
+   
+   // NOTE: these are basically the style
+   ColorI mBackColor;
+   ColorI mColor;
+   ColorI mHiColor;
+   ColorI mDimColor;
+   
+   bool mCentered;
+   bool mEnabled;
+   U32 mHotKey;
+   
+   inline Point2I getPosition() const { return mPosition; }
+   inline Point2I getExtent() const { return mExtent; }
+   
+   bool onAdd() override
+   {
+      return Parent::onAdd();
+   }
+   
+   void onRemove() override
+   {
+      Parent::onRemove();
+   }
+   
+   virtual void resize(const Point2I newPosition, const Point2I newExtent)
+   {
+      mPosition = newPosition;
+      mExtent = newExtent;
+      
+      for (SimObject* obj : objectList)
+      {
+         DisplayBase* displayObj = dynamic_cast<DisplayBase*>(obj);
+         if (displayObj)
+         {
+            displayObj->resize(newPosition, newExtent);
+         }
+      }
+   }
+   
+   void forwardEvent(DBIEvent& event)
+   {
+      for (SimObject* obj : objectList)
+      {
+         DisplayBase* displayObj = dynamic_cast<DisplayBase*>(obj);
+         if (displayObj)
+         {
+            displayObj->processInput(event);
+         }
+      }
+   }
+   
+   virtual bool processInput(DBIEvent& event)
+   {
+      return false;
+   }
+   
+   void renderChildren(Point2I offset, RectI drawRect, Camera2D& globalCamera)
+   {
+      for (SimObject* obj : objectList)
+      {
+         DisplayBase* dObj = dynamic_cast<DisplayBase*>(obj);
+         if (dObj)
+         {
+            Point2I childPosition = offset + dObj->getPosition();
+            RectI childClip(childPosition, dObj->getExtent());
+            
+            dObj->onRender(offset, drawRect, globalCamera);
+         }
+      }
+   }
+   
+   virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
+   {
+   }
+   
+   
+public:
+   DECLARE_CONOBJECT(DisplayBase);
+};
+
+IMPLEMENT_CONOBJECT(DisplayBase);
+
 class ImageSet;
 
 class CostumeAnim : public SimObject
@@ -428,12 +726,29 @@ public:
    std::vector<StringTableEntry> mLimbNames;
    U32 mCostumeFlags;
    
+   CostumeRenderer::StaticState mState;
+   
    void enumerateItems(std::vector<CostumeAnim*> &anims);
+   bool compileCostume();
+   
+   static void initPersistFields()
+   {
+      Parent::initPersistFields();
+      
+      //addField("N", TypeString, )
+      
+   }
+   
 public:
    DECLARE_CONOBJECT(Costume);
 };
 
 IMPLEMENT_CONOBJECT(Costume);
+
+bool Costume::compileCostume()
+{
+   mState.reset();
+}
 
 class RoomObject : public SimObject
 {
@@ -455,7 +770,7 @@ public:
    Point2I mPosition;
    Point2I mExtent;
    Point2I mHotspot;
-   Direction mDirection;
+   SimWorld::Direction mDirection;
    U32 mCurrentState;
    U32 mTransFlags;
    
@@ -517,7 +832,7 @@ class Actor : public SimObject
    typedef SimObject Parent;
 public:
    
-   Costume* mCostume;
+   SimWorld::Costume* mCostume;
    CostumeRenderer::LiveState mLiveCostume;
    
    
@@ -525,62 +840,6 @@ public:
 };
 
 IMPLEMENT_CONOBJECT(Actor);
-
-class DisplayBase : public SimGroup
-{
-   typedef SimGroup Parent;
-public:
-   Point2I mPosition;
-   Point2I mExtent;
-   
-   // NOTE: these are basically the style
-   ColorI mBackColor;
-   ColorI mColor;
-   ColorI mHiColor;
-   ColorI mDimColor;
-   
-   bool mCentered;
-   bool mEnabled;
-   U32 mHotKey;
-   
-   inline Point2I getPosition() const { return mPosition; }
-   inline Point2I getExtent() const { return mExtent; }
-   
-   bool onAdd() override
-   {
-      return Parent::onAdd();
-   }
-   
-   void onRemove() override
-   {
-      Parent::onRemove();
-   }
-   
-   void renderChildren(Point2I offset, RectI drawRect)
-   {
-      for (SimObject* obj : objectList)
-      {
-         DisplayBase* dObj = dynamic_cast<DisplayBase*>(obj);
-         if (dObj)
-         {
-            Point2I childPosition = offset + dObj->getPosition();
-            RectI childClip(childPosition, dObj->getExtent());
-            
-            dObj->onRender(offset, drawRect);
-         }
-      }
-   }
-   
-   virtual void onRender(Point2I offset, RectI drawRect)
-   {
-   }
-   
-   
-public:
-   DECLARE_CONOBJECT(DisplayBase);
-};
-
-IMPLEMENT_CONOBJECT(DisplayBase);
 
 class VerbDisplay : public DisplayBase
 {
@@ -609,8 +868,46 @@ class RootUI : public DisplayBase
 {
    typedef DisplayBase Parent;
 public:
+   static RootUI* sMainInstance;
+   
+   bool onAdd()
+   {
+      if (Parent::onAdd())
+      {
+         sMainInstance = this;
+         return true;
+      }
+      return false;
+   }
+   
+   void onRemove()
+   {
+      if (sMainInstance == this)
+      {
+         sMainInstance = nullptr;
+      }
+      
+      Parent::onRemove();
+   }
+   
+   virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
+   {
+      resize(offset, drawRect.extent);
+      
+      for (SimObject* obj : objectList)
+      {
+         DisplayBase* displayObj = dynamic_cast<DisplayBase*>(obj);
+         if (displayObj)
+         {
+            displayObj->onRender(offset, drawRect, globalCamera);
+         }
+      }
+   }
+   
+public:
    DECLARE_CONOBJECT(RootUI);
 };
+RootUI* RootUI::sMainInstance;
 
 IMPLEMENT_CONOBJECT(RootUI);
 
@@ -629,9 +926,335 @@ public:
 IMPLEMENT_CONOBJECT(Sound);
 
 
-class Room : public DisplayBase
+struct BoxInfo
 {
-   typedef SimObject Parent;
+   enum
+   {
+      NumScaleSlots = 5
+   };
+   
+   enum BoxFlags
+   {
+      BOXF_NONE = 0,
+      
+      BOXF_DISABLED = BIT(0),
+      BOXF_UNKNOWN1 = BIT(1),
+      BOXF_UNKNOWN2 = BIT(2),
+      
+      BOXF_XFLIP = BIT(3),
+      BOXF_YFLIP = BIT(4),
+      BOXF_IGNORE_SCALE = BIT(5),
+      BOXF_LOCKED = BIT(6),
+      BOXF_INVISIBLE = BIT(7)
+   };
+   
+   struct Box
+   {
+      std::string name;
+      uint16_t startPoint;
+      uint16_t numPoints;
+      uint16_t scale;
+      uint8_t mask;
+      uint8_t flags;
+   };
+   
+   struct ScaleInfo
+   {
+      U16 sy1[2];
+      U16 sy2[2];
+   };
+   
+   std::vector<Box> boxes;
+   std::vector<Point2I> points;
+   std::vector<ScaleInfo> scaleBands;
+   std::vector<U8> nextBoxHopList;
+
+   static inline bool OnSegment(const Point2I& a, const Point2I& b, const Point2I& p)
+   {
+       return std::min(a.x, b.x) <= p.x && p.x <= std::max(a.x, b.x) &&
+              std::min(a.y, b.y) <= p.y && p.y <= std::max(a.y, b.y);
+   }
+
+   static inline bool PointOnEdge(Point2I* poly, U32 n, Point2I p)
+   {
+       for (int i = 0; i < n; i++) {
+           const Point2I& a = poly[i];
+           const Point2I& b = poly[(i + 1) % n];
+           S32 c = mCross(a, b, p);
+           if (c == 0 && OnSegment(a, b, p)) return true;
+       }
+       return false;
+   }
+   
+   static bool PointInConvexPoly(Point2I* poly, U32 n, Point2I p)
+   {
+       if (n < 3) return false;
+
+       if (PointOnEdge(poly, n, p)) return true;
+
+       int sign = 0;
+       for (int i = 0; i < n; i++) {
+           const Point2I& a = poly[i];
+           const Point2I& b = poly[(i + 1) % n];
+           S32 c = mCross(a, b, p);
+           if (c == 0) continue;
+           int s = (c > 0) ? 1 : -1;
+           if (sign == 0) sign = s;
+           else if (sign != s) return false;
+       }
+       return true;
+   }
+   
+   F32 evalScale(Point2I roomPos)
+   {
+      F32 outScale = 1.0f;
+      U16 realRoomPos = std::clamp(roomPos.x, 0, 65536);
+      evalBandScale(realRoomPos, outScale);
+      evalBoxScale(roomPos, outScale); // may override
+      return outScale;
+   }
+   
+   void evalBoxScale(Point2I roomPos, F32& outScale)
+   {
+      for (Box& box : boxes)
+      {
+         if (PointInConvexPoly(points.data() + box.startPoint, box.numPoints, roomPos))
+         {
+            if (box.flags & BOXF_DISABLED)
+            {
+               continue;
+            }
+            
+            if (box.flags & BOXF_IGNORE_SCALE)
+            {
+               outScale = 1.0;
+            }
+            else if ((box.scale & 0x8000) != 0)
+            {
+               U16 trueScale = box.scale & 0x7;
+               U16 realRoomPos = std::clamp(roomPos.x, 0, 65536);
+               outScale = evalScaleForBand(scaleBands[trueScale], realRoomPos);
+            }
+            else if (box.scale > 0)
+            {
+               outScale = scaleToFloat(box.scale);
+            }
+            
+            return;
+         }
+      }
+   }
+   
+   inline F32 evalScaleForBand(ScaleInfo& info, S16 roomPos)
+   {
+      F32 startScale = scaleToFloat(info.sy1[0]);
+      F32 endScale = scaleToFloat(info.sy2[0]);
+      
+      U16 relPos = roomPos - info.sy1[1];
+      U16 bandSize = info.sy2[1] - info.sy1[1];
+      
+      F32 ratioInBand = (F32)(relPos) / (F32) bandSize;
+      return startScale + (ratioInBand * (endScale - startScale));
+   }
+   
+   F32 evalBandScale(U16 roomPos, F32 outScale)
+   {
+      if (scaleBands.empty())
+      {
+         return 1.0f;
+      }
+      
+      for (ScaleInfo& info : scaleBands)
+      {
+         if (roomPos >= info.sy1[1] && roomPos < info.sy2[1])
+         {
+            return evalScaleForBand(info, roomPos);
+         }
+      }
+      
+      return 1.0f;
+   }
+   
+   uint8_t getNextBoxIndex(int src, int dst)
+   {
+       return nextBoxHopList[src * boxes.size() + dst];
+   }
+   
+   static F32 scaleToFloat(uint16_t value)
+   {
+      return value / 100.0f;
+   }
+   
+   void reset()
+   {
+      boxes.clear();
+      points.clear();
+      scaleBands.clear();
+      nextBoxHopList.clear();
+   }
+   
+   bool read(Stream& stream)
+   {
+      std::vector<U8> boxmData;
+      
+      while (stream.getStatus() == Stream::Ok)
+      {
+         IFFBlock block;
+         if (!stream.read(sizeof(IFFBlock), &block))
+         {
+            return false;
+         }
+         
+         S32 size = convertBEndianToHost(block.getRawSize());
+         if (size < 8)
+         {
+            return false;
+         }
+         size -= 8;
+         
+         if (block.ident == 1297633090) // BOXM
+         {
+            boxmData.resize(size);
+            if (!stream.read(size, boxmData.data()))
+            {
+               return false;
+            }
+         }
+         else if (block.ident == 1685614434 || // boxd
+                  block.ident == 1112496196)  // BOXD
+         {
+            // skip first box on BOXD
+            if (block.ident == 1112496196)
+            {
+               stream.setPosition(stream.getPosition()+22);
+            }
+            
+            if (stream.getStatus() == Stream::Ok)
+            {
+               char nameBuf[256];
+               Box rootBox = {};
+               boxes.push_back(rootBox);
+               
+               while (size >= 21)
+               {
+                  Box outBox = {};
+                  U8 sz = 0;
+                  stream.read(&sz);
+                  stream.read(sz, nameBuf);
+                  nameBuf[sz] = '\0';
+                  outBox.name = nameBuf;
+                  size -= sz + 1;
+                  
+                  Point2I point;
+                  outBox.startPoint = points.size();
+                  outBox.numPoints = 4;
+                  
+                  for (U32 i=0; i<4; i++)
+                  {
+                     uint16_t xp;
+                     uint16_t yp;
+                     stream.read(&xp);
+                     stream.read(&yp);
+                     points.push_back(Point2I(xp, yp));
+                  }
+                  
+                  stream.read(&outBox.mask);
+                  stream.read(&outBox.flags);
+                  stream.read(&outBox.scale);
+                  size -= 20;
+                  
+                  boxes.push_back(outBox);
+               }
+            }
+         }
+         else if (block.ident == 1279345491) // SCAL
+         {
+            scaleBands.clear();
+            
+            for (U32 i=0; i<NumScaleSlots; i++)
+            {
+               ScaleInfo info;
+               stream.read(&info.sy1[0]);
+               stream.read(&info.sy1[1]);
+               stream.read(&info.sy2[0]);
+               stream.read(&info.sy2[1]);
+               scaleBands.push_back(info);
+            }
+         }
+         else
+         {
+            return false;
+         }
+      }
+      
+      // Decode BOXM
+      nextBoxHopList.clear();
+      if (!boxmData.empty())
+      {
+         U32 matrixN = boxes.size();
+         nextBoxHopList.resize(matrixN*matrixN, 255);
+         
+         MemStream boxStream(boxmData.size(), boxmData.data(), true, false);
+         
+         for (int row = 0; row < boxes.size(); row++)
+         {
+            uint8_t marker = 0;
+            boxStream.read(&marker);
+             if (marker != 0xFF)
+             {
+                return false;
+             }
+
+             // Runs continue until the next 0xFF, which begins the next row (or ends the block)
+             while (boxStream.getStatus() == Stream::Ok)
+             {
+                uint8_t startCol = 0;
+                uint8_t endCol   = 0;
+                uint8_t value    = 0;
+                
+                 boxStream.read(&startCol);
+                 if (startCol == 0xFF)
+                 {
+                    boxStream.setPosition(boxStream.getPosition()-1);
+                    break;
+                 }
+                
+                boxStream.read(&endCol);
+                boxStream.read(&value);
+
+                 if (startCol >= matrixN ||
+                     endCol > matrixN ||
+                     startCol > endCol)
+                 {
+                    return false;
+                 }
+
+                 for (int col = startCol; col <= endCol; col++)
+                 {
+                    nextBoxHopList[(size_t)row * matrixN + (size_t)col] = value;
+                 }
+             }
+         }
+      }
+   }
+};
+
+RectI WorldRectToScreen(RectI r, Camera2D cam)
+{
+    Vector2 topLeft     = GetWorldToScreen2D((Vector2){ (float)(r.point.x), (float)(r.point.y) }, cam);
+    Vector2 bottomRight = GetWorldToScreen2D((Vector2){ (float)(r.point.x + r.extent.x), (float)(r.point.y + r.extent.y) }, cam);
+
+    return RectI(
+        topLeft.x,
+        topLeft.y,
+        bottomRight.x - topLeft.x,
+        bottomRight.y - topLeft.y
+    );
+}
+
+class Room : public DisplayBase, public ITickable
+{
+   typedef DisplayBase Parent;
 public:
 
     StringTableEntry mImageFileName;
@@ -641,24 +1264,127 @@ public:
     U32 mTransFlags;
    
    RoomRender mRenderState;
+   BoxInfo mBoxes;
+   
+   bool onAdd()
+   {
+      if (Parent::onAdd())
+      {
+         registerTickable();
+         return true;
+      }
+      return false;
+   }
+   
+   void onRemove()
+   {
+      unregisterTickable();
+   }
+   
+   void setTransitionMode(U8 mode, U8 param, F32 time)
+   {
+      mRenderState.transitionPos = 0.0f;
+      mRenderState.transitionTime = time;
+      mRenderState.currentTransition.mode = mode;
+      mRenderState.currentTransition.params = param;
+   }
+   
+   virtual void resize(const Point2I newPosition, const Point2I newExtent)
+   {
+      Parent::resize(newPosition, newExtent);
+      mRenderState.screenSize.x = mExtent.x;
+      mRenderState.screenSize.y = mExtent.y;
+   }
    
    void updateResources()
    {
+      if (mBoxFileName && mBoxFileName[0] != '\0')
+      {
+         mBoxes.reset();
+         FileStream fs;
+         if (fs.open(mBoxFileName, FileStream::Read))
+         {
+            mBoxes.read(fs);
+         }
+      }
+      
       mRenderState.backgroundImage = mImageFileName && *mImageFileName ? gTextureManager->loadTexture(mImageFileName) : nullptr;
       for (uint32_t i=0; i<RoomRender::NumZPlanes; i++)
       {
          mRenderState.zPlanes[i] = mZPlaneFiles[i] && *mZPlaneFiles[i] ? gTextureManager->loadTexture(mZPlaneFiles[i]) : nullptr;
       }
+      
+      TextureSlot* slot = gTextureManager->resolveHandle(mRenderState.backgroundImage);
+      if (slot)
+      {
+         mRenderState.backgroundSR = RectI(Point2I(0,0), Point2I(slot->mTexture.width, slot->mTexture.height));
+      }
    }
    
-   virtual void onRender(Point2I offset, RectI drawRect)
+   virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    {
-      if (mRenderState.backgroundImage.getIndex() == 0)
+      if (mRenderState.backgroundImage.getNum() == 0)
       {
          updateResources();
       }
       
+      // We need to maintain the original aspect ratio of the scene when drawing the image in respect to the scumm coord system
       
+      Rectangle source = { (float)mRenderState.backgroundSR.point.x, (float)mRenderState.backgroundSR.point.y, (float)mRenderState.backgroundSR.extent.x, (float)mRenderState.backgroundSR.extent.y };
+      Rectangle dest = { (float)offset.x, (float)offset.y, (float)drawRect.extent.x, (float)drawRect.extent.y };
+      Vector2 origin = { 0.0, 0.0 };
+      
+      DrawRectangle(offset.x, offset.y, drawRect.extent.x, drawRect.extent.y, (Color){0,0,0,255});
+      
+      // Transform
+      RectI globalRect = WorldRectToScreen(mRenderState.clipRect, globalCam);
+      BeginScissorMode(globalRect.point.x, globalRect.point.y, globalRect.extent.x, globalRect.extent.y);
+      
+      TextureSlot* slot = gTextureManager->resolveHandle(mRenderState.backgroundImage);
+      if (slot)
+      {
+         Rectangle dest = { (float)offset.x, (float)offset.y, (float)slot->mTexture.width, (float)slot->mTexture.height };
+         DrawTexturePro(slot->mTexture, source, dest, origin, 0.0f, WHITE);
+      }
+      
+      Point2F scalingFactor = Point2F(mRenderState.screenSize.x / 320.0f, mRenderState.screenSize.y / 200.0f);
+      
+      for (BoxInfo::Box& box : mBoxes.boxes)
+      {
+         if (box.numPoints >= 4)
+         {
+            Point2I* points = mBoxes.points.data() + box.startPoint;
+            
+            Vector2 prevPoint = (Vector2){points[0].x * scalingFactor.x, points[0].y * scalingFactor.y};
+            Vector2 originPoint = prevPoint;
+            for (U32 i=1; i<box.numPoints; i++)
+            {
+               Vector2 curPoint = (Vector2){points[i].x * scalingFactor.x, points[i].y * scalingFactor.y};
+               ::DrawLineV(prevPoint, curPoint, (Color){255,255,255,255});
+               prevPoint = curPoint;
+            }
+            
+            ::DrawLineV(prevPoint, originPoint, (Color){255,255,255,255});
+         }
+      }
+      
+      EndScissorMode();
+      
+   }
+   
+   
+   virtual void onFixedTick(F32 dt)
+   {
+      mRenderState.updateTransition(dt);
+   }
+   
+   static void initPersistFields()
+   {
+      Parent::initPersistFields();
+      
+      addField("image", TypeString, Offset(mImageFileName, Room));
+      addField("boxFile", TypeString, Offset(mBoxFileName, Room));
+      addField("zPlanes", TypeString, Offset(mImageFileName, Room), RoomRender::NumZPlanes);
    }
 
 public:
@@ -666,7 +1392,26 @@ public:
 };
 IMPLEMENT_CONOBJECT(Room);
 
+
+ConsoleMethodValue(RootUI, setContent, 3, 3, "")
+{
+   DisplayBase* displayObject = nullptr;
+   if (Sim::findObject(argv[2], displayObject))
+   {
+      object->addObject(displayObject);
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Room, setTransitionMode, 5, 5, "mode, param, time")
+{
+   object->setTransitionMode(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]), vmPtr->valueAsFloat(argv[4]));
+   return KorkApi::ConsoleValue();
+}
+
 };
+
 
 
 ConsoleFunctionValue(IsKeyDown, 2, 2, "key")
@@ -683,6 +1428,17 @@ ConsoleFunctionValue(SetInput, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
+
+static Rectangle GetLetterboxViewport(int sw, int sh, int vw, int vh)
+{
+    float scale = fminf((float)sw/vw, (float)sh/vh);
+    float w = vw * scale;
+    float h = vh * scale;
+    float x = (sw - w) * 0.5f;
+    float y = (sh - h) * 0.5f;
+    return (Rectangle){ x, y, w, h };
+}
+
 int main(int argc, char **argv)
 {
     const int screenWidth = 800;
@@ -690,13 +1446,23 @@ int main(int argc, char **argv)
 
     Con::init();
     Sim::init();
-    Con::addConsumer(MyLogger, NULL);
+    Con::addConsumer(MyLogger, nullptr);
    ClearWindowState(FLAG_VSYNC_HINT);
 
+   Camera2D cam = {0};
+   cam.target = (Vector2){ 0, 0 };   // world origin you want at top-left
+   cam.rotation = 0.0f;
+   
     InitWindow(screenWidth, screenHeight, "raylib - fixed tick sim + variable render");
     {
        ClearWindowState(FLAG_VSYNC_HINT);
          SetTargetFPS(1000); // render as fast as possible (optional)
+       
+       Rectangle vp = GetLetterboxViewport(screenWidth, screenHeight, 320, 200);
+       float zoom = vp.width / (float)320.0;   // same as vp.height/VH
+
+       cam.offset = (Vector2){ vp.x, vp.y }; // screen-space top-left of viewport
+       cam.zoom   = zoom;
 
         gTextureManager = new TextureManager();
 
@@ -711,7 +1477,7 @@ int main(int argc, char **argv)
         Vector2 origin = { size.x / 2.0f, size.y / 2.0f };
 
         const float fixedDt = 1.0f / (float)TICK_HZ;
-        double accumulator = 0.0;
+        double accumulator = fixedDt;
 
         State prev = { .pos = { screenWidth/2.0f, screenHeight/2.0f }, .vel = {0}, .rotationDeg = 0.0f };
         State curr = prev;
@@ -739,12 +1505,18 @@ int main(int argc, char **argv)
            //Con::printf("Time: %u ms", duration.count());
            
            //exit(1);
+           
+            if (SimWorld::RootUI::sMainInstance)
+            {
+               SimWorld::RootUI::sMainInstance->resize(Point2I(0,0), Point2I(320, 200));
+            }
 
             // Run fixed sim steps as needed
             int steps = 0;
             while (accumulator >= fixedDt && steps < MAX_STEPS)
             {
                 prev = curr;                 // keep last state for interpolation
+                SimWorld::ITickable::doFixedTick(fixedDt);
                 UpdateFixed(&curr, in, fixedDt);
                 accumulator -= fixedDt;
                 steps++;
@@ -756,6 +1528,13 @@ int main(int argc, char **argv)
 
             BeginDrawing();
             ClearBackground(RAYWHITE);
+           BeginMode2D(cam);
+           
+            if (SimWorld::RootUI::sMainInstance)
+            {
+               SimWorld::RootUI::sMainInstance->onRender(Point2I(0,0), RectI(Point2I(0,0), Point2I(320, 200)), cam);
+            }
+           
            
            if (GuiButton((Rectangle){ 24, 24, 120, 30 }, "#191#Show Message"))
            {
@@ -773,6 +1552,11 @@ int main(int argc, char **argv)
             DrawText(TextFormat("Sim tick: %.0f Hz (dt=%.6f) FPS=%i", TICK_HZ, fixedDt, GetFPS()), 10, 10, 20, DARKGRAY);
             DrawText(TextFormat("alpha=%.2f steps=%d", alpha, steps), 10, 35, 20, DARKGRAY);
             DrawText("Move: WASD/Arrows | Fixed sim, variable render", 10, 60, 20, DARKGRAY);
+
+           EndMode2D();
+           
+           // Debug viewport outline
+           DrawRectangleLinesEx(vp, 1, GREEN);
 
             EndDrawing();
         }
