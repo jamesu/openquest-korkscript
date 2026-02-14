@@ -53,7 +53,17 @@ set(TORQUESIM_SRCS
 )
 
 set(GAME_SRCS
+  ./src/game/actor.cc
+  ./src/game/costume.cc
+  ./src/game/displayBase.cc
   ./src/game/main.cc
+  ./src/game/raygui.cc
+  ./src/game/resourceManagers.cc
+  ./src/game/resources.cc
+  ./src/game/room.cc
+  ./src/game/scheduling.cc
+  ./src/game/sound.cc
+  ./src/game/verbs.cc
   ./src/math/mathTypes.cc
   ./src/math/mathTypes.h
   ./src/math/mPoint.cc
