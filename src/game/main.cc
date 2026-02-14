@@ -6,6 +6,7 @@
 //-----------------------------------------------------------------------------
 // 
 #include "platform/platform.h"
+#include "platform/platformProcess.h"
 #include "raylib.h"
 #include "console/console.h"
 #include "console/consoleTypes.h"
@@ -14,14 +15,20 @@
 #include "core/freeListHandleHelpers.h"
 #include "core/memStream.h"
 #include "core/fileStream.h"
+#include "core/stringUnit.h"
 #include <math.h>
+#include <sstream>
+#include <iomanip>
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
+#include "sim/simFiberManager.h"
 
 // --- Tweak these ---
-#define TICK_HZ        128.0        // fixed simulation rate (e.g. 60, 64, 128)
+#define TICK_HZ        60.0        // fixed simulation rate (e.g. 60, 64, 128)
 #define MAX_FRAME_DT   0.25         // clamp to avoid spiral-of-death (seconds)
 #define MAX_STEPS      8            // safety cap: max sim steps per render frame
+
+#define PINK_BG (Color){253, 5, 255, 255}
 
 typedef struct State {
     Vector2 pos;
@@ -123,7 +130,7 @@ public:
    TextureHandle(const TextureHandle& other)
    {
       TextureSlot* newTO = other.getPtr();
-      if (other.isHeavyRef())
+      if (newTO && other.isHeavyRef())
       {
          newTO->incRef();
       }
@@ -187,7 +194,7 @@ public:
     TextureManager() = default;
     ~TextureManager() { cleanup(); }
 
-    TextureHandle loadTexture(const std::string& path) 
+    TextureHandle loadTexture(const std::string& path, Image* existingImage = NULL)
     {
         // Already loaded?
         auto it = mPathToId.find(path);
@@ -197,7 +204,13 @@ public:
         }
 
         // Load new texture
-        ::Texture2D tex = ::LoadTexture(path.c_str());
+        ::Texture2D tex = existingImage ? ::LoadTextureFromImage(*existingImage) : ::LoadTexture(path.c_str());
+       
+        if (tex.id == 0)
+        {
+           Con::errorf("Failed to load image '%s'", path.c_str());
+           return TextureHandle();
+        }
 
         TextureSlot* slot = new TextureSlot();
         slot->mTexture = tex;
@@ -238,6 +251,10 @@ private:
     std::vector<TextureSlot*> mSlots;                             // id-1 indexing
 };
 
+
+// globals
+F32 gTimerNext = 1.0;
+SimFiberManager* gFiberManager = nullptr;
 TextureManager* gTextureManager = nullptr;
 
 TextureSlot* TextureHandle::getPtr() const
@@ -374,92 +391,301 @@ struct RoomRender
 
 };
 
+namespace SimWorld
+{
+   class Sound;
+}
+
 struct CostumeRenderer
 {
-    enum Flags
+    enum AnimFlags
     {
-        LOOP=BIT(0),
-        PING_PONG=BIT(1)
+        LOOP=0,
+        NO_LOOP=BIT(1),
+        HIDE=BIT(3)
     };
+   
+    enum GlobalFlags
+   {
+       FLIP=BIT(0)
+    };
+   
+    enum CommandOpcode : U16
+    {
+       CMD_IMG,    // change image
+       CMD_SOUND,  // play sound
+       CMD_HIDE,   // hide image
+       CMD_SHOW,   // show image
+       CMD_NOP,    // do nothing
+       CMD_COUNT,  // movement step for walk
+       CMD_FLAG,   // flag set (not used at runtime)
+       CMD_END
+    };
+   
+   static const char* opcodeMap[];
 
     enum
     {
         NumDirections = 4
     };
+   
+   enum DirectionValue : U8
+   {
+      NORTH,
+      SOUTH,
+      WEST,
+      EAST
+   };
+   
+   /*
+    Layout:
+    
+       LimbState[numLimbs]
+       For each anim:
+         AnimInfo
+            For each direction:
+               AnimDirection
+                  AnimLimbMap[]
+                     LimbTrack
+                        Command[]
+       Frame[numFrames]
+    */
 
     // Limb track for direction
     struct AnimDirection
     {
-        // target limb
         U32 startLimbMap; // index into AnimLimbMap
         U32 numLimbs;     // x NumDirections
-        U32 flags;        // loop, etc
+        U32 flags;        // global anim flags; loop, etc
     };
 
     struct AnimInfo
     {
         AnimDirection directionTracks[NumDirections]; // tracks for each dir
+        StringTableEntry name;
         U32 flags; // loop, etc
     };
+   
+   struct LimbTrack
+   {
+      U32 startCmd;        // start frame of current loop
+      U32 numCommands;     // 0 = invisible
+      U32 flags;           // limb specific anim flags
+   };
 
     struct AnimLimbMap
     {
-        U32 targetLimb; // limb the frames are for
-        U32 startFrame; // index into Frame list
-        U32 numFrames;  // frames to use
+       LimbTrack track;
+       U32 targetLimb;   // limb the track is for
     };
 
     // compiled frame
     struct Frame
     {
         TextureHandle displayImage;
-        Vector2 offset;
-        U32 flags;
+        Point2I displayOffset;
+       U8 setFlags;
+    };
+   
+    // compiled command
+    struct Command
+    {
+       U16 cmd;
+       U16 param;
     };
 
     // State of limbs
     struct LimbState
     {
         StringTableEntry name;
-        U32 startFrame;    // start frame of current loop
-        U32 numFrames;     // 0 = invisible
-        U32 lastEvalFrame; // last frame we are displaying
+        LimbTrack track;
+        U32 nextCmd;         // command we are on next
+        U32 lastEvalFrame;   // last Frame we are displaying
     };
 
     // compiled state
     struct StaticState
     {
         std::vector<Frame> mFrames;
+        std::vector<Command> mCommands;
         std::vector<AnimLimbMap> mLimbMap;
         std::vector<AnimInfo> mAnims;
-        std::vector<LimbState> mBaseState;
+        std::vector<StringTableEntry> mLimbNames; // base names for LimbState
+        std::vector<SimWorld::Sound*> mSounds;
+        U32 mFlags;
        
-       void reset()
+       void reset(bool arraysOnly=false)
        {
           mFrames.clear();
+          mCommands.clear();
           mLimbMap.clear();
           mAnims.clear();
-          mBaseState.clear();
+          mLimbNames.clear();
+          if (!arraysOnly)
+          {
+             mFlags = 0;
+          }
        }
     };
 
     // live state
     struct LiveState
     {
-        U8 flags;
-        U8 curAnim;      // AnimInfo we are playing
-        U8 curTalkAnim;  // AnimInfo for talk (override)
-        U8 curAnimFrame; // tick for anim
-        U8 curDirection; // current direction
-        Vector2 position; // display position
+        U8 globalFlags;   // baked costume flags
+        U8 animFlags;     // this is global ANIM flags
+        S16 curAnim;      // AnimInfo we are playing
+        S16 curTalkAnim;  // AnimInfo for talk (override)
+        U8 curDirection;  // current direction
+        U16 curCount;     // walk counter (based on current movement direction)
+        Point2F position; // display position
+        Point2F delta;    // momentum
+        F32 scale;
         std::vector<LimbState> mLimbState;
-       
+
+       void init(StaticState& state)
+       {
+          reset();
+         mLimbState.resize(state.mLimbNames.size());
+         for (U32 i=0; i<mLimbState.size(); i++)
+         {
+            mLimbState[i].name = state.mLimbNames[i];
+            mLimbState[i].track = {};
+            mLimbState[i].nextCmd = 0;
+            mLimbState[i].lastEvalFrame = 0;
+         }
+          
+          globalFlags = (U8)state.mFlags;
+       }
+
        void reset()
        {
+          globalFlags = 0;
+          animFlags = 0;
+          curAnim = 0;
+          curTalkAnim = -1;
+          curDirection = 0;
+          position = Point2F(0.0f, 0.0f);
+          mLimbState.clear();
+          position = Point2F(0.0f, 0.0f);
+          delta = Point2F(0.0f, 0.0f);
+          scale = 1.0f;
        }
+       
+       void resetAnim(StaticState& state, U8 direction, bool talking)
+       {
+          S16 animNumber = talking ? curTalkAnim : curAnim;
+          if (animNumber < 0)
+          {
+             return;
+          }
+          
+          AnimInfo& animInfo = state.mAnims[animNumber];
+          AnimDirection& dirInfo = animInfo.directionTracks[direction];
+          
+          for (U32 k=0; k<dirInfo.numLimbs; k++)
+          {
+             AnimLimbMap& limbTrack = state.mLimbMap[dirInfo.startLimbMap + k];
+             LimbState& liveLimb = mLimbState[limbTrack.targetLimb];
+             liveLimb.track = limbTrack.track;
+             liveLimb.nextCmd = 0;
+          }
+       }
+
+       void setAnim(StaticState& state, StringTableEntry animName, U8 direction, bool talking)
+       {
+         for (U32 i=0; i<state.mAnims.size(); i++)
+         {
+            AnimInfo& animInfo = state.mAnims[i];
+            animFlags = animInfo.flags;
+
+            if (animInfo.name == animName)
+            {
+               // Found it, reset to this anim
+               AnimDirection& dirInfo = animInfo.directionTracks[direction];
+
+               for (U32 k=0; k<dirInfo.numLimbs; k++)
+               {
+                  AnimLimbMap& limbTrack = state.mLimbMap[dirInfo.startLimbMap + k];
+                  LimbState& liveLimb = mLimbState[limbTrack.targetLimb];
+                  liveLimb.track = limbTrack.track;
+                  liveLimb.nextCmd = 0;
+               }
+
+               // Track current anim
+               if (talking)
+               {
+                  curTalkAnim = i;
+               }
+               else
+               {
+                  curAnim = i;
+               }
+               
+               return;
+            }
+         }
+       }
+
+       inline void evalCmd(StaticState& state, LimbState& limbState, Command& cmd)
+       {
+         switch (cmd.cmd)
+         {
+         case CMD_IMG:
+            limbState.lastEvalFrame = cmd.param;
+            break;
+         case CMD_HIDE:
+            limbState.track.flags |= HIDE;
+            break;
+         case CMD_SHOW:
+            limbState.track.flags &= ~HIDE;
+            break;
+         case CMD_COUNT:
+            curCount++;
+            break;
+         case CMD_SOUND:
+            // TODO
+            break;
+         default:
+            break;
+         }
+
+          if (limbState.nextCmd+1 < limbState.track.numCommands)
+          {
+             limbState.nextCmd++;
+          }
+          else if ((limbState.track.flags & NO_LOOP) == 0)
+          {
+             // loop back to start
+             limbState.nextCmd = 0;
+          }
+       }
+
+       void advanceTick(StaticState& state)
+       {
+         for (LimbState& limbState : mLimbState)
+         {
+            if (limbState.nextCmd < limbState.track.numCommands)
+            {
+               evalCmd(state, limbState, state.mCommands[limbState.track.startCmd + limbState.nextCmd]);
+            }
+         }
+       }
+
+       void render(StaticState& state);
     };
 };
 
+
+const char* CostumeRenderer::opcodeMap[] = {
+   "IMG",
+   "SOUND",
+   "HIDE",
+   "SHOW",
+   "NOP",
+   "COUNT",
+   "FLAG",
+   ""
+};
 
 static Input SampleInput(void)
 {
@@ -567,6 +793,119 @@ public:
 
 std::vector<ITickable::TickableInfo> ITickable::smTickList;
 
+
+class ImageSet : public SimObject
+{
+   typedef SimObject Parent;
+public:
+   
+   enum Flags
+   {
+      FLAG_TRANSPARENT = BIT(0)
+   };
+   
+   StringTableEntry mFormatString;
+   Point2I mOffset;
+   std::vector<Image> mLoadedImages;
+   U32 mFlags;
+   
+   ImageSet()
+   {
+      mFormatString = StringTable->insert("");
+      mFlags = FLAG_TRANSPARENT;
+      mOffset = Point2I(0,0);
+   };
+   
+   ~ImageSet()
+   {
+      clearImages();
+   }
+   
+   void clearImages()
+   {
+      for (Image& img : mLoadedImages)
+      {
+         ::UnloadImage(img);
+      }
+      mLoadedImages.clear();
+   }
+   
+   void ensureImageLoaded(U32 n)
+   {
+      if (mLoadedImages.size() <= n)
+      {
+         for (U32 i=(U32)mLoadedImages.size(); i<=n; i++)
+         {
+            std::string fpath = makeImageFilename(n);
+            char dstName[4096];
+            Con::expandPath(dstName, sizeof(dstName), fpath.c_str(), Con::getCurrentCodeBlockFullPath());
+            if (Platform::isFile(dstName))
+            {
+               Image img = ::LoadImage(dstName);
+               if (img.data)
+               {
+                  if ((mFlags & FLAG_TRANSPARENT) != 0)
+                  {
+                     ImageFormat(&img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                     ImageColorReplace(&img, PINK_BG, BLANK);
+                  }
+                  mLoadedImages.push_back(img);
+               }
+               else
+               {
+                  mLoadedImages.push_back(Image());
+               }
+            }
+            else
+            {
+               mLoadedImages.push_back(Image());
+            }
+         }
+      }
+   }
+   
+   std::string makeImageFilename(U32 n)
+   {
+       std::ostringstream ss;
+       ss << std::setw(2) << std::setfill('0') << n;
+
+       std::string path = mFormatString;
+       size_t pos = path.find("??");
+       if (pos != std::string::npos) {
+           path.replace(pos, 2, ss.str());
+       }
+       return path;
+   }
+   
+   static void initPersistFields()
+   {
+      Parent::initPersistFields();
+      
+      addField("format", TypeString, Offset(mFormatString, ImageSet));
+      addField("offset", TypePoint2I, Offset(mOffset, ImageSet));
+      addField("flags", TypeS32, Offset(mFlags, ImageSet));
+   }
+   
+   DECLARE_CONOBJECT(ImageSet);
+};
+
+IMPLEMENT_CONOBJECT(ImageSet);
+
+
+class Sound : public SimObject
+{
+   typedef SimObject Parent;
+public:
+   
+   StringTableEntry mPath;
+   ::Sound mSound;
+   
+public:
+   DECLARE_CONOBJECT(Sound);
+};
+
+IMPLEMENT_CONOBJECT(Sound);
+
 typedef enum {
     UI_EVENT_MOUSE_MOVE,
     UI_EVENT_MOUSE_DOWN,
@@ -668,7 +1007,7 @@ public:
             Point2I childPosition = offset + dObj->getPosition();
             RectI childClip(childPosition, dObj->getExtent());
             
-            dObj->onRender(offset, drawRect, globalCamera);
+            dObj->onRender(childPosition, childClip, globalCamera);
          }
       }
    }
@@ -684,28 +1023,132 @@ public:
 
 IMPLEMENT_CONOBJECT(DisplayBase);
 
+ConsoleMethodValue(DisplayBase, setPosition, 4, 4, "")
+{
+   object->mPosition = Point2I(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]));
+   return KorkApi::ConsoleValue();
+}
+
 class ImageSet;
+
+DefineConsoleType(TypeLimbControlVector);
+
 
 class CostumeAnim : public SimObject
 {
    typedef SimObject Parent;
+public:
    
    struct LimbControl
    {
-      ImageSet* set;
-      U32 frameNumber;
-      U32 setFlags;
-      StringTableEntry limbName;
-      LimbControl* next;
+      SimObjectId setId;
+      U16 setCommand;
+      U16 setParam;
    };
    
-   LimbControl* mRootLookups[CostumeRenderer::NumDirections];
+   struct LimbRoot
+   {
+      std::vector<LimbControl> entries;
+      StringTableEntry limbName;
+      LimbRoot* next;
+      
+      LimbRoot() : limbName(nullptr), next(nullptr) {;}
+   };
+   
+   LimbRoot* mRootLookups[CostumeRenderer::NumDirections];
+   U32 mAnimFlags;
+   
+   static bool getLimbStorage(KorkApi::Vm* vmPtr, void* obj, const KorkApi::FieldInfo* field, KorkApi::ConsoleValue arrayValue, KorkApi::TypeStorageInterface* outStorage, bool writeMode)
+   {
+      StringTableEntry steArray = StringTable->insert(vmPtr->valueAsString(arrayValue));
+      
+      LimbRoot* foundEntry = nullptr;
+      LimbRoot** entryRoot = (LimbRoot**)(((uintptr_t)obj) + field->offset);
+      for (LimbRoot* ctrl = *entryRoot; ctrl; ctrl = ctrl->next)
+      {
+         if (ctrl->limbName == steArray)
+         {
+            foundEntry = ctrl;
+            break;
+         }
+      }
+      
+      // Alloc new entry
+      if (foundEntry == NULL)
+      {
+         if (!writeMode)
+         {
+            return false;
+         }
+         
+         foundEntry = new LimbRoot();
+         foundEntry->next = *entryRoot;
+         *entryRoot = foundEntry;
+         foundEntry->limbName = steArray;
+      }
+      
+      *outStorage = {};
+      return vmPtr->initFixedTypeStorage(&foundEntry->entries, TypeLimbControlVector, true, outStorage);
+   }
+   
+   static bool enumerateLimbStorage(void* user, KorkApi::Vm* vmPtr, KorkApi::VMObject* obj, const KorkApi::FieldInfo* field, KorkApi::FieldKeyVisitorFn visit)
+   {
+      // TODO: visit all root entries and enumerate
+      // typedef bool (*FieldKeyVisitorFn)( void* user, KorkApi::Vm* vmPtr, KorkApi::VMObject* obj, KorkApi::ConsoleValue key, KorkApi::ConsoleValue value );
+      //visit(field->fieldUserPtr, vmPtr, obj, KorkApi::ConsoleValue::makeString("N"), );
+      return false;
+   }
+   
+   //  bool (*WriteDataNotifyFn)( void* obj, StringTableEntry pFieldName );
+   static bool shouldWriteLimb(void* obj, StringTableEntry pFieldName)
+   {
+      // TODO: should check if pFieldName entry has entries
+      return true;
+   }
+   
+   CostumeAnim()
+   {
+      memset(mRootLookups, 0, sizeof(mRootLookups));
+      mAnimFlags = 0;
+   }
+   
+   bool onAdd()
+   {
+      if (Parent::onAdd())
+      {
+         return true;
+      }
+      return false;
+   }
+   
+   static void initPersistFields()
+   {
+      Parent::initPersistFields();
+      
+      addProtectedField("N", TypeLimbControlVector, Offset(mRootLookups[0], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
+      addProtectedField("S", TypeLimbControlVector, Offset(mRootLookups[1], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
+      addProtectedField("E", TypeLimbControlVector, Offset(mRootLookups[2], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
+      addProtectedField("W", TypeLimbControlVector, Offset(mRootLookups[3], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
+      
+      addField("flags", TypeS32, Offset(mAnimFlags, CostumeAnim));
+   }
    
 public:
    DECLARE_CONOBJECT(CostumeAnim);
 };
 
 IMPLEMENT_CONOBJECT(CostumeAnim);
+
+ConsoleType( limbControlVector, TypeLimbControlVector, sizeof(std::vector<CostumeAnim::LimbControl>), UINT_MAX, "" )
+ConsoleTypeOpDefaultNumeric( TypeLimbControlVector )
+
+static inline const char* SkipSpaces(const char* p)
+{
+   while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ++p;
+   return p;
+}
+
+
 
 enum Direction : U8
 {
@@ -717,26 +1160,32 @@ enum Direction : U8
 
 class Palette;
 
-class Costume : public SimObject
+class Costume : public SimGroup
 {
    typedef SimObject Parent;
    
 public:
    Palette* mPalette;
    std::vector<StringTableEntry> mLimbNames;
-   U32 mCostumeFlags;
    
    CostumeRenderer::StaticState mState;
    
    void enumerateItems(std::vector<CostumeAnim*> &anims);
    bool compileCostume();
    
+   Costume()
+   {
+      mPalette = NULL;
+      mState.reset();
+   }
+   
    static void initPersistFields()
    {
       Parent::initPersistFields();
       
-      //addField("N", TypeString, )
-      
+      addField("limbs", TypeStringTableEntryVector, Offset(mLimbNames, Costume), "");
+      addField("flags", TypeS32, Offset(mState.mFlags, Costume), "");
+      addField("palette", TypeSimObjectPtr, Offset(mPalette, Costume), "");
    }
    
 public:
@@ -745,9 +1194,9 @@ public:
 
 IMPLEMENT_CONOBJECT(Costume);
 
-bool Costume::compileCostume()
+ConsoleMethodValue(Costume, compileCostume, 2, 2, "")
 {
-   mState.reset();
+   return KorkApi::ConsoleValue::makeUnsigned(object->compileCostume());
 }
 
 class RoomObject : public SimObject
@@ -799,19 +1248,179 @@ public:
 
 IMPLEMENT_CONOBJECT(Charset);
 
-class ImageSet : public SimObject
-{
-   typedef SimObject Parent;
-public:
-   
-   StringTableEntry mFormatString;
-   Point2I mOffset;
-   std::vector<Image> mLoadedImages;
-   
-   DECLARE_CONOBJECT(ImageSet);
-};
 
-IMPLEMENT_CONOBJECT(ImageSet);
+bool Costume::compileCostume()
+{
+   mState.reset(true);
+
+   Con::printf("Costume %s...", getName());
+   
+   if (strcasecmp(getName(), "ZifCostume") == 0)
+   {
+      Con::printf("ziffy");
+   }
+   
+   mState.mLimbNames = mLimbNames;
+   
+   // Assemble limb names
+
+   // Print out plan
+   for (SimObject* obj : objectList)
+   {
+      CostumeAnim* anim = dynamic_cast<CostumeAnim*>(obj);
+      if (anim)
+      {
+         Con::printf("-- Anim %s --", anim->getInternalName());
+         
+         CostumeRenderer::AnimInfo animInfo = {};
+         animInfo.name = StringTable->insert(anim->getInternalName());
+         
+         for (U32 i=0; i<CostumeRenderer::NumDirections; i++)
+         {
+            CostumeRenderer::AnimDirection animDir = {};
+            animDir.startLimbMap = (U32)mState.mLimbMap.size();
+            animDir.flags = anim->mAnimFlags;
+            
+            for (CostumeAnim::LimbRoot* rootLimb = anim->mRootLookups[i];
+               rootLimb;
+               rootLimb = rootLimb->next)
+            {
+               Con::printf("Limb %s DIR: %i\n", rootLimb->limbName, i);
+               
+               auto itr = std::find(mLimbNames.begin(), mLimbNames.end(), rootLimb->limbName);
+               if (itr == mLimbNames.end())
+               {
+                  Con::printf("Skipping (not in costume)");
+                  continue;
+               }
+               
+               U32 localIndex = (U32)(itr - mLimbNames.begin());
+               
+               CostumeRenderer::AnimLimbMap limbRoot = {};
+               limbRoot.targetLimb = localIndex;
+               limbRoot.track.startCmd = mState.mCommands.size();
+               animDir.numLimbs++;
+               
+               // NOTE: flags are merged into the limb track
+               
+               CostumeRenderer::Frame buildFrame = {};
+               
+               for (CostumeAnim::LimbControl& ctrl : rootLimb->entries)
+               {
+                  CostumeRenderer::Command cmd = {};
+                  cmd.cmd = ctrl.setCommand;
+                  
+                  if (ctrl.setCommand == CostumeRenderer::CMD_IMG)
+                  {
+                     // Find image in list
+                     
+                     ImageSet* theSet = NULL;
+                     if (!Sim::findObject(ctrl.setId, theSet))
+                     {
+                        Con::errorf("Cant find ImageSet %i", ctrl.setId);
+                        mState.reset();
+                        return false;
+                     }
+                     
+                     // set frame number
+                     CostumeRenderer::Frame frame = {};
+                     theSet->ensureImageLoaded(ctrl.setParam);
+                      frame.displayImage = gTextureManager->loadTexture(theSet->makeImageFilename(ctrl.setParam),
+                                                                        &theSet->mLoadedImages[ctrl.setParam]);
+                      frame.displayOffset = theSet->mOffset;
+                     frame.setFlags = (U8)theSet->mFlags;
+                     cmd.param = mState.mFrames.size();
+                     mState.mFrames.push_back(frame);
+                     
+                     if (frame.displayImage.getNum() == 0)
+                     {
+                        Con::errorf("Cant load image %i from set %s [%s]", ctrl.setParam, theSet->getInternalName(), theSet->makeImageFilename(ctrl.setParam).c_str());
+                     }
+                  }
+                  else if (ctrl.setCommand == CostumeRenderer::CMD_SOUND)
+                  {
+                     // Find sound in list
+                     
+                     SimWorld::Sound* theSound = NULL;
+                     if (!Sim::findObject(ctrl.setId, theSound))
+                     {
+                        Con::errorf("Cant find Sound %i", ctrl.setId);
+                        mState.reset();
+                        return false;
+                     }
+                     
+                     auto itr = std::find(mState.mSounds.begin(), mState.mSounds.end(), theSound);
+                     if (itr == mState.mSounds.end())
+                     {
+                        cmd.param = mState.mSounds.size();
+                        mState.mSounds.push_back(theSound);
+                     }
+                     else
+                     {
+                        cmd.param = (U32)(itr - mState.mSounds.begin());
+                     }
+                  }
+                  else if (ctrl.setCommand == CostumeRenderer::CMD_FLAG)
+                  {
+                     limbRoot.track.flags |= ctrl.setParam;
+                     continue;
+                  }
+                  else
+                  {
+                     cmd.param = ctrl.setParam;
+                  }
+                  
+                  
+                  limbRoot.track.numCommands++;
+                  mState.mCommands.push_back(cmd);
+               }
+               
+               mState.mLimbMap.push_back(limbRoot);
+            }
+            
+            animInfo.directionTracks[i] = animDir;
+         }
+         
+         mState.mAnims.push_back(animInfo);
+      }
+   }
+   
+   Con::printf("Compile complete");
+
+}
+
+ConsoleMethodValue(ImageSet, pick, 3, 4, "(start, end)")
+{
+   S32 startValue = vmPtr->valueAsInt(argv[2]);
+   S32 endValue = argc < 4 ? startValue : vmPtr->valueAsInt(argv[3]);
+   
+   if (!(endValue >= startValue && startValue >= 0 && endValue >= 0)
+       && endValue < object->mLoadedImages.size())
+   {
+      return KorkApi::ConsoleValue();
+   }
+   
+   std::vector<CostumeAnim::LimbControl> limbs;
+   for (U32 i=startValue; i<=endValue; i++)
+   {
+      CostumeAnim::LimbControl limb = {};
+      limb.setId = object->getId();
+      limb.setCommand = CostumeRenderer::CMD_IMG;
+      limb.setParam = i;
+      limbs.push_back(limb);
+   }
+   
+   // -> output as value
+   KorkApi::ConsoleValue retValue = vmPtr->getTypeReturn(TypeLimbControlVector);
+   
+   KorkApi::TypeStorageInterface inputStorage = {};
+   KorkApi::TypeStorageInterface outputStorage = {};
+   
+   vmPtr->initFixedTypeStorage(&limbs, TypeLimbControlVector, true, &inputStorage);
+   vmPtr->initReturnTypeStorage(sizeof(CostumeAnim::LimbControl) * limbs.size() + sizeof(U32), TypeLimbControlVector, &outputStorage);
+   vmPtr->castValue(TypeLimbControlVector, &inputStorage, &outputStorage, NULL, 0);
+   return outputStorage.data.storageAddress;
+}
 
 class Palette : public SimObject
 {
@@ -827,19 +1436,665 @@ public:
 
 IMPLEMENT_CONOBJECT(Palette);
 
-class Actor : public SimObject
+class Actor;
+
+struct ActorWalkState
 {
-   typedef SimObject Parent;
+   Point2I mWalkTarget;
+   Point2I mWalkSpeed; // x,y units per tick
+   CostumeRenderer::DirectionValue mDirection; // this is calculated direction
+   bool mMoving;
+   U32 mTieAxis;
+   
+   ActorWalkState() : mWalkTarget(0,0), mMoving(false), mWalkSpeed(0,0), mDirection(CostumeRenderer::SOUTH), mTieAxis(0)
+   {
+      mWalkSpeed = Point2I(2,1);
+   }
+   
+   void reset()
+   {
+      mWalkTarget = Point2I(0,0);
+      mWalkSpeed = Point2I(0,0);
+      mDirection = CostumeRenderer::SOUTH;
+      mMoving = false;
+      mTieAxis = 0;
+   }
+   
+   int sign(int x) {
+       return (x > 0) - (x < 0);
+   }
+   
+   S32 clampStep(S32 delta, S32 step)
+   {
+      return std::min<S32>(abs(delta), step) * sign(delta);
+   }
+   
+   U32 pickAxis(Point2I delta)
+   {
+      U32 axis = 0;
+      
+      if (delta.x == 0)
+      {
+         axis = 1;
+      }
+      else if (delta.y == 0)
+      {
+         axis = 0;
+      }
+      else
+      {
+         if (delta.x > delta.y)
+         {
+            axis = 0;
+         }
+         else if (delta.y > delta.x)
+         {
+            axis = 1;
+         }
+         else
+         {
+            axis = mTieAxis;
+         }
+      }
+      
+      return axis;
+   }
+   
+   CostumeRenderer::DirectionValue dirFromDominantAxis(S32 value, U32 axis)
+   {
+      static CostumeRenderer::DirectionValue lookupTable[] = {
+         // x
+         CostumeRenderer::WEST,
+         CostumeRenderer::EAST,
+         // y
+         CostumeRenderer::NORTH,
+         CostumeRenderer::SOUTH,
+      };
+      
+      return lookupTable[(2 * axis) + (value > 0 ? 1 : 0)];
+   }
+   
+   void updateTick(Actor& actor);
+};
+
+class Actor : public DisplayBase, public ITickable
+{
+   typedef DisplayBase Parent;
 public:
    
    SimWorld::Costume* mCostume;
    CostumeRenderer::LiveState mLiveCostume;
+   U16 mTickCounter;
+   U16 mTickSpeed;
+   
+   ActorWalkState mWalkState;
+   
+   Actor()
+   {
+      mCostume = nullptr;
+      mTickCounter = 0;
+      mTickSpeed = 4;
+   }
+   
+   bool onAdd()
+   {
+      if (Parent::onAdd())
+      {
+         registerTickable();
+         return true;
+      }
+      return false;
+   }
+   
+   void onRemove()
+   {
+      unregisterTickable();
+   }
+   
+   void walkTo(Point2I pos)
+   {
+      mWalkState.mWalkTarget = pos;
+      if (mPosition != pos)
+      {
+         mWalkState.mMoving = true;
+         startAnim(StringTable->insert("walk"), false);
+      }
+   }
+   
+   virtual void onFixedTick(F32 dt)
+   {
+      if (mTickCounter == 0)
+      {
+         if (mCostume)
+         {
+            bool wasMoving = mWalkState.mMoving;
+            mWalkState.updateTick(*this);
+            if (mWalkState.mMoving != wasMoving)
+            {
+               startAnim(StringTable->insert("stand"), false);
+            }
+            mLiveCostume.advanceTick(mCostume->mState);
+         }
+      }
+      
+      mTickCounter++;
+      if (mTickCounter >= mTickSpeed)
+      {
+         mTickCounter = 0;
+      }
+   }
+   
+   virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
+   {
+      if (mCostume)
+      {
+         mLiveCostume.position = Point2F(offset.x, offset.y);
+         //mLiveCostume.w
+         mLiveCostume.render(mCostume->mState);
+      }
+   }
+   
+   void startAnim(StringTableEntry animName, bool isTalking)
+   {
+      mLiveCostume.setAnim(mCostume->mState, animName, mLiveCostume.curDirection, false);
+   }
+   
+   void setDirection(CostumeRenderer::DirectionValue direction)
+   {
+      mWalkState.mDirection = direction;
+      if (mLiveCostume.curDirection != direction)
+      {
+         mLiveCostume.curDirection = direction;
+         mLiveCostume.resetAnim(mCostume->mState, mLiveCostume.curDirection, false);
+      }
+   }
+
+   void setCostume(SimWorld::Costume* costume)
+   {
+      if (costume != mCostume)
+      {
+         mLiveCostume.init(costume->mState);
+         mCostume = costume;
+         mLiveCostume.setAnim(costume->mState, StringTable->insert("stand"), 1, false);
+         mTickCounter = 0;
+      }
+   }
    
    
    DECLARE_CONOBJECT(Actor);
 };
 
 IMPLEMENT_CONOBJECT(Actor);
+
+
+void ActorWalkState::updateTick(Actor& actor)
+{
+   if (!mMoving)
+   {
+      return;
+   }
+   
+   Point2I delta = mWalkTarget - actor.mPosition;
+   
+   if (delta == Point2I(0,0))
+   {
+      mMoving = false;
+   }
+   
+   if (!mMoving)
+   {
+      return;
+   }
+   
+   U32 axis = pickAxis(delta);
+   CostumeRenderer::DirectionValue curDir = dirFromDominantAxis(axis == 0 ? delta.x : delta.y, axis);
+   if (curDir != mDirection)
+   {
+      actor.setDirection(curDir);
+   }
+   
+   // Apply movement
+   if (axis == 0)
+   {
+      S32 step = clampStep(delta.x, mWalkSpeed.x);
+      actor.mPosition.x += step;
+   }
+   else
+   {
+      S32 step = clampStep(delta.y, mWalkSpeed.y);
+      actor.mPosition.y += step;
+   }
+}
+
+ConsoleMethodValue(Actor, setCostume, 3, 3, "")
+{
+   SimWorld::Costume* cost = nullptr;
+   if (Sim::findObject(argv[2], cost))
+   {
+      object->setCostume(cost);
+   }
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, animate, 3, 3, "")
+{
+   object->startAnim(StringTable->insert(vmPtr->valueAsString(argv[2])), false);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, waitFor, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getWidth, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, isInBox, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, isMoving, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, say, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, putAt, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setDirection, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, putAtObject, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, walkTo, 4, 4, "")
+{
+   object->walkTo(Point2I(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3])));
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, walkToObject, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, print, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getScale, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getLayer, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getFrame, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getAnimVar, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getAnimCounter, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setFrozen, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setTalkScript, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setStanding, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setIgnoreTurns, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setElevation, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setDefaultFrames, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setTalkColor, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setDescriptiveName, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setInitFrame, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setWidth, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setScale, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setZClip, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setIgnoreBoxes, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setAnimSpeed, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setTalkPos, 4, 4, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setAnimVar, 4, 4, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, setLayer, 3, 3, "")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(yieldFiber, 2, 2, "value")
+{
+   vmPtr->suspendCurrentFiber();
+   return argv[1]; // NOTE: this will be set as yield value
+}
+
+ConsoleFunctionValue(delayFiber, 2, 2, "ticks")
+{
+   SimFiberManager::ScheduleParam sp;
+   sp.flagMask = 0;
+   sp.minTime = gFiberManager->getCurrentTick() + vmPtr->valueAsInt(argv[1]);
+   gFiberManager->setFiberWaitMode(vmPtr->getCurrentFiber(), SimFiberManager::WAIT_TICK, sp);
+   vmPtr->suspendCurrentFiber();
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(spawnFiber, 2, 20, "func, ...")
+{
+   SimFiberManager::ScheduleInfo initialInfo = {};
+   initialInfo.waitMode = SimFiberManager::WAIT_IGNORE;
+   KorkApi::FiberId fiberId = gFiberManager->spawnFiber(NULL, argc-1, argv+1, initialInfo);
+   
+   if (vmPtr->getFiberState(fiberId) < KorkApi::FiberRunResult::State::ERROR)
+   {
+      return KorkApi::ConsoleValue::makeUnsigned(fiberId);
+   }
+   else
+   {
+      return KorkApi::ConsoleValue();
+   }
+}
+
+ConsoleFunctionValue(throwFiber, 3, 3, "value, soft")
+{
+   vmPtr->throwFiber((vmPtr->valueAsInt(argv[1]) | vmPtr->valueAsInt(argv[2])) ? BIT(31) : 0);
+}
+
+
+
+ConsoleGetType( TypeLimbControlVector )
+{
+   std::vector<CostumeAnim::LimbControl>* vec = nullptr;
+   static std::vector<CostumeAnim::LimbControl> workVec;
+
+   auto parseLimb = +[](const char* word, CostumeAnim::LimbControl& outLimb){
+      const char* paramName = StringUnit::getUnit(word, 0, ":");
+      U32 unitCount = StringUnit::getUnitCount(word, ":");
+      
+      if (strcasecmp(paramName, "IMG") == 0)
+      {
+         // object:frame
+         const char* objName = StringUnit::getUnit(word, 1, ":");
+         ImageSet* imgSet = nullptr;
+         if (!Sim::findObject(objName, imgSet))
+         {
+            return false;
+         }
+
+         outLimb.setId = imgSet->getId();
+         outLimb.setCommand = CostumeRenderer::CMD_IMG;
+         outLimb.setParam = (U16)atoi(StringUnit::getUnit(word, 2, ":"));
+         return true;
+      }
+      else if (strcasecmp(paramName, "SOUND") == 0)
+      {
+         const char* objName = StringUnit::getUnit(word, 1, ":");
+         SimWorld::Sound* sound = nullptr;
+         if (!Sim::findObject(objName, sound))
+         {
+            return false;
+         }
+         
+         outLimb.setId = sound->getId();
+         outLimb.setCommand = CostumeRenderer::CMD_SOUND;
+         outLimb.setParam = 0;
+         return true;
+      }
+      else
+      {
+         // Basic commands
+         for (U32 i=CostumeRenderer::CMD_HIDE; i<CostumeRenderer::CMD_END; i++)
+         {
+            if (strcasecmp(paramName, CostumeRenderer::opcodeMap[i]) == 0)
+            {
+               outLimb.setId = 0;
+               outLimb.setCommand = i;
+               outLimb.setParam = atoi(StringUnit::getUnit(word, 1, ":"));
+               return true;
+            }
+         }
+      }
+      return false;
+   };
+
+
+   if (!inputStorage->isField)
+   {
+      if (!outputStorage->isField &&
+          (requestedType == TypeLimbControlVector) &&
+          inputStorage->data.argc == 1 &&
+          inputStorage->data.storageRegister->typeId == TypeLimbControlVector)
+      {
+         // Just copy data
+         U32* ptr = (U32*)ConsoleGetInputStoragePtr();
+         U32 numElements = ptr ? *ptr++ : 0;
+         U32 dataSize = (numElements * sizeof(CostumeAnim::LimbControl));
+         outputStorage->FinalizeStorage(outputStorage, sizeof(U32) +  dataSize);
+         U32* returnBuffer = (U32*)ConsoleGetOutputStoragePtr();
+         *returnBuffer++ = numElements;
+         
+         if (ptr)
+         {
+            memcpy(returnBuffer, ptr, dataSize);
+         }
+         
+         if (outputStorage->data.storageRegister)
+         {
+            *outputStorage->data.storageRegister = outputStorage->data.storageAddress;
+         }
+      
+         return true;
+      }
+      else
+      {
+         // Need to take long path
+         vec = &workVec;
+         vec->clear();
+         
+         if (inputStorage->data.argc > 0)
+         {
+            for (U32 i=0; i<inputStorage->data.argc; i++)
+            {
+               ConsoleValue val = inputStorage->data.storageRegister[i];
+
+               if (val.typeId == TypeLimbControlVector)
+               {
+                  U32* storagePtr = (U32*)val.evaluatePtr(vmPtr->getAllocBase());
+                  U32 numElems = storagePtr[0];
+                  CostumeAnim::LimbControl* data = (CostumeAnim::LimbControl*)(storagePtr+1);
+                  
+                  for (S32 i=0; i<numElems; i++)
+                  {
+                     vec->push_back(data[i]);
+                  }
+               }
+               else
+               {
+                  const char* values = vmPtr->valueAsString(inputStorage->data.storageRegister[i]);
+                  if (!values) values = "";
+
+                  U32 numValues = StringUnit::getUnitCount(values, " ");
+                  char buffer[128];
+
+                  for (U32 i=0; i<numValues; i++)
+                  {
+                     CostumeAnim::LimbControl outLimb;
+                     const char* word = StringUnit::getUnit(values, i, " ", buffer, 128);
+                     if (parseLimb(word, outLimb))
+                     {
+                        vec->push_back(outLimb);
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+   else
+   {
+      vec = (std::vector<CostumeAnim::LimbControl>*)ConsoleGetInputStoragePtr();
+   }
+
+   // Convert native vector to the requested output.
+
+   if (outputStorage->isField && requestedType == TypeLimbControlVector)
+   {
+      auto* outputVec = (std::vector<CostumeAnim::LimbControl>*)ConsoleGetOutputStoragePtr();
+      *outputVec = *vec;
+      return true;
+   }
+   else if (requestedType == TypeLimbControlVector)
+   {
+      // Need to convert back to serialized variant
+      outputStorage->FinalizeStorage(outputStorage, (vec->size() * sizeof(S32)) + sizeof(CostumeAnim::LimbControl));
+      U32* vecCount = (U32*)ConsoleGetOutputStoragePtr();
+      *vecCount++ = vec->size();
+      
+      std::copy(vec->begin(), vec->end(), (CostumeAnim::LimbControl*)vecCount);
+      
+      if (outputStorage->data.storageRegister)
+      {
+         *outputStorage->data.storageRegister = outputStorage->data.storageAddress;
+      }
+      
+      return true;
+   }
+   else if (requestedType != KorkApi::ConsoleValue::TypeInternalString)
+   {
+      // just treat as empty for now
+      outputStorage->data.argc = 1;
+      outputStorage->data.storageAddress = KorkApi::ConsoleValue();
+      *outputStorage->data.storageRegister = outputStorage->data.storageAddress;
+      return true;
+   }
+   else
+   {
+      // Serialize to a space-separated string (safe conservative buffer, then finalize).
+      S32 maxReturn = 2048;
+      outputStorage->ResizeStorage(outputStorage, maxReturn);
+      char* returnBuffer = (char*)outputStorage->data.storageAddress.evaluatePtr(vmPtr->getAllocBase());
+      returnBuffer[0] = '\0';
+      S32 returnLen = 0;
+      
+      for (U32 i = 0; i < (U32)vec->size(); i++)
+      {
+         CostumeAnim::LimbControl* control = &(*vec)[i];
+         if (control->setCommand >= CostumeRenderer::CMD_END)
+            continue;
+         
+         if (control->setId >= 0)
+         {
+            snprintf(returnBuffer + returnLen, maxReturn - returnLen,
+                     "%s:%i", i == 0 ? "" : " ",
+                     CostumeRenderer::opcodeMap[control->setCommand],
+                     control->setId);
+         }
+         else
+         {
+            snprintf(returnBuffer + returnLen, maxReturn - returnLen,
+                     "%s:%u", i == 0 ? "" : " ",
+                     CostumeRenderer::opcodeMap[control->setCommand],
+                     control->setParam);
+         }
+         
+         returnLen = strlen(returnBuffer);
+      }
+
+      outputStorage->FinalizeStorage(outputStorage, returnLen + 1);
+
+      if (outputStorage->data.storageRegister)
+         *outputStorage->data.storageRegister = outputStorage->data.storageAddress;
+
+      return true;
+   }
+   
+   return false;
+}
 
 class VerbDisplay : public DisplayBase
 {
@@ -910,20 +2165,6 @@ public:
 RootUI* RootUI::sMainInstance;
 
 IMPLEMENT_CONOBJECT(RootUI);
-
-class Sound : public SimObject
-{
-   typedef SimObject Parent;
-public:
-   
-   StringTableEntry mPath;
-   ::Sound mSound;
-   
-public:
-   DECLARE_CONOBJECT(Sound);
-};
-
-IMPLEMENT_CONOBJECT(Sound);
 
 
 struct BoxInfo
@@ -1291,7 +2532,8 @@ public:
    
    virtual void resize(const Point2I newPosition, const Point2I newExtent)
    {
-      Parent::resize(newPosition, newExtent);
+      mPosition = newPosition;
+      mExtent = newExtent;
       mRenderState.screenSize.x = mExtent.x;
       mRenderState.screenSize.y = mExtent.y;
    }
@@ -1368,6 +2610,19 @@ public:
          }
       }
       
+      
+      for (SimObject* obj : objectList)
+      {
+         Actor* actor = dynamic_cast<Actor*>(obj);
+         if (actor)
+         {
+            Point2I childPosition = offset + actor->getPosition();
+            RectI childClip(childPosition, actor->getExtent());
+            actor->onRender(childPosition, childClip, globalCam);
+         }
+      }
+      
+      
       EndScissorMode();
       
    }
@@ -1392,7 +2647,6 @@ public:
 };
 IMPLEMENT_CONOBJECT(Room);
 
-
 ConsoleMethodValue(RootUI, setContent, 3, 3, "")
 {
    DisplayBase* displayObject = nullptr;
@@ -1411,6 +2665,67 @@ ConsoleMethodValue(Room, setTransitionMode, 5, 5, "mode, param, time")
 }
 
 };
+
+
+void CostumeRenderer::LiveState::render(CostumeRenderer::StaticState& state)
+{
+   bool doFlip = false;
+   
+   if ((globalFlags & CostumeRenderer::FLIP) != 0)
+  {
+     // Ok, we need to flip if the current direction is west
+     if (curDirection == CostumeRenderer::WEST)
+     {
+        doFlip = true;
+     }
+  }
+
+  for (LimbState& limbState : mLimbState)
+  {
+     if (limbState.lastEvalFrame < state.mFrames.size() &&
+        (limbState.track.flags & HIDE) == 0)
+     {
+        // Grab frame and draw
+        Frame& frame = state.mFrames[limbState.lastEvalFrame];
+        Point2F drawPos = position;
+        
+        TextureSlot* slot = gTextureManager->resolveHandle(frame.displayImage);
+        if (slot)
+        {
+           if (doFlip)
+           {
+              drawPos += (Point2F(-(frame.displayOffset.x + slot->mTexture.width), frame.displayOffset.y)) * scale;
+           }
+           else
+           {
+              drawPos += (Point2F(frame.displayOffset.x, frame.displayOffset.y)) * scale;
+           }
+           
+           ::Rectangle source = {0, 0, (float)slot->mTexture.width, (float)slot->mTexture.height};
+           ::Rectangle dest = {drawPos.x, drawPos.y, slot->mTexture.width * scale, slot->mTexture.height * scale};
+           Vector2 origin = {};
+           
+           if (doFlip)
+           {
+              source.x = (float)slot->mTexture.width;
+              source.width = -(float)slot->mTexture.width;
+           }
+           
+           if ((frame.setFlags & SimWorld::ImageSet::FLAG_TRANSPARENT) != 0)
+           {
+              BeginBlendMode(BLEND_ALPHA);
+           }
+           
+           DrawTexturePro(slot->mTexture, source, dest, origin, 0.0f, WHITE);
+           
+           if ((frame.setFlags & SimWorld::ImageSet::FLAG_TRANSPARENT) != 0)
+           {
+              EndBlendMode();
+           }
+        }
+     }
+  }
+}
 
 
 
@@ -1439,6 +2754,7 @@ static Rectangle GetLetterboxViewport(int sw, int sh, int vw, int vh)
     return (Rectangle){ x, y, w, h };
 }
 
+
 int main(int argc, char **argv)
 {
     const int screenWidth = 800;
@@ -1447,6 +2763,11 @@ int main(int argc, char **argv)
     Con::init();
     Sim::init();
     Con::addConsumer(MyLogger, nullptr);
+   
+   gFiberManager = new SimFiberManager();
+   gFiberManager->registerObject("FiberManager");
+   
+   Con::addVariable("$VAR_TIMER_NEXT", TypeF32, &gTimerNext);
    ClearWindowState(FLAG_VSYNC_HINT);
 
    Camera2D cam = {0};
@@ -1476,7 +2797,7 @@ int main(int argc, char **argv)
         Vector2 size = { (float)texture.width, (float)texture.height };
         Vector2 origin = { size.x / 2.0f, size.y / 2.0f };
 
-        const float fixedDt = 1.0f / (float)TICK_HZ;
+        const float fixedDt = 1.0f / (((float)TICK_HZ) / gTimerNext);
         double accumulator = fixedDt;
 
         State prev = { .pos = { screenWidth/2.0f, screenHeight/2.0f }, .vel = {0}, .rotationDeg = 0.0f };
@@ -1517,6 +2838,7 @@ int main(int argc, char **argv)
             {
                 prev = curr;                 // keep last state for interpolation
                 SimWorld::ITickable::doFixedTick(fixedDt);
+                gFiberManager->execFibers(1);
                 UpdateFixed(&curr, in, fixedDt);
                 accumulator -= fixedDt;
                 steps++;
@@ -1547,9 +2869,9 @@ int main(int argc, char **argv)
            }
 
             Rectangle dest = { renderState.pos.x, renderState.pos.y, size.x, size.y };
-            DrawTexturePro(texture, source, dest, origin, renderState.rotationDeg, WHITE);
+            //DrawTexturePro(texture, source, dest, origin, renderState.rotationDeg, WHITE);
 
-            DrawText(TextFormat("Sim tick: %.0f Hz (dt=%.6f) FPS=%i", TICK_HZ, fixedDt, GetFPS()), 10, 10, 20, DARKGRAY);
+            DrawText(TextFormat("Sim tick: %.0f Hz (dt=%.6f) FPS=%i", ((float)TICK_HZ) / gTimerNext, fixedDt, GetFPS()), 10, 10, 20, DARKGRAY);
             DrawText(TextFormat("alpha=%.2f steps=%d", alpha, steps), 10, 35, 20, DARKGRAY);
             DrawText("Move: WASD/Arrows | Fixed sim, variable render", 10, 60, 20, DARKGRAY);
 
