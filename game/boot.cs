@@ -48,6 +48,10 @@ new Room(TestRoom)
 {
 	image = "graphics/rooms/back01_merged.bmp";
    boxFile = "graphics/rooms/back01.box";
+
+   new Actor(TestActor)
+   {
+   };
 };
 
 new RootUI(RootUI)
@@ -55,5 +59,30 @@ new RootUI(RootUI)
 };
 
 RootUI.setContent(TestRoom);
+
+TestActor.setCostume(ZifCostume);
+
+function walkAbout()
+{
+   echo("walkAbout started");
+   TestActor.setPosition(200, 150);
+
+   while (1)
+   {
+      TestActor.walkTo(10,150);
+      delayFiber(90);
+      echo("walkAbout resumed");
+      TestActor.walkTo(200,150);
+      delayFiber(90);
+   }
+}
+
+// Start walking thread
+$walkFiber = spawnFiber(walkAbout);
+echo("Started walking in: " @ $walkFiber);
+//TestActor.animate("beam");
+
+
+$VAR_TIMER_NEXT = 2; // run at 30 fps
 
 
