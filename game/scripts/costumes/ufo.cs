@@ -21,7 +21,7 @@
 // ---------- Art & palette ----------
 new Palette(ufoPalette)
 {
-    source = "../graphics/rooms/skyline.bmp";
+    source = "../../graphics/rooms/skyline.bmp";
 };
 
 // ---------- ImageSets (pictures) ----------
@@ -30,7 +30,7 @@ new SimSet(ufo_ImageSets)
 {
     new ImageSet([ufo])
     {
-        format = "../graphics/ufo/ufo_??.bmp";
+        format = "../../graphics/ufo/ufo_??.bmp";
         offset = "-40 -56";
     };
 };
@@ -43,29 +43,31 @@ new Costume(UfoCostume)
     limbs   = body;          // single limb
 
     // --- Anim: walk ---
-    new CostumeAnim(walk)
+    new CostumeAnim([walk])
     {
-        E[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        W[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        S[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        N[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
+        E[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        W[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        S[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        N[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
     };
 
     // --- Anim: stand ---
-    new CostumeAnim(stand)
+    new CostumeAnim([stand])
     {
-        E[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        W[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        N[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        S[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
+        E[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        W[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        N[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        S[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
     };
 
     // --- Anim: init (same as stand) ---
-    new CostumeAnim(init)
+    new CostumeAnim([init])
     {
-        E[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        W[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        N[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
-        S[body] = ufo_ImageSets->ufo.pick(0,2), LOOP;
+        E[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        W[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        N[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
+        S[body] = ufo_ImageSets->ufo.pick(0,1), $LOOP;
     };
 };
+
+UfoCostume.compileCostume();

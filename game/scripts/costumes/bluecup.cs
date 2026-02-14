@@ -21,7 +21,7 @@
 // ---------- Art & palette ----------
 new Palette(bluecupPalette)
 {
-    source = "../graphics/rooms/back02_merged.bmp";
+    source = "../../graphics/rooms/back02_merged.bmp";
 };
 
 // ---------- ImageSets (pictures) ----------
@@ -30,28 +30,31 @@ new SimSet(bluecup_ImageSets)
 {
     new ImageSet([standS])
     {
-        format = "../graphics/bluecup/bluecup_??.bmp";
+        format = "../../graphics/bluecup/bluecup_??.bmp";
         offset = "-12 -10";
     };
 };
 
 // ---------- Costume ----------
-new Costume(CubeCostume)
+new Costume(BlueCupCostume)
 {
     palette = bluecupPalette;
     //flags   = FLIP;          // costume-wide
     limbs   = body;          // single limb
 
     // --- Anim: stand ---
-    new CostumeAnim(stand)
+    new CostumeAnim([stand])
     {
-        S[body] = bluecup_ImageSets->standS.pick(0, 8);
+        S[body] = bluecup_ImageSets->standS.pick(0, 7);
     };
 
     // --- Anim: init (same as stand) ---
-    new CostumeAnim(init)
+    new CostumeAnim([init])
     {
-        S[body] = bluecup_ImageSets->standS.pick(0, 8);
+        S[body] = bluecup_ImageSets->standS.pick(0, 7);
     };
 
 };
+
+
+BlueCupCostume.compileCostume();

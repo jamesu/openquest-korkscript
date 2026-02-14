@@ -21,7 +21,7 @@
 // ---------- Art & palette ----------
 new Palette(cubePalette)
 {
-    source = "../graphics/rooms/back02_merged.bmp";
+    source = "../../graphics/rooms/back02_merged.bmp";
 };
 
 // ---------- ImageSets (pictures) ----------
@@ -30,7 +30,7 @@ new SimSet(cube_ImageSets)
 {
     new ImageSet([standS])
     {
-        format = "../graphics/cube/cube_??.bmp";
+        format = "../../graphics/cube/cube_??.bmp";
         offset = "-17 -17";
     };
 };
@@ -43,21 +43,23 @@ new Costume(CubeCostume)
     limbs   = body;          // single limb
 
     // --- Anim: stand ---
-    new CostumeAnim(stand)
+    new CostumeAnim([stand])
     {
         S[body] = cube_ImageSets->standS.pick(0);
     };
 
     // --- Anim: init (same as stand) ---
-    new CostumeAnim(init)
+    new CostumeAnim([init])
     {
         S[body] = cube_ImageSets->standS.pick(0);
     };
 
     // --- Anim: dissolve ---
-    new CostumeAnim(dissolve)
+    new CostumeAnim([dissolve])
     {
-        S[body] = cube_ImageSets->standS.pick(0, 7), NO_LOOP;
+        S[body] = cube_ImageSets->standS.pick(0, 6), $NO_LOOP;
     };
 
 };
+
+CubeCostume.compileCostume();

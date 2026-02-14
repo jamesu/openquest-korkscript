@@ -21,7 +21,7 @@
 // ---------- Art & palette ----------
 new Palette(carolPalette)
 {
-    source = "../graphics/rooms/back01_merged.bmp";
+    source = "../../graphics/rooms/back01_merged.bmp";
 };
 
 // ---------- ImageSets (pictures) ----------
@@ -30,57 +30,59 @@ new SimSet(carol_ImageSets)
 {
     new ImageSet([walk])
     {
-        format = "../graphics/carol/walkfrombehindwall_??.bmp";
+        format = "../../graphics/carol/walkfrombehindwall_??.bmp";
         offset = "-40 -56";
     };
     new ImageSet([clean])
     {
-        format = "../graphics/carol/clean_??.bmp";
+        format = "../../graphics/carol/clean_??.bmp";
         offset = "-40 -56";
     };
 };
 
 // ---------- Costume ----------
-new Costume(CubeCostume)
+new Costume(CarolCostume)
 {
     palette = carolPalette;
     //flags   = FLIP;          // costume-wide
     limbs   = body;          // single limb
 
     // --- Anim: stand ---
-    new CostumeAnim(stand)
+    new CostumeAnim([stand])
     {
-        S[body] = carol_ImageSets->clean.pick(0, 2), carol_ImageSets->clean.pick(1), LOOP;
+        S[body] = carol_ImageSets->clean.pick(1, 3), carol_ImageSets->clean.pick(1), $LOOP;
     };
 
     // --- Anim: init ---
-    new CostumeAnim(init)
+    new CostumeAnim([init])
     {
-        S[body] = carol_ImageSets->walk.pick(0, 4), carol_ImageSets->walk.pick(4, 2), carol_ImageSets->clean.pick(0) NO_LOOP;
+        S[body] = carol_ImageSets->walk.pick(1, 5), carol_ImageSets->clean.pick(1), $NO_LOOP;
     };
 
     // --- Anim: talkStart ---
-    new CostumeAnim(talkStart)
+    new CostumeAnim([talkStart])
     {
         S[body] = carol_ImageSets->clean.pick(1);
     };
 
     // --- Anim: talkStop ---
-    new CostumeAnim(talkStop)
+    new CostumeAnim([talkStop])
     {
-        S[body] = carol_ImageSets->clean.pick(1, 3), carol_ImageSets->clean.pick(1), LOOP;
+        S[body] = carol_ImageSets->clean.pick(1, 3), carol_ImageSets->clean.pick(1), $LOOP;
     };
 
     // --- Anim: walkIntoRoom ---
-    new CostumeAnim(walkIntoRoom)
+    new CostumeAnim([walkIntoRoom])
     {
-        S[body] = carol_ImageSets->walk.pick(0, 6);
+        S[body] = carol_ImageSets->walk.pick(1, 6);
     };
 
     // --- Anim: clean ---
-    new CostumeAnim(clean)
+    new CostumeAnim([clean])
     {
-        S[body] = carol_ImageSets->clean.pick(0, 3), LOOP;
+        S[body] = carol_ImageSets->clean.pick(1, 3), $LOOP;
     };
 
 };
+
+CarolCostume.compileCostume();
