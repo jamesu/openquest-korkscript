@@ -111,12 +111,6 @@ struct DBIEvent
 };
 
 
-static inline const char* SkipSpaces(const char* p)
-{
-   while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ++p;
-   return p;
-}
-
 static inline RectI WorldRectToScreen(RectI r, Camera2D cam)
 {
     Vector2 topLeft     = GetWorldToScreen2D((Vector2){ (float)(r.point.x), (float)(r.point.y) }, cam);
