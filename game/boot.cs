@@ -44,6 +44,11 @@ function evalInput()
 
 exec("scripts/costumes/costumes.cs");
 
+new RootUI(RootUI)
+{
+};
+
+
 new Room(TestRoom)
 {
 	image = "graphics/rooms/back01_merged.bmp";
@@ -53,32 +58,44 @@ new Room(TestRoom)
    {
    };
 };
-
-new RootUI(RootUI)
+new Room(TestRoom2)
 {
+   image = "graphics/rooms/titlescreen.bmp";
 };
-
-RootUI.setContent(TestRoom);
-
 TestActor.setCostume(ZifCostume);
 
-function walkAbout()
+startRoom(TestRoom);
+startRoom(TestRoom2);
+
+
+function TestRoom::inputHandler(%this, %area, %cmd, %btn)
 {
-   echo("walkAbout started");
+   echo("testRoom inputHandler" SPC %this SPC %area SPC %cmd);
+   if (%area == 2)
+   {
+      echo("Mouse click:" SPC $VAR_VIRT_MOUSE_X SPC $VAR_VIRT_MOUSE_Y);
+      TestActor.walkTo($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
+   }
+}
+
+function TestRoom::walkAbout(%this, %foo)
+{
+   echo("walkAbout started" SPC %foo);
    TestActor.setPosition(200, 150);
 
    while (1)
    {
-      TestActor.walkTo(10,150);
+      //TestActor.walkTo(10,150);
       delayFiber(90);
       echo("walkAbout resumed");
-      TestActor.walkTo(200,150);
+      //TestActor.walkTo(200,150);
       delayFiber(90);
+      startRoom(TestRoom);
    }
 }
 
 // Start walking thread
-$walkFiber = spawnFiber(walkAbout);
+$walkFiber = TestRoom.spawnFiber(0, walkAbout, "foo");
 echo("Started walking in: " @ $walkFiber);
 //TestActor.animate("beam");
 

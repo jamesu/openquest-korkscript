@@ -121,12 +121,22 @@ void RootUI::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
    }
 }
 
+void RootUI::setContent(DisplayBase* obj)
+{
+   auto itr = std::find(objectList.begin(), objectList.end(), obj);
+   if (itr == objectList.end())
+   {
+      clear();
+      addObject(obj);
+   }
+}
+
 ConsoleMethodValue(RootUI, setContent, 3, 3, "")
 {
    DisplayBase* displayObject = nullptr;
    if (Sim::findObject(argv[2], displayObject))
    {
-      object->addObject(displayObject);
+      object->setContent(displayObject);
    }
    
    return KorkApi::ConsoleValue();

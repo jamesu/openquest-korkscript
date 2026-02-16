@@ -62,6 +62,8 @@ public:
    
    void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera) override;
    
+   void setContent(DisplayBase* obj);
+   
 public:
    DECLARE_CONOBJECT(RootUI);
 };

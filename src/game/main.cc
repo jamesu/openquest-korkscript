@@ -18,9 +18,11 @@
 
 // globals
 F32 gTimerNext = 1.0;
+S32 gMouseX = 0.0;
+S32 gMouseY = 0.0;
 SimFiberManager* gFiberManager = nullptr;
 TextureManager* gTextureManager = nullptr;
-
+EngineGlobals gGlobals;
 
 void MyLogger(U32 level, const char *consoleLine, void*)
 {
@@ -67,6 +69,9 @@ int main(int argc, char **argv)
    gFiberManager->registerObject("FiberManager");
    
    Con::addVariable("$VAR_TIMER_NEXT", TypeF32, &gTimerNext);
+   Con::addVariable("$VAR_VIRT_MOUSE_X", TypeS32, &gMouseX);
+   Con::addVariable("$VAR_VIRT_MOUSE_Y", TypeS32, &gMouseY);
+   
    ClearWindowState(FLAG_VSYNC_HINT);
    
    Camera2D cam = {0};
@@ -76,6 +81,9 @@ int main(int argc, char **argv)
    InitWindow(screenWidth, screenHeight, "openquest");
    {
       ClearWindowState(FLAG_VSYNC_HINT);
+      
+      gGlobals.roomRt = LoadRenderTexture(320, 200);
+      SetTextureFilter(gGlobals.roomRt.texture, TEXTURE_FILTER_POINT);
       
       Rectangle vp = GetLetterboxViewport(screenWidth, screenHeight, 320, 200);
       float zoom = vp.width / (float)320.0;
@@ -102,6 +110,37 @@ int main(int argc, char **argv)
             SimWorld::RootUI::sMainInstance->resize(Point2I(0,0), Point2I(320, 200));
          }
          
+         // Update globals
+         gMouseX = GetMouseX();
+         gMouseY = GetMouseY();
+         
+         // Need these translated into room space
+         gMouseX = ((F32)gMouseX / screenWidth) * 320.0;
+         gMouseY = ((F32)gMouseY / screenHeight) * 200.0;
+         
+         // Call input handler
+         if (gGlobals.currentRoom)
+         {
+            int key = GetKeyPressed();
+            while (key > 0)
+            {
+               Con::executef(gGlobals.currentRoom, 4, "inputHandler", "4", "0");
+               key = GetKeyPressed();   // get next key from queue
+            }
+            
+            // NOTE: We will assume room for now
+            
+            if (IsMouseButtonPressed(0))
+            {
+               Con::executef(gGlobals.currentRoom, 4, "inputHandler", "2", "1");
+            }
+            
+            if (IsMouseButtonPressed(1))
+            {
+               Con::executef(gGlobals.currentRoom, 4, "inputHandler", "2", "2");
+            }
+         }
+         
          // Run fixed sim steps as needed
          int steps = 0;
          while (accumulator >= fixedDt && steps < MAX_STEPS)
@@ -113,6 +152,7 @@ int main(int argc, char **argv)
          }
          
          BeginDrawing();
+         
          ClearBackground(RAYWHITE);
          BeginMode2D(cam);
          

@@ -83,6 +83,9 @@ public:
    bool onAdd();
    
    void onRemove();
+
+   void onEnter();
+   void onLeave();
    
    void setTransitionMode(U8 mode, U8 param, F32 time);
    
@@ -94,6 +97,9 @@ public:
    
    
    virtual void onFixedTick(F32 dt);
+
+   static void enterRoom(Room* room);
+   static void leaveCurrentRoom();
    
    static void initPersistFields();
 

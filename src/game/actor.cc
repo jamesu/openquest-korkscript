@@ -18,6 +18,7 @@ IMPLEMENT_CONOBJECT(Actor);
 ActorWalkState::ActorWalkState() : mWalkTarget(0,0), mMoving(false), mWalkSpeed(0,0), mDirection(CostumeRenderer::SOUTH), mTieAxis(0)
 {
   mWalkSpeed = Point2I(2,1);
+  mPreferredAxis = 0;
 }
 
 void ActorWalkState::updateTick(Actor& actor)
@@ -39,22 +40,17 @@ void ActorWalkState::updateTick(Actor& actor)
       return;
    }
    
-   U32 axis = pickAxis(delta);
-   CostumeRenderer::DirectionValue curDir = dirFromDominantAxis(axis == 0 ? delta.x : delta.y, axis);
+   CostumeRenderer::DirectionValue curDir = dirFromDominantAxis(mPreferredAxis == 0 ? delta.x : delta.y, mPreferredAxis);
    if (curDir != mDirection)
    {
       actor.setDirection(curDir);
    }
    
    // Apply movement
-   if (axis == 0)
    {
       S32 step = clampStep(delta.x, mWalkSpeed.x);
       actor.mPosition.x += step;
-   }
-   else
-   {
-      S32 step = clampStep(delta.y, mWalkSpeed.y);
+      step = clampStep(delta.y, mWalkSpeed.y);
       actor.mPosition.y += step;
    }
 }
@@ -88,6 +84,7 @@ void Actor::walkTo(Point2I pos)
   mWalkState.mWalkTarget = pos;
   if (mPosition != pos)
   {
+     mWalkState.mPreferredAxis = mWalkState.pickAxis(pos - mPosition);
      mWalkState.mMoving = true;
      startAnim(StringTable->insert("walk"), false);
   }
@@ -211,7 +208,8 @@ ConsoleMethodValue(Actor, putAtObject, 2, 2, "")
 
 ConsoleMethodValue(Actor, walkTo, 4, 4, "")
 {
-   object->walkTo(Point2I(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3])));
+   Point2I destPoint(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]));
+   object->walkTo(destPoint);
    return KorkApi::ConsoleValue();
 }
 

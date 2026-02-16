@@ -169,54 +169,65 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    Rectangle dest = { (float)offset.x, (float)offset.y, (float)drawRect.extent.x, (float)drawRect.extent.y };
    Vector2 origin = { 0.0, 0.0 };
    
-   DrawRectangle(offset.x, offset.y, drawRect.extent.x, drawRect.extent.y, (Color){0,0,0,255});
+   BeginTextureMode(gGlobals.roomRt);
+   {
+      DrawRectangle(0, 0, 300, 200, (Color){255,0,0,255});
+      
+      
+      TextureSlot* slot = gTextureManager->resolveHandle(mRenderState.backgroundImage);
+      if (slot)
+      {
+         Rectangle localDest = { 0.0f, 0.0f, (float)slot->mTexture.width, (float)slot->mTexture.height };
+         DrawTexturePro(slot->mTexture, source, localDest, origin, 0.0f, WHITE);
+      }
+      
+      Point2F scalingFactor = Point2F(mRenderState.screenSize.x / 320.0f, mRenderState.screenSize.y / 200.0f);
+      
+      for (BoxInfo::Box& box : mBoxes.boxes)
+      {
+         if (box.numPoints >= 4)
+         {
+            Point2I* points = mBoxes.points.data() + box.startPoint;
+            
+            Vector2 prevPoint = (Vector2){(float)points[0].x, (float)points[0].y};
+            Vector2 originPoint = prevPoint;
+            for (U32 i=1; i<box.numPoints; i++)
+            {
+               Vector2 curPoint = (Vector2){(float)points[i].x, (float)points[i].y};
+               ::DrawLineV(prevPoint, curPoint, (Color){255,255,255,255});
+               prevPoint = curPoint;
+            }
+            
+            ::DrawLineV(prevPoint, originPoint, (Color){255,255,255,255});
+         }
+      }
+      
+      Camera2D localCamera = {};
+      for (SimObject* obj : objectList)
+      {
+         Actor* actor = dynamic_cast<Actor*>(obj);
+         if (actor)
+         {
+            Point2I childPosition = actor->getPosition();
+            RectI childClip(childPosition, Point2I(320,200));
+            actor->onRender(childPosition, childClip, localCamera);
+         }
+      }
+   }
+   EndTextureMode();
+   
+   // Now render the room to the canvas
    
    // Transform
    RectI globalRect = WorldRectToScreen(mRenderState.clipRect, globalCam);
-   BeginScissorMode(globalRect.point.x, globalRect.point.y, globalRect.extent.x, globalRect.extent.y);
+   //BeginScissorMode(globalRect.point.x, globalRect.point.y, globalRect.extent.x, globalRect.extent.y);
    
-   TextureSlot* slot = gTextureManager->resolveHandle(mRenderState.backgroundImage);
-   if (slot)
-   {
-      Rectangle dest = { (float)offset.x, (float)offset.y, (float)slot->mTexture.width, (float)slot->mTexture.height };
-      DrawTexturePro(slot->mTexture, source, dest, origin, 0.0f, WHITE);
-   }
+   DrawTexturePro(gGlobals.roomRt.texture,
+                  (Rectangle){0,0,320,-200},
+                  (Rectangle){(float)globalRect.point.x, (float)globalRect.point.y, (float)globalRect.extent.x, (float)globalRect.extent.y},
+                  origin, 0, WHITE);
    
-   Point2F scalingFactor = Point2F(mRenderState.screenSize.x / 320.0f, mRenderState.screenSize.y / 200.0f);
-   
-   for (BoxInfo::Box& box : mBoxes.boxes)
-   {
-      if (box.numPoints >= 4)
-      {
-         Point2I* points = mBoxes.points.data() + box.startPoint;
-         
-         Vector2 prevPoint = (Vector2){points[0].x * scalingFactor.x, points[0].y * scalingFactor.y};
-         Vector2 originPoint = prevPoint;
-         for (U32 i=1; i<box.numPoints; i++)
-         {
-            Vector2 curPoint = (Vector2){points[i].x * scalingFactor.x, points[i].y * scalingFactor.y};
-            ::DrawLineV(prevPoint, curPoint, (Color){255,255,255,255});
-            prevPoint = curPoint;
-         }
-         
-         ::DrawLineV(prevPoint, originPoint, (Color){255,255,255,255});
-      }
-   }
-   
-   
-   for (SimObject* obj : objectList)
-   {
-      Actor* actor = dynamic_cast<Actor*>(obj);
-      if (actor)
-      {
-         Point2I childPosition = offset + actor->getPosition();
-         RectI childClip(childPosition, actor->getExtent());
-         actor->onRender(childPosition, childClip, globalCam);
-      }
-   }
-   
-   
-   EndScissorMode();
+   //EndScissorMode();
    
 }
 
@@ -234,9 +245,115 @@ void Room::initPersistFields()
    addField("zPlanes", TypeString, Offset(mImageFileName, Room), RoomRender::NumZPlanes);
 }
 
+
+void Room::onEnter()
+{
+   RootUI::sMainInstance->setContent(this);
+}
+
+void Room::onLeave()
+{
+   RootUI::sMainInstance->removeObject(this);
+}
+
+
+void Room::enterRoom(Room* room)
+{
+   if (gGlobals.currentRoom)
+   {
+      leaveCurrentRoom();
+   }
+
+   gGlobals.currentRoom = room;
+   room->onEnter();
+}
+
+void Room::leaveCurrentRoom()
+{
+   if (gGlobals.currentRoom)
+   {
+      gGlobals.currentRoom->onLeave();
+   }
+   gGlobals.currentRoom = nullptr;
+}
+
 ConsoleMethodValue(Room, setTransitionMode, 5, 5, "mode, param, time")
 {
    object->setTransitionMode(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]), vmPtr->valueAsFloat(argv[4]));
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(screenEffect, 2, 2, "")
+{
+   if (gGlobals.currentRoom)
+   {
+      U32 code = vmPtr->valueAsInt(argv[1]);
+      gGlobals.currentRoom->setTransitionMode(code & 0xFF, (code >> 8) & 0xFF, 1.0f);
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(startRoom, 2, 2, "")
+{
+   Room* roomObject = nullptr;
+   if (Sim::findObject(argv[1], roomObject))
+   {
+      Room::enterRoom(roomObject);
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(startRoomWithEgo, 4, 4, "")
+{
+   Room* roomObject = nullptr;
+   if (Sim::findObject(argv[1], roomObject))
+   {
+      if (gGlobals.currentEgo)
+      {
+         roomObject->addObject(gGlobals.currentEgo);
+         gGlobals.currentEgo->mPosition = Point2I(vmPtr->valueAsInt(argv[2]),
+                                                  vmPtr->valueAsInt(argv[3]));
+      }
+      Room::enterRoom(roomObject);
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(putActorAt, 5, 5, "")
+{
+   Actor* actorObject = nullptr;
+   Room* roomObject = nullptr;
+   
+   if (Sim::findObject(argv[1], actorObject) &&
+       Sim::findObject(argv[4], roomObject))
+   {
+      roomObject->addObject(gGlobals.currentEgo);
+      gGlobals.currentEgo->mPosition = Point2I(vmPtr->valueAsInt(argv[2]),
+                                               vmPtr->valueAsInt(argv[3]));
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(putActorAtObject, 3, 3, "")
+{
+   Actor* actorObject = nullptr;
+   RoomObject* roomObject = nullptr;
+   
+   if (Sim::findObject(argv[1], actorObject) &&
+       Sim::findObject(argv[2], roomObject))
+   {
+      Room* theRoom = dynamic_cast<Room*>(roomObject->getGroup());
+      if (theRoom)
+      {
+         theRoom->addObject(gGlobals.currentEgo);
+         actorObject->mPosition = roomObject->mPosition;
+      }
+   }
+   
    return KorkApi::ConsoleValue();
 }
 

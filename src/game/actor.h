@@ -16,6 +16,7 @@ struct ActorWalkState
 {
    Point2I mWalkTarget;
    Point2I mWalkSpeed; // x,y units per tick
+   U8 mPreferredAxis;
    CostumeRenderer::DirectionValue mDirection; // this is calculated direction
    bool mMoving;
    U32 mTieAxis;
@@ -52,6 +53,8 @@ inline S32 ActorWalkState::clampStep(S32 delta, S32 step)
 inline U32 ActorWalkState::pickAxis(Point2I delta)
 {
   U32 axis = 0;
+   delta.x = std::abs(delta.x);
+   delta.y = std::abs(delta.y);
   
   if (delta.x == 0)
   {

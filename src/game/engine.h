@@ -50,6 +50,11 @@
 // misc shared defs
 
 
+// Flags for waiting fibers
+#define SCHEDULE_FLAG_MESSAGE       BIT(8)
+#define SCHEDULE_FLAG_CAMERA_MOVING BIT(9)
+#define SCHEDULE_FLAG_SENTENCE_BUSY BIT(10)
+
 #define PINK_BG (Color){253, 5, 255, 255}
 
 typedef struct State {
@@ -157,3 +162,15 @@ extern F32 gTimerNext;
 
 extern SimFiberManager* gFiberManager;
 extern TextureManager* gTextureManager;
+
+
+struct EngineGlobals
+{
+   SimWorld::Room*  currentRoom;
+   SimWorld::Actor* currentEgo;
+   
+   RenderTexture2D roomRt;
+};
+
+extern EngineGlobals gGlobals;
+
