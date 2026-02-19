@@ -170,6 +170,7 @@ struct EngineGlobals
    SimWorld::Actor* currentEgo;
    
    RenderTexture2D roomRt;
+   Shader shaderMask;
 };
 
 extern EngineGlobals gGlobals;

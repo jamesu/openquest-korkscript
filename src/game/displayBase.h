@@ -37,6 +37,8 @@ public:
    
    virtual void resize(const Point2I newPosition, const Point2I newExtent);
    
+   virtual void setPosition(Point2I newPosition);
+   
    void forwardEvent(DBIEvent& event);
    
    virtual bool processInput(DBIEvent& event);

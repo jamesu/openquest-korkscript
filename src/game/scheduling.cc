@@ -57,6 +57,16 @@ ConsoleFunctionValue(yieldFiber, 2, 2, "value")
    return argv[1]; // NOTE: this will be set as yield value
 }
 
+ConsoleFunctionValue(breakFiber, 1, 1, "")
+{
+   SimFiberManager::ScheduleParam sp;
+   sp.flagMask = 0;
+   sp.minTime = gFiberManager->getCurrentTick() + 1;
+   gFiberManager->setFiberWaitMode(vmPtr->getCurrentFiber(), SimFiberManager::WAIT_TICK, sp);
+   vmPtr->suspendCurrentFiber();
+   return KorkApi::ConsoleValue();
+}
+
 ConsoleFunctionValue(delayFiber, 2, 2, "ticks")
 {
    SimFiberManager::ScheduleParam sp;
@@ -159,6 +169,16 @@ ConsoleFunctionValue(waitForSentence, 1, 1, "")
    sp.flagMask = SCHEDULE_FLAG_SENTENCE_BUSY;
    sp.minTime = 0;
    gFiberManager->setFiberWaitMode(vmPtr->getCurrentFiber(), SimFiberManager::WAIT_FLAGS_CLEAR, sp);
+   vmPtr->suspendCurrentFiber();
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(waitForFiber, 2, 2, "")
+{
+   SimFiberManager::ScheduleParam sp;
+   sp.flagMask = 0;
+   sp.minTime = vmPtr->valueAsInt(argv[1]);
+   gFiberManager->setFiberWaitMode(vmPtr->getCurrentFiber(), SimFiberManager::WAIT_FIBER, sp);
    vmPtr->suspendCurrentFiber();
    return KorkApi::ConsoleValue();
 }

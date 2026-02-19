@@ -11,15 +11,50 @@
 
 BEGIN_SW_NS
 
-
+// Class to manage actor walk state. This also handles moving
+// and actor between walk boxes (via calculated portal nodes)
+//
 struct ActorWalkState
 {
-   Point2I mWalkTarget;
-   Point2I mWalkSpeed; // x,y units per tick
-   U8 mPreferredAxis;
+   enum CurrentAction
+   {
+      ACTION_IDLE,                  // standing
+      ACTION_CHECK_MOVE,            // calculate move target next tick
+      ACTION_MOVING,                // move straight to target
+      ACTION_MOVING_TO_EXIT_PORTAL  // when reached, moves to second portal node
+   };
+   // NOTE: state transitions are:
+   // ACTION_IDLE -> ACTION_CHECK_MOVE
+   // ACTION_CHECK_MOVE -> ACTION_MOVING
+   // ACTION_CHECK_MOVE -> ACTION_MOVING_TO_EXIT_PORTAL
+   // ACTION_MOVING_TO_EXIT_PORTAL -> ACTION_CHECK_EXIT_PORTAL
+   // ACTION_CHECK_EXIT_PORTAL -> ACTION_MOVING_TO_EXIT_PORTAL2
+   // ACTION_MOVING_TO_EXIT_PORTAL2 -> ACTION_CHECK_MOVE
+   
+   Point2I mRealWalkTarget; // Where we want to end up
+   S32 mRealWalkTargetBox;  // Box where we want to end up
+   
+   // Where we are going at the moment
+   Point2I mWalkTarget; // Current target
+   Point2I mWalkSpeed;  //  x,y units per tick
+   U8 mPreferredAxis;   // Direction we prefer to face when walking
    CostumeRenderer::DirectionValue mDirection; // this is calculated direction
-   bool mMoving;
-   U32 mTieAxis;
+   CurrentAction mAction; // Current walk state
+   U32 mTieAxis;          // Which direction axis to pick if there is a tie
+   
+   Point2I mDebugSegment;
+   Point2I mDebugPoint;
+   
+   S32 mNextBox; // Box we are currently trying to move into
+
+
+   enum
+   {
+      MaxPath = 8
+   };
+   
+   std::array<U8, MaxPath> mPathBoxes;
+   U32 mPathBoxesLength;
    
    ActorWalkState();
    inline void reset();
@@ -29,15 +64,18 @@ struct ActorWalkState
    inline CostumeRenderer::DirectionValue dirFromDominantAxis(S32 value, U32 axis);
    
    void updateTick(Actor& actor);
+   void adjustWalkTarget(Actor& actor);
 };
 
 
 inline void ActorWalkState::reset()
 {
   mWalkTarget = Point2I(0,0);
+  mRealWalkTarget = Point2I(0,0);
+  mRealWalkTargetBox = -1;
   mWalkSpeed = Point2I(0,0);
   mDirection = CostumeRenderer::SOUTH;
-  mMoving = false;
+  mAction = ACTION_IDLE;
   mTieAxis = 0;
 }
 
@@ -107,6 +145,8 @@ public:
    CostumeRenderer::LiveState mLiveCostume;
    U16 mTickCounter;
    U16 mTickSpeed;
+   U8 mLayer;
+   S32 mLastBox;
    
    ActorWalkState mWalkState;
    
@@ -114,6 +154,8 @@ public:
    
    bool onAdd();
    void onRemove();
+   
+   void setPosition(Point2I pos);
    
    void walkTo(Point2I pos);
    

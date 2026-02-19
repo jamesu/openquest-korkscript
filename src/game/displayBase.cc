@@ -42,6 +42,11 @@ void DisplayBase::resize(const Point2I newPosition, const Point2I newExtent)
   }
 }
 
+void DisplayBase::setPosition(Point2I newPosition)
+{
+   resize(newPosition, mExtent);
+}
+
 void DisplayBase::forwardEvent(DBIEvent& event)
 {
   for (SimObject* obj : objectList)
@@ -81,7 +86,7 @@ void DisplayBase::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamer
 
 ConsoleMethodValue(DisplayBase, setPosition, 4, 4, "")
 {
-   object->mPosition = Point2I(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]));
+   object->setPosition(Point2I(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3])));
    return KorkApi::ConsoleValue();
 }
 

@@ -78,9 +78,42 @@ int main(int argc, char **argv)
    cam.target = (Vector2){ 0, 0 };   // world origin you want at top-left
    cam.rotation = 0.0f;
    
+   const char *fsMaskCutout =
+   "#version 330\n"
+   "in vec2 fragTexCoord;\n"
+   "in vec4 fragColor;\n"
+   "out vec4 finalColor;\n"
+   "\n"
+   "uniform sampler2D texture0;\n"
+   "uniform sampler2D maskTex;\n"
+   "\n"
+   "uniform vec2 rtSizePx;        // e.g. (320, 200)\n"
+   "uniform vec2 roomOffsetPx;    // e.g. (0, 28)\n"
+   "uniform vec2 roomSizePx;      // e.g. (320, 144)\n"
+   "\n"
+   "void main()\n"
+   "{\n"
+   "    vec4 actor = texture(texture0, fragTexCoord) * fragColor;\n"
+   "\n"
+   "    vec2 p = vec2(gl_FragCoord.x, rtSizePx.y-gl_FragCoord.y);\n"
+   "\n"
+   "    vec2 uv = p / roomSizePx;\n"
+   "    vec4 m = vec4(0.0);\n"
+   "    if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)\n"
+   "    {\n"
+   "        m = texture(maskTex, uv);   // 1.0 = white = hide actor\n"
+   "    }\n"
+   "\n"
+   "    actor.a *= 1.0-m.r;\n"
+   "\n"
+   "    finalColor = actor;\n"
+   "}\n";
+   
    InitWindow(screenWidth, screenHeight, "openquest");
    {
       ClearWindowState(FLAG_VSYNC_HINT);
+      
+      gGlobals.shaderMask = LoadShaderFromMemory(NULL, fsMaskCutout);
       
       gGlobals.roomRt = LoadRenderTexture(320, 200);
       SetTextureFilter(gGlobals.roomRt.texture, TEXTURE_FILTER_POINT);
@@ -94,7 +127,7 @@ int main(int argc, char **argv)
       gTextureManager = new TextureManager();
       
       // Boot
-      Con::executef(2, "exec", "boot.cs");
+      Con::executef("exec", KorkApi::ConsoleValue::makeString("boot.cs"));
       
       const float fixedDt = 1.0f / (((float)TICK_HZ) / gTimerNext);
       double accumulator = fixedDt;
@@ -111,12 +144,12 @@ int main(int argc, char **argv)
          }
          
          // Update globals
-         gMouseX = GetMouseX();
-         gMouseY = GetMouseY();
+         gMouseX = GetMouseX() - vp.x;
+         gMouseY = GetMouseY() - vp.y;
          
          // Need these translated into room space
-         gMouseX = ((F32)gMouseX / screenWidth) * 320.0;
-         gMouseY = ((F32)gMouseY / screenHeight) * 200.0;
+         gMouseX = ((F32)gMouseX / vp.width) * 320.0;
+         gMouseY = ((F32)gMouseY / vp.height) * 200.0;
          
          // Call input handler
          if (gGlobals.currentRoom)
@@ -124,7 +157,7 @@ int main(int argc, char **argv)
             int key = GetKeyPressed();
             while (key > 0)
             {
-               Con::executef(gGlobals.currentRoom, 4, "inputHandler", "4", "0");
+               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(4), Con::getIntArg(0));
                key = GetKeyPressed();   // get next key from queue
             }
             
@@ -132,12 +165,12 @@ int main(int argc, char **argv)
             
             if (IsMouseButtonPressed(0))
             {
-               Con::executef(gGlobals.currentRoom, 4, "inputHandler", "2", "1");
+               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(1));
             }
             
             if (IsMouseButtonPressed(1))
             {
-               Con::executef(gGlobals.currentRoom, 4, "inputHandler", "2", "2");
+               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(2));
             }
          }
          
@@ -161,8 +194,8 @@ int main(int argc, char **argv)
             SimWorld::RootUI::sMainInstance->onRender(Point2I(0,0), RectI(Point2I(0,0), Point2I(320, 200)), cam);
          }
          
-         DrawText(TextFormat("Sim tick: %.0f Hz (dt=%.6f) FPS=%i", ((float)TICK_HZ) / gTimerNext, fixedDt, GetFPS()), 10, 10, 20, DARKGRAY);
-         DrawText(TextFormat("steps=%d", steps), 10, 35, 20, DARKGRAY);
+         //DrawText(TextFormat("Sim tick: %.0f Hz (dt=%.6f) FPS=%i", ((float)TICK_HZ) / gTimerNext, fixedDt, GetFPS()), 10, 10, 20, DARKGRAY);
+         //DrawText(TextFormat("steps=%d", steps), 10, 35, 20, DARKGRAY);
          
          EndMode2D();
          

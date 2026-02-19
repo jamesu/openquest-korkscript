@@ -56,6 +56,8 @@ struct RoomRender
    F32 transitionPos;
    F32 transitionTime;
    
+   bool mZPlanesDirty;
+   
    static float smoothstep(float t);
 
    static RectI computeWipeRect(int W, int H, float t01, TransitionMode mode, TransitionWipeOrigin origin);
@@ -80,6 +82,9 @@ public:
    RoomRender mRenderState;
    BoxInfo mBoxes;
    
+   S32 findBoxContainingPoint(Point2I pos);
+   Point2I projectPointOntoBox(Point2I pos, S32 box);
+   
    bool onAdd();
    
    void onRemove();
@@ -92,6 +97,11 @@ public:
    virtual void resize(const Point2I newPosition, const Point2I newExtent);
    
    void updateResources();
+   
+   void updateZPlanes()
+   {
+      
+   }
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCam);
    

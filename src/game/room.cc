@@ -105,6 +105,17 @@ bool Room::onAdd()
    if (Parent::onAdd())
    {
       registerTickable();
+      
+      if (mBoxFileName && mBoxFileName[0] != '\0')
+      {
+         mBoxes.reset();
+         FileStream fs;
+         if (fs.open(mBoxFileName, FileStream::Read))
+         {
+            mBoxes.read(fs);
+         }
+      }
+      
       return true;
    }
    return false;
@@ -133,16 +144,6 @@ void Room::resize(const Point2I newPosition, const Point2I newExtent)
 
 void Room::updateResources()
 {
-   if (mBoxFileName && mBoxFileName[0] != '\0')
-   {
-      mBoxes.reset();
-      FileStream fs;
-      if (fs.open(mBoxFileName, FileStream::Read))
-      {
-         mBoxes.read(fs);
-      }
-   }
-   
    mRenderState.backgroundImage = mImageFileName && *mImageFileName ? gTextureManager->loadTexture(mImageFileName) : nullptr;
    for (uint32_t i=0; i<RoomRender::NumZPlanes; i++)
    {
@@ -154,6 +155,8 @@ void Room::updateResources()
    {
       mRenderState.backgroundSR = RectI(Point2I(0,0), Point2I(slot->mTexture.width, slot->mTexture.height));
    }
+   
+   mRenderState.mZPlanesDirty = true;
 }
 
 void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
@@ -168,6 +171,13 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    Rectangle source = { (float)mRenderState.backgroundSR.point.x, (float)mRenderState.backgroundSR.point.y, (float)mRenderState.backgroundSR.extent.x, (float)mRenderState.backgroundSR.extent.y };
    Rectangle dest = { (float)offset.x, (float)offset.y, (float)drawRect.extent.x, (float)drawRect.extent.y };
    Vector2 origin = { 0.0, 0.0 };
+   
+   // z planes need to be kept current; these are handled by copying
+   // the base planes + object planes to mask textures.
+   if (mRenderState.mZPlanesDirty)
+   {
+      updateZPlanes();
+   }
    
    BeginTextureMode(gGlobals.roomRt);
    {
@@ -202,17 +212,96 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
          }
       }
       
-      Camera2D localCamera = {};
+      // Ok now draw the layers
+      std::vector<Actor*> sortedActors;
+      sortedActors.reserve(objectList.size());
+      
       for (SimObject* obj : objectList)
       {
          Actor* actor = dynamic_cast<Actor*>(obj);
          if (actor)
+            sortedActors.push_back(actor);
+      }
+      
+      std::sort(sortedActors.begin(), sortedActors.end(), [](const Actor* a, const Actor* b){
+         if (a->mPosition.y < b->mPosition.y)
+         {
+            return true;
+         }
+         
+         if (a->getId() < b->getId())
+         {
+            return true;
+         }
+         
+         return false;
+      });
+      
+      // Actors need to be masked by the current z planes.
+      // these need to be kept current
+      Camera2D localCamera = {};
+      U32 lastActor = 0;
+      int locMask = GetShaderLocation(gGlobals.shaderMask, "maskTex");
+      int locRtSize = GetShaderLocation(gGlobals.shaderMask, "rtSizePx");
+      int locOff    = GetShaderLocation(gGlobals.shaderMask, "roomOffsetPx");
+      int locRoomSz = GetShaderLocation(gGlobals.shaderMask, "roomSizePx");
+      
+      Vector2 rtSize   = { (float)gGlobals.roomRt.texture.width, (float)gGlobals.roomRt.texture.height }; // 320,200
+      Vector2 roomOff  = { 0.0f, 0.0f };
+      Vector2 roomSize = { 320.0f, 144.0f };
+      
+      for (U32 zPlane=0; zPlane<RoomRender::NumZPlanes; zPlane++)
+      {
+         TextureSlot* maskSlot = gTextureManager->resolveHandle(mRenderState.zPlanes[zPlane]);
+         if (maskSlot)
+         {
+            BeginBlendMode(BLEND_ALPHA);
+            BeginShaderMode(gGlobals.shaderMask);
+            
+            SetTextureFilter(maskSlot->mTexture, TEXTURE_FILTER_POINT);
+            SetTextureWrap(maskSlot->mTexture, TEXTURE_WRAP_CLAMP);
+            
+            SetShaderValueTexture(gGlobals.shaderMask, locMask, maskSlot->mTexture);
+            
+            
+            
+            SetShaderValue(gGlobals.shaderMask, locRtSize, &rtSize, SHADER_UNIFORM_VEC2);
+            SetShaderValue(gGlobals.shaderMask, locOff,    &roomOff, SHADER_UNIFORM_VEC2);
+            SetShaderValue(gGlobals.shaderMask, locRoomSz, &roomSize, SHADER_UNIFORM_VEC2);
+         }
+         
+         for (Actor* obj : sortedActors)
+         {
+            Actor* actor = dynamic_cast<Actor*>(obj);
+            if (actor && actor->mLayer == zPlane+1)
+            {
+               Point2I childPosition = actor->getPosition();
+               RectI childClip(childPosition, Point2I(320,200));
+               actor->onRender(childPosition, childClip, localCamera);
+            }
+         }
+         
+         if (maskSlot)
+         {
+            EndBlendMode();
+            EndShaderMode();
+         }
+         
+         //break;
+      }
+      
+      // Draw layer 0 on top
+      for (Actor* obj : sortedActors)
+      {
+         Actor* actor = dynamic_cast<Actor*>(obj);
+         if (actor && actor->mLayer == 0)
          {
             Point2I childPosition = actor->getPosition();
             RectI childClip(childPosition, Point2I(320,200));
             actor->onRender(childPosition, childClip, localCamera);
          }
       }
+      
    }
    EndTextureMode();
    
@@ -242,7 +331,7 @@ void Room::initPersistFields()
    
    addField("image", TypeString, Offset(mImageFileName, Room));
    addField("boxFile", TypeString, Offset(mBoxFileName, Room));
-   addField("zPlanes", TypeString, Offset(mImageFileName, Room), RoomRender::NumZPlanes);
+   addField("zPlane", TypeString, Offset(mZPlaneFiles, Room), RoomRender::NumZPlanes);
 }
 
 

@@ -53,10 +53,29 @@ new Room(TestRoom)
 {
 	image = "graphics/rooms/back01_merged.bmp";
    boxFile = "graphics/rooms/back01.box";
+   zPlane[0]  = "graphics/rooms/back01_mask1.bmp";
+   zPlane[1] = "graphics/rooms/back01_mask2.bmp";
+   zPlane[2] = "graphics/rooms/back01_mask2.bmp";
 
    new Actor(TestActor)
    {
    };
+
+    new RoomObject(plant)
+    {
+        position = 104, 48;dir = EAST;
+        descName = "plant";
+        stateOffset[0] = 0, 48;
+        stateBitmap[0] = "graphics/background_items/plant_unmoved.bmp";
+        stateZPlanes[0] = "", "graphics/background_items/plant_mask2.bmp", "graphics/background_items/plant_unmoved_mask3.bmp";
+
+        stateOffset[1] = 0, 48;
+        stateBitmap[1] = "graphics/background_items/plant_moved.bmp";
+        stateZPlanes[1] = "", "graphics/background_items/plant_mask2.bmp", "graphics/background_items/plant_moved_mask3.bmp";
+        
+        state = 1;
+    };
+
 };
 new Room(TestRoom2)
 {
