@@ -172,6 +172,8 @@ struct EngineGlobals
    RenderTexture2D roomRt;
    RenderTexture2D roomZPlaneRt[SimWorld::RoomRender::NumZPlanes];
    Shader shaderMask;
+   
+   Point2I screenSize;
 };
 
 extern EngineGlobals gGlobals;

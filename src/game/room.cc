@@ -70,8 +70,8 @@ void RoomRender::updateTransition(float dt)
       transitionPos = 1.0;
    }
    
-   Point2F halfSize = Point2F(screenSize.x, screenSize.y) * 0.5f;
-   Point2I fullSize = Point2I(screenSize.x, screenSize.y);
+   Point2F halfSize = Point2F(roomDisplaySize.x, roomDisplaySize.y) * 0.5f;
+   Point2I fullSize = Point2I(roomDisplaySize.x, roomDisplaySize.y);
    
    switch (currentTransition.mode)
    {
@@ -87,14 +87,14 @@ void RoomRender::updateTransition(float dt)
       case TRANSITION_WIPE_HORIZONTAL_OUT:
       case TRANSITION_WIPE_VERTICAL_IN:
       case TRANSITION_WIPE_VERTICAL_OUT:
-         clipRect = computeWipeRect(screenSize.x,
-                                    screenSize.y,
+         clipRect = computeWipeRect(roomDisplaySize.x,
+                                    roomDisplaySize.y,
                                     transitionPos,
                                     (TransitionMode)currentTransition.mode,
                                     (TransitionWipeOrigin)currentTransition.params);
          break;
       default:
-         clipRect = RectI(0,0,screenSize.x, screenSize.y);
+         clipRect = RectI(0,0,roomDisplaySize.x, roomDisplaySize.y);
          break;
          
    }
@@ -152,8 +152,8 @@ void Room::resize(const Point2I newPosition, const Point2I newExtent)
 {
    mBounds.point = newPosition;
    mBounds.extent = newExtent;
-   mRenderState.screenSize.x = mBounds.extent.x;
-   mRenderState.screenSize.y = mBounds.extent.y;
+   mRenderState.roomDisplaySize.x = mBounds.extent.x;
+   mRenderState.roomDisplaySize.y = mBounds.extent.y;
 }
 
 void Room::updateLayout(const RectI contentRect)
@@ -221,6 +221,13 @@ void Room::updateZPlanes()
    }
 }
 
+static Rectangle RTSourceRect(Rectangle normalCrop, S32 rtHeight)
+{
+    normalCrop.y = rtHeight - (normalCrop.y + normalCrop.height);
+    normalCrop.height = -normalCrop.height;
+    return normalCrop;
+}
+
 void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
 {
    if (mRenderState.backgroundImage.getNum() == 0)
@@ -230,8 +237,14 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    
    // We need to maintain the original aspect ratio of the scene when drawing the image in respect to the scumm coord system
    
-   Rectangle source = { (float)mRenderState.backgroundSR.point.x, (float)mRenderState.backgroundSR.point.y, (float)mRenderState.backgroundSR.extent.x, (float)mRenderState.backgroundSR.extent.y };
-   Rectangle dest = { (float)offset.x, (float)offset.y, (float)drawRect.extent.x, (float)drawRect.extent.y };
+   Rectangle source = { (float)mRenderState.backgroundSR.point.x, 
+                        (float)mRenderState.backgroundSR.point.y, 
+                        (float)mRenderState.backgroundSR.extent.x, 
+                        (float)mRenderState.backgroundSR.extent.y };
+   Rectangle dest = { (float)offset.x, 
+                      (float)offset.y, 
+                      (float)drawRect.extent.x, 
+                      (float)drawRect.extent.y };
    Vector2 origin = { 0.0, 0.0 };
 
    // Update object state
@@ -252,6 +265,8 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       updateZPlanes();
    }
    
+   bool zPlaneDebug = false;
+   
    Camera2D localCamera = {};
    BeginTextureMode(gGlobals.roomRt);
    {
@@ -261,7 +276,19 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       if (slot)
       {
          Rectangle localDest = { 0.0f, 0.0f, (float)slot->mTexture.width, (float)slot->mTexture.height };
-         DrawTexturePro(slot->mTexture, source, localDest, origin, 0.0f, WHITE);
+         if (zPlaneDebug)
+         {
+            // Z target is fullscreen too, so we just clip
+            DrawTexturePro(gGlobals.roomZPlaneRt[0].texture,
+                           RTSourceRect(source, 200),
+                           localDest,
+             origin, 0.0f, WHITE);
+         }
+         else
+         {
+            DrawTexturePro(slot->mTexture, source, localDest, origin, 0.0f, WHITE);
+         }
+         //DrawRectangleLines(source.x, source.y, source.width, source.height, GREEN);
       }
 
       // Draw the objects
@@ -278,8 +305,6 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
             roomObj->onRender(childPosition, childClip, localCamera);
          }
       }
-      
-      Point2F scalingFactor = Point2F(mRenderState.screenSize.x / 320.0f, mRenderState.screenSize.y / 200.0f);
       
       for (BoxInfo::Box& box : mBoxes.boxes)
       {
@@ -335,7 +360,7 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       
       Vector2 rtSize   = { (float)gGlobals.roomRt.texture.width, (float)gGlobals.roomRt.texture.height }; // 320,200
       Vector2 roomOff  = { 0.0f, 0.0f };
-      Vector2 roomSize = { 320.0f, 144.0f };
+      Vector2 roomSize = { 320.0f, 200.0f };
       
       for (U32 zPlane=0; zPlane<RoomRender::NumZPlanes; zPlane++)
       {
@@ -390,17 +415,27 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    EndTextureMode();
    
    // Now render the room to the canvas
+   // NOTE: to keep things simple, we render the entire roomRT BUT we use the scissor mode to clip out the correct area.
    
    // Transform
-   RectI globalRect = WorldRectToScreen(mRenderState.clipRect, globalCam);
-   //BeginScissorMode(globalRect.point.x, globalRect.point.y, globalRect.extent.x, globalRect.extent.y);
+   RectI globalRect = WorldRectToScreen(mRenderState.clipRect, globalCam); // local -> global
+   RectI fullRTRect = WorldRectToScreen(RectI(0,0,320,200), globalCam);
+   BeginScissorMode(globalRect.point.x, globalRect.point.y, globalRect.extent.x, globalRect.extent.y);
    
    DrawTexturePro(gGlobals.roomRt.texture,
-                  (Rectangle){0,0,320,-200},
-                  (Rectangle){(float)globalRect.point.x, (float)globalRect.point.y, (float)globalRect.extent.x, (float)globalRect.extent.y},
+                  RTSourceRect((Rectangle){
+      0.0f,
+      0.0f,
+      320.0f,
+      200.0f}, 200),
+                  (Rectangle){
+      (float)fullRTRect.point.x,
+      (float)fullRTRect.point.y,
+      (float)fullRTRect.extent.x,
+      (float)fullRTRect.extent.y},
                   origin, 0, WHITE);
    
-   //EndScissorMode();
+   EndScissorMode();
    
 }
 

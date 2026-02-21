@@ -95,7 +95,7 @@ int main(int argc, char **argv)
    "{\n"
    "    vec4 actor = texture(texture0, fragTexCoord) * fragColor;\n"
    "\n"
-   "    vec2 p = vec2(gl_FragCoord.x, rtSizePx.y-gl_FragCoord.y);\n"
+   "    vec2 p = vec2(gl_FragCoord.x, gl_FragCoord.y);\n"
    "\n"
    "    vec2 uv = p / roomSizePx;\n"
    "    vec4 m = vec4(0.0);\n"
@@ -105,6 +105,7 @@ int main(int argc, char **argv)
    "    }\n"
    "\n"
    "    actor.a *= 1.0-m.r;\n"
+   "    //actor.rgba = vec4(m.r,m.r,m.r,1.0);\n"
    "\n"
    "    finalColor = actor;\n"
    "}\n";
@@ -114,6 +115,7 @@ int main(int argc, char **argv)
       ClearWindowState(FLAG_VSYNC_HINT);
       
       gGlobals.shaderMask = LoadShaderFromMemory(NULL, fsMaskCutout);
+      gGlobals.screenSize = Point2I(screenWidth, screenHeight);
       
       gGlobals.roomRt = LoadRenderTexture(320, 200);
       for (U32 zPlane=0; zPlane<SimWorld::RoomRender::NumZPlanes; zPlane++)
@@ -168,7 +170,7 @@ int main(int argc, char **argv)
             int key = GetKeyPressed();
             while (key > 0)
             {
-               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(4), Con::getIntArg(0));
+               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(4), Con::getIntArg(0), Con::getIntArg(key));
                key = GetKeyPressed();   // get next key from queue
             }
             
@@ -176,12 +178,12 @@ int main(int argc, char **argv)
             
             if (IsMouseButtonPressed(0))
             {
-               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(1));
+               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(0), Con::getIntArg(1));
             }
             
             if (IsMouseButtonPressed(1))
             {
-               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(2));
+               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(0), Con::getIntArg(2));
             }
          }
          

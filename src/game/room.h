@@ -72,7 +72,7 @@ struct RoomRender
 
     ObjectInfo objectInfo;
    
-   Point2I screenSize;
+   Point2I roomDisplaySize;
    RectI backgroundSR;
    RectI clipRect;
    ColorI bgColor;
