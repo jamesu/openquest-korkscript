@@ -168,14 +168,7 @@ void RootUI::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
 {
    resize(offset, drawRect.extent);
    
-   for (SimObject* obj : objectList)
-   {
-      DisplayBase* displayObj = dynamic_cast<DisplayBase*>(obj);
-      if (displayObj)
-      {
-         displayObj->onRender(offset, drawRect, globalCamera);
-      }
-   }
+   renderChildren(offset, drawRect, globalCamera);
 }
 
 void RootUI::setContent(DisplayBase* obj)

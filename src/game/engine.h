@@ -115,6 +115,15 @@ struct DBIEvent
    
 };
 
+static inline Point2I WorldPointToScreen(Point2I point, Camera2D cam)
+{
+    Vector2 topLeft     = GetWorldToScreen2D((Vector2){ (float)(point.x), (float)(point.y) }, cam);
+
+    return Point2I(
+        topLeft.x,
+        topLeft.y
+    );
+}
 
 static inline RectI WorldRectToScreen(RectI r, Camera2D cam)
 {

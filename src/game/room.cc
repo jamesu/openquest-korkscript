@@ -418,25 +418,45 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    // NOTE: to keep things simple, we render the entire roomRT BUT we use the scissor mode to clip out the correct area.
    
    // Transform
-   RectI globalRect = WorldRectToScreen(mRenderState.clipRect, globalCam); // local -> global
-   RectI fullRTRect = WorldRectToScreen(RectI(0,0,320,200), globalCam);
-   BeginScissorMode(globalRect.point.x, globalRect.point.y, globalRect.extent.x, globalRect.extent.y);
+   RectI roomClip = mRenderState.clipRect; // NOTE: based on image size
+   RectI fullRTRect = WorldRectToScreen(RectI(0,0,320,200), globalCam); // Full size required to render RT to screen
+   RectI displayClipRect = RectI(offset, mBounds.extent); // gui control (rt space)
+   RectI roomDisplayOnScreen = WorldRectToScreen(displayClipRect, globalCam); // gui control (screen space)
+   RectI globalDrawRect = WorldRectToScreen(drawRect, globalCam); // clip rect (should be same as displayClipRect UNLESS control is inside clipped control)
+   Point2I drawOffset = WorldPointToScreen(offset, globalCam) - fullRTRect.point;
    
-   DrawTexturePro(gGlobals.roomRt.texture,
-                  RTSourceRect((Rectangle){
-      0.0f,
-      0.0f,
-      320.0f,
-      200.0f}, 200),
-                  (Rectangle){
-      (float)fullRTRect.point.x,
-      (float)fullRTRect.point.y,
-      (float)fullRTRect.extent.x,
-      (float)fullRTRect.extent.y},
-                  origin, 0, WHITE);
-   
-   EndScissorMode();
-   
+   if (roomDisplayOnScreen.intersect(globalDrawRect))
+   {
+      RectI roomClipOnScreen = WorldRectToScreen(roomClip, globalCam); // local -> global extra clipping rect
+      roomClipOnScreen.point += drawOffset;
+      RectI clippedClip = roomClipOnScreen;
+      
+      if (clippedClip.intersect(roomDisplayOnScreen))
+      {
+         BeginScissorMode(std::max<S32>(clippedClip.point.x, 0),
+                          std::max<S32>(clippedClip.point.y, 0),
+                          clippedClip.extent.x,
+                          clippedClip.extent.y);
+         
+         DrawTexturePro(gGlobals.roomRt.texture,
+                        RTSourceRect((Rectangle){
+            0.0f,
+            0.0f,
+            320.0f,
+            200.0f}, 200),
+                        (Rectangle){
+            (float)fullRTRect.point.x + (float)drawOffset.x,
+            (float)fullRTRect.point.y + (float)drawOffset.y,
+            (float)fullRTRect.extent.x,
+            (float)fullRTRect.extent.y},
+                        origin, 0, WHITE);
+         
+         EndScissorMode();
+      }
+      
+      // DEBUG
+      //DrawRectangleLines(roomClipOnScreen.point.x, roomClipOnScreen.point.y, roomClipOnScreen.extent.x, roomClipOnScreen.extent.y, RED);
+   }
 }
 
 void Room::onFixedTick(F32 dt)
