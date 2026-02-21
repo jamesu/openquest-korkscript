@@ -64,6 +64,7 @@ public:
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera);
    
+   
 public:
    DECLARE_CONOBJECT(DisplayBase);
 };

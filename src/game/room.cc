@@ -489,7 +489,7 @@ void RoomObject::onRemove()
    Parent::onRemove();
 }
 
-void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
+void RoomObject::updateLayout(const RectI contentRect)
 {
    if (mState == 0)
    {
@@ -499,17 +499,43 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    U32 curStateIndex = mState-1;
    if (curStateIndex < objectList.size())
    {
+      RoomObjectState* curState = dynamic_cast<RoomObjectState*>(objectList[curStateIndex]);
+      if (curState)
+      {
+         resize(mAnchor, curState->mExtent);
+      }
+   }
+}
+
+void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
+{
+   if (mState == 0)
+   {
+      return;
+   }
+   
+   bool debug = false;
+
+   U32 curStateIndex = mState-1;
+   if (curStateIndex < objectList.size())
+   {
       Vector2 origin = { 0.0, 0.0 };
       RoomObjectState* curState = dynamic_cast<RoomObjectState*>(objectList[curStateIndex]);
-      offset += curState->mOffset;
       
       TextureSlot* slot = gTextureManager->resolveHandle(curState->mTexture);
       if (slot)
       {
          Rectangle src = { 0.0f, 0.0f, (float)slot->mTexture.width, (float)slot->mTexture.height };
          Rectangle dest = { (float)offset.x, (float)offset.y, (float)slot->mTexture.width, (float)slot->mTexture.height };
-         DrawTexturePro(slot->mTexture, src, dest, origin, 0.0f, WHITE);
+         DrawTexturePro(slot->mTexture, src, dest, origin, 0.0f, debug? BLUE : WHITE);
       }
+   }
+   
+   // debug
+   if (debug)
+   {
+      DrawCircle(mAnchor.x, mAnchor.y, 2, GREEN);
+      DrawRectangleLines(offset.x, offset.y, mBounds.extent.x, mBounds.extent.y, GREEN);
    }
 }
 
@@ -536,6 +562,7 @@ void RoomObject::initPersistFields()
 {
    Parent::initPersistFields();
    
+   initDisplayFields();
    registerClassNameFields(false);
    
    addField("descName", TypeString, Offset(mDescription, RoomObject));
@@ -547,7 +574,8 @@ void RoomObject::initPersistFields()
 
 RoomObjectState::RoomObjectState()
 {
-   mOffset = Point2I(0,0);
+   mHotSpot = Point2I(0,0);
+   mExtent = Point2I(0,0);
    mImageFileName = "";
    mTexture = TextureHandle();
    for (U32 i=0; i<RoomRender::NumZPlanes; i++)
@@ -559,9 +587,17 @@ RoomObjectState::RoomObjectState()
 
 void RoomObjectState::updateResources()
 {
+   mExtent = Point2I(0,0);
+   
    if (mImageFileName && mImageFileName[0] != '\0')
    {
       mTexture = gTextureManager->loadTexture(mImageFileName);
+      
+      TextureSlot* slot = gTextureManager->resolveHandle(mTexture);
+      if (slot)
+      {
+         mExtent = Point2I(slot->mTexture.width, slot->mTexture.height);
+      }
    }
 
    for (U32 i=0; i<RoomRender::NumZPlanes; i++)
@@ -596,7 +632,7 @@ void RoomObjectState::onRemove()
 void RoomObjectState::enumerateRenderables(RoomRender::ObjectInfo& outState)
 {
    RoomRender::ObjectInfo::Entry outInfo;
-   outInfo.offset = outState.curRootPos + mOffset;
+   outInfo.offset = outState.curRootPos;
 
    TextureSlot* slot = nullptr;
 
@@ -622,7 +658,7 @@ void RoomObjectState::initPersistFields()
 {
    Parent::initPersistFields();
 
-   addField("offset", TypePoint2I, Offset(mOffset, RoomObjectState));
+   addField("hotSpot", TypePoint2I, Offset(mHotSpot, RoomObjectState));
    addField("image", TypeString, Offset(mImageFileName, RoomObjectState));
    addField("zPlane", TypeString, Offset(mZPlaneFiles, RoomObjectState), RoomRender::NumZPlanes);
 }

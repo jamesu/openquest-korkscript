@@ -218,6 +218,13 @@ void ActorWalkState::adjustWalkTarget(Actor& actor)
 
 // Actor
 
+void Actor::initPersistFields()
+{
+   Parent::initPersistFields();
+
+   initDisplayFields();
+}
+
 Actor::Actor()
 {
   mCostume = nullptr;

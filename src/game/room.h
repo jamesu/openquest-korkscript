@@ -145,7 +145,7 @@ public:
 
 class RoomObject : public DisplayBase
 {
-   typedef SimObject Parent;
+   typedef DisplayBase Parent;
 public:
 
    StringTableEntry mDescription;
@@ -163,6 +163,7 @@ public:
    RoomObject();
 
    void updateResources();
+   void updateLayout(const RectI contentRect);
 
    bool onAdd();
    
@@ -184,7 +185,9 @@ class RoomObjectState : public SimObject
 {
    typedef SimObject Parent;
 public:
-   Point2I mOffset;
+   Point2I mHotSpot;
+   Point2I mExtent;
+   
    StringTableEntry mImageFileName;
    TextureHandle mTexture;
    StringTableEntry mZPlaneFiles[RoomRender::NumZPlanes];

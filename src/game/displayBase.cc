@@ -81,8 +81,8 @@ void DisplayBase::resize(const Point2I newPosition, const Point2I newExtent)
    mBounds.point = newPosition;
    mBounds.extent = newExtent;
    // Make sure we don't go negative on extent
-   mBounds.extent.x = std::min<S32>(mBounds.extent.x, mMinContentSize.x + mPadding.tl.x + mPadding.tl.x);
-   mBounds.extent.y = std::min<S32>(mBounds.extent.y, mMinContentSize.y + mPadding.tl.y + mPadding.tl.y);
+   mBounds.extent.x = std::max<S32>(mBounds.extent.x, mMinContentSize.x + mPadding.tl.x + mPadding.tl.x);
+   mBounds.extent.y = std::max<S32>(mBounds.extent.y, mMinContentSize.y + mPadding.tl.y + mPadding.tl.y);
 }
 
 void DisplayBase::setPosition(Point2I newPosition)

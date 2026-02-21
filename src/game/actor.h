@@ -170,6 +170,8 @@ public:
    void setDirection(CostumeRenderer::DirectionValue direction);
 
    void setCostume(SimWorld::Costume* costume);
+
+   static void initPersistFields();
    
    
    DECLARE_CONOBJECT(Actor);

@@ -74,7 +74,7 @@ new Room(TestRoom)
         
         new RoomObjectState()
         {
-           offset = 0, 48;
+           hotSpot = 0, 48;
            image = "graphics/background_items/plant_unmoved.bmp";
 
            zPlane[0] = "";
@@ -85,7 +85,7 @@ new Room(TestRoom)
 
         new RoomObjectState()
         {
-           offset = 0, 48;
+           hotSpot = 0, 48;
            image = "graphics/background_items/plant_moved.bmp";
 
            zPlane[0] = "";
