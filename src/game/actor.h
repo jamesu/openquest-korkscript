@@ -155,6 +155,8 @@ public:
    bool onAdd();
    void onRemove();
    
+   void updateLayout(const RectI contentRect);
+   
    void setPosition(Point2I pos);
    
    void walkTo(Point2I pos);

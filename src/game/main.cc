@@ -116,6 +116,10 @@ int main(int argc, char **argv)
       gGlobals.shaderMask = LoadShaderFromMemory(NULL, fsMaskCutout);
       
       gGlobals.roomRt = LoadRenderTexture(320, 200);
+      for (U32 zPlane=0; zPlane<SimWorld::RoomRender::NumZPlanes; zPlane++)
+      {
+         gGlobals.roomZPlaneRt[zPlane] = LoadRenderTexture(320, 200);
+      }
       SetTextureFilter(gGlobals.roomRt.texture, TEXTURE_FILTER_POINT);
       
       Rectangle vp = GetLetterboxViewport(screenWidth, screenHeight, 320, 200);
@@ -140,7 +144,8 @@ int main(int argc, char **argv)
          
          if (SimWorld::RootUI::sMainInstance)
          {
-            SimWorld::RootUI::sMainInstance->resize(Point2I(0,0), Point2I(320, 200));
+            SimWorld::RootUI::sMainInstance->mAnchor = Point2I(0,0);
+            SimWorld::RootUI::sMainInstance->mMinContentSize = Point2I(320, 200);
          }
          
          // Update globals
@@ -150,6 +155,12 @@ int main(int argc, char **argv)
          // Need these translated into room space
          gMouseX = ((F32)gMouseX / vp.width) * 320.0;
          gMouseY = ((F32)gMouseY / vp.height) * 200.0;
+         
+         // Pre-frame layout update
+         if (SimWorld::RootUI::sMainInstance)
+         {
+            SimWorld::RootUI::sMainInstance->updateLayout(RectI(Point2I(0,0), SimWorld::RootUI::sMainInstance->mMinContentSize));
+         }
          
          // Call input handler
          if (gGlobals.currentRoom)

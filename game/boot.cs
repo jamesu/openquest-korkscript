@@ -48,6 +48,10 @@ new RootUI(RootUI)
 {
 };
 
+$NORTH = 0;
+$SOUTH = 1;
+$WEST = 2;
+$EAST = 3;
 
 new Room(TestRoom)
 {
@@ -63,17 +67,31 @@ new Room(TestRoom)
 
     new RoomObject(plant)
     {
-        position = 104, 48;dir = EAST;
+        anchorPoint = 104, 48;
+        dir = $EAST;
         descName = "plant";
-        stateOffset[0] = 0, 48;
-        stateBitmap[0] = "graphics/background_items/plant_unmoved.bmp";
-        stateZPlanes[0] = "", "graphics/background_items/plant_mask2.bmp", "graphics/background_items/plant_unmoved_mask3.bmp";
-
-        stateOffset[1] = 0, 48;
-        stateBitmap[1] = "graphics/background_items/plant_moved.bmp";
-        stateZPlanes[1] = "", "graphics/background_items/plant_mask2.bmp", "graphics/background_items/plant_moved_mask3.bmp";
-        
         state = 1;
+        
+        new RoomObjectState()
+        {
+           offset = 0, 48;
+           image = "graphics/background_items/plant_unmoved.bmp";
+
+           zPlane[0] = "";
+           zPlane[1] = "graphics/background_items/plant_mask2.bmp";
+           zPlane[2] = "graphics/background_items/plant_unmoved_mask3.bmp";
+         };
+
+
+        new RoomObjectState()
+        {
+           offset = 0, 48;
+           image = "graphics/background_items/plant_moved.bmp";
+
+           zPlane[0] = "";
+           zPlane[1] = "graphics/background_items/plant_mask2.bmp";
+           zPlane[2] = "graphics/background_items/plant_moved_mask3.bmp";
+        };
     };
 
 };

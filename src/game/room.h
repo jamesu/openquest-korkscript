@@ -10,8 +10,6 @@
 
 
 BEGIN_SW_NS
-
-
 struct RoomRender
 {
    enum TransitionMode : U8
@@ -46,6 +44,33 @@ struct RoomRender
    };
     TextureHandle backgroundImage;
     TextureHandle zPlanes[3];
+
+
+   struct ObjectInfo
+   {
+      struct Entry
+      {
+         Point2I offset;
+         TextureSlot* slot;
+      };
+
+      std::vector<Entry> images;
+      std::vector<Entry> zPlanes[RoomRender::NumZPlanes];
+      Point2I curRootPos;
+
+      void reset()
+      {
+         curRootPos = Point2I(0,0);
+         images.clear();
+         for (U32 i=0; i<RoomRender::NumZPlanes; i++)
+         {
+            zPlanes[i].clear();
+         }
+      }
+   };
+
+
+    ObjectInfo objectInfo;
    
    Point2I screenSize;
    RectI backgroundSR;
@@ -85,6 +110,8 @@ public:
    S32 findBoxContainingPoint(Point2I pos);
    Point2I projectPointOntoBox(Point2I pos, S32 box);
    
+   Room();
+
    bool onAdd();
    
    void onRemove();
@@ -95,13 +122,11 @@ public:
    void setTransitionMode(U8 mode, U8 param, F32 time);
    
    virtual void resize(const Point2I newPosition, const Point2I newExtent);
+   virtual void updateLayout(const RectI contentRect);
    
    void updateResources();
    
-   void updateZPlanes()
-   {
-      
-   }
+   void updateZPlanes();
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCam);
    
@@ -118,39 +143,67 @@ public:
 };
 
 
-class RoomObject : public SimObject
+class RoomObject : public DisplayBase
 {
    typedef SimObject Parent;
 public:
-   
-   struct ObjectState
-   {
-      Point2I mOffset;
-      StringTableEntry mImageName;
-      TextureHandle mTexture;
-      StringTableEntry mZPlaneName[RoomRender::NumZPlanes];
-      TextureHandle mZPlaneTextures[RoomRender::NumZPlanes];
-   };
-   
+
    StringTableEntry mDescription;
    StringTableEntry mClassName;
    
-   Point2I mPosition;
-   Point2I mExtent;
-   Point2I mHotspot;
    Direction mDirection;
-   U32 mCurrentState;
+   U32 mState;
    U32 mTransFlags;
+   Point2I mHotspot; // from 
    
+   // Parent dependency
    StringTableEntry mParentName;
    U32 mParentState;
+
+   RoomObject();
+
+   void updateResources();
+
+   bool onAdd();
    
-   bool mActive;
-   
-   std::vector<ObjectState> mStates;
+   void onRemove();
+
+   virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCam);
+
+   // NOTE: object doesn't really render anything, it puts stuff into the z plane updates +
+   // images.
+   void enumerateRenderables(RoomRender::ObjectInfo& outState);
+
+   static void initPersistFields();
    
 public:
    DECLARE_CONOBJECT(RoomObject);
+};
+
+class RoomObjectState : public SimObject
+{
+   typedef SimObject Parent;
+public:
+   Point2I mOffset;
+   StringTableEntry mImageFileName;
+   TextureHandle mTexture;
+   StringTableEntry mZPlaneFiles[RoomRender::NumZPlanes];
+   TextureHandle mZPlaneTextures[RoomRender::NumZPlanes];
+
+   RoomObjectState();
+
+   void updateResources();
+
+   bool onAdd();
+   
+   void onRemove();
+
+   void enumerateRenderables(RoomRender::ObjectInfo& outState);
+
+   static void initPersistFields();
+   
+public:
+   DECLARE_CONOBJECT(RoomObjectState);
 };
 
 

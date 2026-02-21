@@ -34,7 +34,7 @@ void ActorWalkState::updateTick(Actor& actor)
       return;
    }
    
-   Point2I delta = mWalkTarget - actor.mPosition;
+   Point2I delta = mWalkTarget - actor.getAnchorPosition();
    
    if (prevAction == ACTION_CHECK_MOVE ||
        delta == Point2I(0,0))
@@ -44,7 +44,7 @@ void ActorWalkState::updateTick(Actor& actor)
       {
          adjustWalkTarget(actor);
          
-         delta = mWalkTarget - actor.mPosition;
+         delta = mWalkTarget - actor.getAnchorPosition();
          
          S32 ax = std::abs(delta.x);
          S32 ay = std::abs(delta.y);
@@ -68,9 +68,9 @@ void ActorWalkState::updateTick(Actor& actor)
    {
       // Apply movement
       S32 step = clampStep(delta.x, mWalkSpeed.x);
-      actor.mPosition.x += step;
+      actor.mAnchor.x += step;
       step = clampStep(delta.y, mWalkSpeed.y);
-      actor.mPosition.y += step;
+      actor.mAnchor.y += step;
    }
    
    if (mAction != prevAction)
@@ -111,7 +111,7 @@ void ActorWalkState::adjustWalkTarget(Actor& actor)
 {
    // re-adjusts walk target after hitting a new point
    
-  if (actor.mPosition != mRealWalkTarget)
+  if (actor.mAnchor != mRealWalkTarget)
   {
      Room* theRoom = dynamic_cast<Room*>(actor.getGroup());
      
@@ -153,7 +153,7 @@ void ActorWalkState::adjustWalkTarget(Actor& actor)
                {
                   bool inSlab1=true;
                   bool inSlab2=true;
-                  Point2I actorPortal = theRoom->mBoxes.ClosestPointOnSegment(P0, P1, actor.mPosition, &inSlab1);
+                  Point2I actorPortal = theRoom->mBoxes.ClosestPointOnSegment(P0, P1, actor.mAnchor, &inSlab1);
                   Point2I targetPortal = theRoom->mBoxes.ClosestPointOnSegment(P0, P1, mRealWalkTarget, &inSlab2);
                   // If both points are inside the portal slab, just move directly to the target.
                   // TODO: probably a good idea to keep checking this during movement so we can switch to
@@ -252,21 +252,33 @@ void Actor::setPosition(Point2I pos)
       if (room->mBoxes.FindNearestBoxAndSnapPoint(pos, selectableFunc, true, 0, result))
       {  
          // Found a good result, go for it!
-         mPosition = result.pos;
+         mAnchor = result.pos;
          mLastBox = result.box;
-         mWalkState.mWalkTarget = mPosition;
+         mWalkState.mWalkTarget = mAnchor;
          mWalkState.mRealWalkTarget = result.pos;
          mWalkState.mRealWalkTargetBox = result.box;
       }
    }
    else
    {
-      mPosition = pos;
+      mAnchor = pos;
       mLastBox = -1;
       mWalkState.mWalkTarget = pos;
       mWalkState.mRealWalkTarget = pos;
       mWalkState.mRealWalkTargetBox = -1;
    }
+   
+   // NOTE: this re-calculates frame bounds in this case
+   updateLayout(RectI(0,0,0,0));
+}
+
+void Actor::updateLayout(const RectI contentRect)
+{
+   // NOTE: this could be slightly off depending on offset at runtime, 
+   // its acceptable for input.
+   mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y);
+   RectI boundsRect = mLiveCostume.getCurrentBounds(mCostume->mState);
+   resize(boundsRect.point, boundsRect.extent);
 }
 
 
@@ -274,7 +286,7 @@ void Actor::setPosition(Point2I pos)
 void Actor::walkTo(Point2I pos)
 {
    // Determine real pos
-   mWalkState.mWalkTarget = mPosition;
+   mWalkState.mWalkTarget = mAnchor;
    mWalkState.mRealWalkTarget = pos;
    mWalkState.mRealWalkTargetBox = -1;
    
@@ -314,7 +326,7 @@ void Actor::onFixedTick(F32 dt)
         auto selectableFunc = +[](const BoxInfo::Box&){ return true; };
         Room* room = dynamic_cast<Room*>(getGroup());
         BoxInfo::AdjustBoxResult result;
-        if (room->mBoxes.FindContainingBox(mPosition, selectableFunc, true, 0, result) &&
+        if (room->mBoxes.FindContainingBox(mAnchor, selectableFunc, true, 0, result) &&
             result.box >= 0)
         {
            mLayer = room->mBoxes.boxes[result.box].mask;
@@ -322,6 +334,7 @@ void Actor::onFixedTick(F32 dt)
         }
         
         mLiveCostume.advanceTick(mCostume->mState);
+        updateLayout(RectI(0,0,0,0));
      }
   }
   
@@ -336,7 +349,7 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
 {
   if (mCostume)
   {
-     mLiveCostume.position = Point2F(offset.x, offset.y);
+     mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y);
      //mLiveCostume.w
      mLiveCostume.render(mCostume->mState);
      

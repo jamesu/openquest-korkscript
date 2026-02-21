@@ -11,31 +11,48 @@
 
 BEGIN_SW_NS
 
+struct DisplayPair
+{
+   Point2I tl;
+   Point2I br;
+
+   DisplayPair() {;}
+};
 
 class DisplayBase : public SimGroup
 {
    typedef SimGroup Parent;
 public:
-   Point2I mPosition;
-   Point2I mExtent;
+   RectI mBounds;   // Current control pos + extent
+   Point2I mAnchor; // 
+   Point2I mMinContentSize;
+   DisplayPair mMargin;
+   DisplayPair mPadding;
    
    // NOTE: these are basically the style
-   ColorI mBackColor;
-   ColorI mColor;
-   ColorI mHiColor;
-   ColorI mDimColor;
+   Color mBackColor;
+   Color mColor;
+   Color mHiColor;
+   Color mDimColor;
    
    bool mCentered;
    bool mEnabled;
    U32 mHotKey;
+
+   static void initDisplayFields();
+
+   DisplayBase();
    
-   inline Point2I getPosition() const { return mPosition; }
-   inline Point2I getExtent() const { return mExtent; }
+   inline Point2I getAnchorPosition() const { return mAnchor; }
+   inline Point2I getBoundedPosition() const { return mBounds.point; }
+   inline Point2I getBoundedExtent() const { return mBounds.extent; }
+   RectI getContentRect() const { return RectI(mPadding.tl, mBounds.extent - (mPadding.tl + mPadding.br)); }
    
    bool onAdd() override;
    void onRemove() override;
    
    virtual void resize(const Point2I newPosition, const Point2I newExtent);
+   virtual void updateLayout(const RectI contentRect);
    
    virtual void setPosition(Point2I newPosition);
    

@@ -160,6 +160,8 @@ struct CostumeRenderer
        void advanceTick(StaticState& state);
 
        void render(StaticState& state);
+
+       RectI getCurrentBounds(StaticState& state);
     };
 };
 

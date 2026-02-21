@@ -406,6 +406,66 @@ void CostumeRenderer::LiveState::advanceTick(StaticState& state)
    }
 }
 
+RectI CostumeRenderer::LiveState::getCurrentBounds(CostumeRenderer::StaticState& state)
+{
+   bool doFlip = false;
+   
+   if ((globalFlags & CostumeRenderer::FLIP) != 0)
+   {
+      // Ok, we need to flip if the current direction is west
+      if (curDirection == CostumeRenderer::WEST)
+      {
+         doFlip = true;
+      }
+   }
+
+   Point2F minP(std::numeric_limits<F32>::max(),
+               std::numeric_limits<F32>::max());
+   Point2F maxP(std::numeric_limits<F32>::min(),
+                std::numeric_limits<F32>::min());
+   
+   for (LimbState& limbState : mLimbState)
+   {
+      if (limbState.lastEvalFrame < state.mFrames.size() &&
+          (limbState.track.flags & HIDE) == 0)
+      {
+         // Grab frame and draw
+         Frame& frame = state.mFrames[limbState.lastEvalFrame];
+         Point2F drawPos = position;
+         
+         TextureSlot* slot = gTextureManager->resolveHandle(frame.displayImage);
+         if (slot)
+         {
+            if (doFlip)
+            {
+               drawPos += (Point2F(-(frame.displayOffset.x + slot->mTexture.width), frame.displayOffset.y)) * scale;
+            }
+            else
+            {
+               drawPos += (Point2F(frame.displayOffset.x, frame.displayOffset.y)) * scale;
+            }            
+
+            const F32 w = slot->mTexture.width  * scale;
+            const F32 h = slot->mTexture.height * scale;
+
+            const Point2F rectMin(drawPos.x,       drawPos.y);
+            const Point2F rectMax(drawPos.x + w,   drawPos.y + h);
+
+            minP.x = std::min(minP.x, rectMin.x);
+            minP.y = std::min(minP.y, rectMin.y);
+            maxP.x = std::max(maxP.x, rectMax.x);
+            maxP.y = std::max(maxP.y, rectMax.y);
+         }
+      }
+   }
+
+   // Clamp
+
+   Point2I minPI(std::floor(minP.x), std::floor(minP.y));
+   Point2I maxPI(std::ceil(maxP.x), std::ceil(maxP.y));
+   
+   return RectI(minPI, maxPI - minPI);
+}
 
 void CostumeRenderer::LiveState::render(CostumeRenderer::StaticState& state)
 {

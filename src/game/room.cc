@@ -14,6 +14,7 @@ BEGIN_SW_NS
 
 IMPLEMENT_CONOBJECT(Room);
 IMPLEMENT_CONOBJECT(RoomObject);
+IMPLEMENT_CONOBJECT(RoomObjectState);
 
 
 float RoomRender::smoothstep(float t) {
@@ -99,12 +100,25 @@ void RoomRender::updateTransition(float dt)
    }
 }
 
+Room::Room()
+{
+   mImageFileName ="";
+   mBoxFileName = "";
+   mTransFlags = 0;
+
+   for (U32 i=0; i<RoomRender::NumZPlanes; i++)
+   {
+      mZPlaneFiles[i] = "";
+   }
+}
 
 bool Room::onAdd()
 {
    if (Parent::onAdd())
    {
       registerTickable();
+      
+      mMinContentSize = Point2I(320, 200);
       
       if (mBoxFileName && mBoxFileName[0] != '\0')
       {
@@ -136,10 +150,19 @@ void Room::setTransitionMode(U8 mode, U8 param, F32 time)
 
 void Room::resize(const Point2I newPosition, const Point2I newExtent)
 {
-   mPosition = newPosition;
-   mExtent = newExtent;
-   mRenderState.screenSize.x = mExtent.x;
-   mRenderState.screenSize.y = mExtent.y;
+   mBounds.point = newPosition;
+   mBounds.extent = newExtent;
+   mRenderState.screenSize.x = mBounds.extent.x;
+   mRenderState.screenSize.y = mBounds.extent.y;
+}
+
+void Room::updateLayout(const RectI contentRect)
+{
+   // NO padding
+   mPadding.tl = Point2I(0,0);
+   mPadding.br = Point2I(0,0);
+   
+   Parent::updateLayout(contentRect);
 }
 
 void Room::updateResources()
@@ -159,6 +182,45 @@ void Room::updateResources()
    mRenderState.mZPlanesDirty = true;
 }
 
+void Room::updateZPlanes()
+{
+   Vector2 origin = { 0.0, 0.0 };
+
+   for (U32 zPlane=0; zPlane<RoomRender::NumZPlanes; zPlane++)
+   {
+      BeginTextureMode(gGlobals.roomZPlaneRt[zPlane]);
+
+      // Draw room zplane
+      {
+         TextureSlot* maskSlot = gTextureManager->resolveHandle(mRenderState.zPlanes[zPlane]);
+         if (maskSlot)
+         {
+            Rectangle src = { 0.0f, 0.0f, (float)maskSlot->mTexture.width, (float)maskSlot->mTexture.height };
+            Rectangle dest = { 0.0f, 0.0f, (float)maskSlot->mTexture.width, (float)maskSlot->mTexture.height };
+            DrawTexturePro(maskSlot->mTexture, src, dest, origin, 0.0f, WHITE);
+         }
+               
+
+      }
+
+      // Draw all active object z planes
+      {
+         // 
+         for (RoomRender::ObjectInfo::Entry& e : mRenderState.objectInfo.zPlanes[zPlane])
+         {
+            if (e.slot)
+            {
+               Rectangle src = { 0.0f, 0.0f, (float)e.slot->mTexture.width, (float)e.slot->mTexture.height };
+               Rectangle dest = { (float)e.offset.x, (float)e.offset.y, (float)e.slot->mTexture.width, (float)e.slot->mTexture.height };
+               DrawTexturePro(e.slot->mTexture, src, dest, origin, 0.0f, WHITE);
+            }
+         }
+      }
+
+      EndTextureMode();
+   }
+}
+
 void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
 {
    if (mRenderState.backgroundImage.getNum() == 0)
@@ -171,24 +233,50 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    Rectangle source = { (float)mRenderState.backgroundSR.point.x, (float)mRenderState.backgroundSR.point.y, (float)mRenderState.backgroundSR.extent.x, (float)mRenderState.backgroundSR.extent.y };
    Rectangle dest = { (float)offset.x, (float)offset.y, (float)drawRect.extent.x, (float)drawRect.extent.y };
    Vector2 origin = { 0.0, 0.0 };
+
+   // Update object state
+   mRenderState.objectInfo.reset();
+   for (SimObject* obj : objectList)
+   {
+      RoomObject* roomObj = dynamic_cast<RoomObject*>(obj);
+      if (roomObj)
+      {
+         roomObj->enumerateRenderables(mRenderState.objectInfo);
+      }
+   }
    
    // z planes need to be kept current; these are handled by copying
    // the base planes + object planes to mask textures.
-   if (mRenderState.mZPlanesDirty)
+   if (mRenderState.mZPlanesDirty || true)
    {
       updateZPlanes();
    }
    
+   Camera2D localCamera = {};
    BeginTextureMode(gGlobals.roomRt);
    {
       DrawRectangle(0, 0, 300, 200, (Color){255,0,0,255});
-      
       
       TextureSlot* slot = gTextureManager->resolveHandle(mRenderState.backgroundImage);
       if (slot)
       {
          Rectangle localDest = { 0.0f, 0.0f, (float)slot->mTexture.width, (float)slot->mTexture.height };
          DrawTexturePro(slot->mTexture, source, localDest, origin, 0.0f, WHITE);
+      }
+
+      // Draw the objects
+      for (SimObject* obj : objectList)
+      {
+         RoomObject* roomObj = dynamic_cast<RoomObject*>(obj);
+         if (roomObj)
+         {
+            roomObj->updateLayout(getContentRect());
+
+            // NOTE: room objects update their layout in this case
+            Point2I childPosition = roomObj->getAnchorPosition();
+            RectI childClip(roomObj->getBoundedPosition(), roomObj->getBoundedExtent());
+            roomObj->onRender(childPosition, childClip, localCamera);
+         }
       }
       
       Point2F scalingFactor = Point2F(mRenderState.screenSize.x / 320.0f, mRenderState.screenSize.y / 200.0f);
@@ -224,7 +312,7 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       }
       
       std::sort(sortedActors.begin(), sortedActors.end(), [](const Actor* a, const Actor* b){
-         if (a->mPosition.y < b->mPosition.y)
+         if (a->mBounds.point.y < b->mBounds.point.y)
          {
             return true;
          }
@@ -239,7 +327,6 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       
       // Actors need to be masked by the current z planes.
       // these need to be kept current
-      Camera2D localCamera = {};
       U32 lastActor = 0;
       int locMask = GetShaderLocation(gGlobals.shaderMask, "maskTex");
       int locRtSize = GetShaderLocation(gGlobals.shaderMask, "rtSizePx");
@@ -252,40 +339,37 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       
       for (U32 zPlane=0; zPlane<RoomRender::NumZPlanes; zPlane++)
       {
-         TextureSlot* maskSlot = gTextureManager->resolveHandle(mRenderState.zPlanes[zPlane]);
-         if (maskSlot)
-         {
-            BeginBlendMode(BLEND_ALPHA);
-            BeginShaderMode(gGlobals.shaderMask);
-            
-            SetTextureFilter(maskSlot->mTexture, TEXTURE_FILTER_POINT);
-            SetTextureWrap(maskSlot->mTexture, TEXTURE_WRAP_CLAMP);
-            
-            SetShaderValueTexture(gGlobals.shaderMask, locMask, maskSlot->mTexture);
-            
-            
-            
-            SetShaderValue(gGlobals.shaderMask, locRtSize, &rtSize, SHADER_UNIFORM_VEC2);
-            SetShaderValue(gGlobals.shaderMask, locOff,    &roomOff, SHADER_UNIFORM_VEC2);
-            SetShaderValue(gGlobals.shaderMask, locRoomSz, &roomSize, SHADER_UNIFORM_VEC2);
-         }
+         // Start drawing using the zPlane RT as a mask
+         BeginBlendMode(BLEND_ALPHA);
+         BeginShaderMode(gGlobals.shaderMask);
+
+         Texture2D& tex = gGlobals.roomZPlaneRt[zPlane].texture; 
+         
+         SetTextureFilter(tex, TEXTURE_FILTER_POINT);
+         SetTextureWrap(tex, TEXTURE_WRAP_CLAMP);
+         
+         SetShaderValueTexture(gGlobals.shaderMask, locMask, tex);
+         
+         SetShaderValue(gGlobals.shaderMask, locRtSize, &rtSize, SHADER_UNIFORM_VEC2);
+         SetShaderValue(gGlobals.shaderMask, locOff,    &roomOff, SHADER_UNIFORM_VEC2);
+         SetShaderValue(gGlobals.shaderMask, locRoomSz, &roomSize, SHADER_UNIFORM_VEC2);
+      
          
          for (Actor* obj : sortedActors)
          {
             Actor* actor = dynamic_cast<Actor*>(obj);
             if (actor && actor->mLayer == zPlane+1)
             {
-               Point2I childPosition = actor->getPosition();
-               RectI childClip(childPosition, Point2I(320,200));
+               // NOTE: actors can have costume parts all over the place,
+               // so we just use the rooms clip rect here.
+               Point2I childPosition = actor->getAnchorPosition();
+               RectI childClip(actor->getBoundedPosition(), actor->getBoundedExtent());
                actor->onRender(childPosition, childClip, localCamera);
             }
          }
          
-         if (maskSlot)
-         {
-            EndBlendMode();
-            EndShaderMode();
-         }
+         EndBlendMode();
+         EndShaderMode();
          
          //break;
       }
@@ -296,8 +380,8 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
          Actor* actor = dynamic_cast<Actor*>(obj);
          if (actor && actor->mLayer == 0)
          {
-            Point2I childPosition = actor->getPosition();
-            RectI childClip(childPosition, Point2I(320,200));
+            Point2I childPosition = actor->getAnchorPosition();
+            RectI childClip(actor->getBoundedPosition(), actor->getBoundedExtent());
             actor->onRender(childPosition, childClip, localCamera);
          }
       }
@@ -372,6 +456,177 @@ ConsoleMethodValue(Room, setTransitionMode, 5, 5, "mode, param, time")
    return KorkApi::ConsoleValue();
 }
 
+
+RoomObject::RoomObject()
+{
+   mState = 1;
+   mTransFlags = 0;
+}
+
+void RoomObject::updateResources()
+{
+   for (SimObject* obj : objectList)
+   {
+      RoomObjectState* state = dynamic_cast<RoomObjectState*>(obj);
+      if (state)
+      {
+         state->updateResources();
+      }
+   }
+}
+
+bool RoomObject::onAdd()
+{
+   if (Parent::onAdd())
+   {
+      return true;
+   }
+   return false;
+}
+
+void RoomObject::onRemove()
+{
+   Parent::onRemove();
+}
+
+void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
+{
+   if (mState == 0)
+   {
+      return;
+   }
+
+   U32 curStateIndex = mState-1;
+   if (curStateIndex < objectList.size())
+   {
+      Vector2 origin = { 0.0, 0.0 };
+      RoomObjectState* curState = dynamic_cast<RoomObjectState*>(objectList[curStateIndex]);
+      offset += curState->mOffset;
+      
+      TextureSlot* slot = gTextureManager->resolveHandle(curState->mTexture);
+      if (slot)
+      {
+         Rectangle src = { 0.0f, 0.0f, (float)slot->mTexture.width, (float)slot->mTexture.height };
+         Rectangle dest = { (float)offset.x, (float)offset.y, (float)slot->mTexture.width, (float)slot->mTexture.height };
+         DrawTexturePro(slot->mTexture, src, dest, origin, 0.0f, WHITE);
+      }
+   }
+}
+
+void RoomObject::enumerateRenderables(RoomRender::ObjectInfo& outState)
+{
+   if (mState == 0)
+   {
+      return;
+   }
+
+   U32 curStateIndex = mState-1;
+   if (curStateIndex < objectList.size())
+   {
+      RoomObjectState* curState = dynamic_cast<RoomObjectState*>(objectList[curStateIndex]);
+      if (curState)
+      {
+         outState.curRootPos = mAnchor;
+         curState->enumerateRenderables(outState);
+      }
+   }
+}
+
+void RoomObject::initPersistFields()
+{
+   Parent::initPersistFields();
+   
+   registerClassNameFields(false);
+   
+   addField("descName", TypeString, Offset(mDescription, RoomObject));
+   addField("state", TypeS32, Offset(mState, RoomObject));
+   addField("dir", TypeS32, Offset(mDirection, RoomObject));
+   addField("trans", TypeS32, Offset(mTransFlags, RoomObject));
+   addField("hotSpot", TypePoint2I, Offset(mHotspot, RoomObject));
+}
+
+RoomObjectState::RoomObjectState()
+{
+   mOffset = Point2I(0,0);
+   mImageFileName = "";
+   mTexture = TextureHandle();
+   for (U32 i=0; i<RoomRender::NumZPlanes; i++)
+   {
+      mZPlaneFiles[i] = "";
+      mZPlaneTextures[i] = TextureHandle();
+   }
+}
+
+void RoomObjectState::updateResources()
+{
+   if (mImageFileName && mImageFileName[0] != '\0')
+   {
+      mTexture = gTextureManager->loadTexture(mImageFileName);
+   }
+
+   for (U32 i=0; i<RoomRender::NumZPlanes; i++)
+   {
+      if (mZPlaneFiles[i] && !mZPlaneFiles[0] != '\0')
+      {
+         mZPlaneTextures[i] = gTextureManager->loadTexture(mZPlaneFiles[i]);
+      }
+      else
+      {
+         mZPlaneTextures[i] = TextureHandle();
+      }
+   }
+}
+
+bool RoomObjectState::onAdd()
+{
+   if (Parent::onAdd())
+   {
+      updateResources();
+      return true;
+   }
+
+   return false;
+}
+
+void RoomObjectState::onRemove()
+{
+
+}
+
+void RoomObjectState::enumerateRenderables(RoomRender::ObjectInfo& outState)
+{
+   RoomRender::ObjectInfo::Entry outInfo;
+   outInfo.offset = outState.curRootPos + mOffset;
+
+   TextureSlot* slot = nullptr;
+
+   slot = gTextureManager->resolveHandle(mTexture);
+   if (slot)
+   {
+      outInfo.slot = slot;
+      outState.images.push_back(outInfo);
+   }
+
+   for (U32 i=0; i<RoomRender::NumZPlanes; i++)
+   {
+      slot = gTextureManager->resolveHandle(mZPlaneTextures[i]);
+      if (slot)
+      {
+         outInfo.slot = slot;
+         outState.zPlanes[i].push_back(outInfo);
+      }
+   }
+}
+
+void RoomObjectState::initPersistFields()
+{
+   Parent::initPersistFields();
+
+   addField("offset", TypePoint2I, Offset(mOffset, RoomObjectState));
+   addField("image", TypeString, Offset(mImageFileName, RoomObjectState));
+   addField("zPlane", TypeString, Offset(mZPlaneFiles, RoomObjectState), RoomRender::NumZPlanes);
+}
+
 ConsoleFunctionValue(screenEffect, 2, 2, "")
 {
    if (gGlobals.currentRoom)
@@ -402,8 +657,8 @@ ConsoleFunctionValue(startRoomWithEgo, 4, 4, "")
       if (gGlobals.currentEgo)
       {
          roomObject->addObject(gGlobals.currentEgo);
-         gGlobals.currentEgo->mPosition = Point2I(vmPtr->valueAsInt(argv[2]),
-                                                  vmPtr->valueAsInt(argv[3]));
+         gGlobals.currentEgo->setPosition(Point2I(vmPtr->valueAsInt(argv[2]),
+                                                  vmPtr->valueAsInt(argv[3])));
       }
       Room::enterRoom(roomObject);
    }
@@ -420,8 +675,8 @@ ConsoleFunctionValue(putActorAt, 5, 5, "")
        Sim::findObject(argv[4], roomObject))
    {
       roomObject->addObject(gGlobals.currentEgo);
-      gGlobals.currentEgo->mPosition = Point2I(vmPtr->valueAsInt(argv[2]),
-                                               vmPtr->valueAsInt(argv[3]));
+      gGlobals.currentEgo->setPosition(Point2I(vmPtr->valueAsInt(argv[2]),
+                                               vmPtr->valueAsInt(argv[3])));
    }
    
    return KorkApi::ConsoleValue();
@@ -439,7 +694,7 @@ ConsoleFunctionValue(putActorAtObject, 3, 3, "")
       if (theRoom)
       {
          theRoom->addObject(gGlobals.currentEgo);
-         actorObject->mPosition = roomObject->mPosition;
+         actorObject->setPosition(roomObject->mAnchor + roomObject->mHotspot);
       }
    }
    

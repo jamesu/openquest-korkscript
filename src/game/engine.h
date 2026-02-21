@@ -170,6 +170,7 @@ struct EngineGlobals
    SimWorld::Actor* currentEgo;
    
    RenderTexture2D roomRt;
+   RenderTexture2D roomZPlaneRt[SimWorld::RoomRender::NumZPlanes];
    Shader shaderMask;
 };
 
