@@ -23,6 +23,14 @@ class DisplayBase : public SimGroup
 {
    typedef SimGroup Parent;
 public:
+
+   enum DisplayState : U8
+   {
+      DEFAULT,
+      HIGHLIGHTED,
+      DISABLED
+   };
+
    RectI mBounds;   // Current control pos + extent
    Point2I mAnchor; // 
    Point2I mMinContentSize;
@@ -37,6 +45,7 @@ public:
    
    bool mCentered;
    bool mEnabled;
+   DisplayState mDisplayState;
    U32 mHotKey;
 
    static void initDisplayFields();

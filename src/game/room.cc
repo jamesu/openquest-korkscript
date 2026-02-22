@@ -185,10 +185,12 @@ void Room::updateResources()
 void Room::updateZPlanes()
 {
    Vector2 origin = { 0.0, 0.0 };
+   Camera2D localCamera = MakeDefaultCamera();
 
    for (U32 zPlane=0; zPlane<RoomRender::NumZPlanes; zPlane++)
    {
       BeginTextureMode(gGlobals.roomZPlaneRt[zPlane]);
+      BeginMode2D(localCamera);
 
       // Draw room zplane
       {
@@ -217,6 +219,7 @@ void Room::updateZPlanes()
          }
       }
 
+      EndMode2D();
       EndTextureMode();
    }
 }
@@ -258,6 +261,8 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       }
    }
    
+   EndMode2D();
+   
    // z planes need to be kept current; these are handled by copying
    // the base planes + object planes to mask textures.
    if (mRenderState.mZPlanesDirty || true)
@@ -267,10 +272,15 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    
    bool zPlaneDebug = false;
    
-   Camera2D localCamera = {};
+   EndMode2D();
+   
+   Camera2D localCamera = MakeDefaultCamera();
    BeginTextureMode(gGlobals.roomRt);
+   BeginMode2D(localCamera);
    {
-      DrawRectangle(0, 0, 300, 200, (Color){255,0,0,255});
+      ClearBackground(RED);
+#if 1
+      //DrawRectangle(0, 0, 300, 200, (Color){255,0,0,255});
       
       TextureSlot* slot = gTextureManager->resolveHandle(mRenderState.backgroundImage);
       if (slot)
@@ -411,8 +421,14 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
          }
       }
       
+#endif
+      
    }
+   EndMode2D();
    EndTextureMode();
+   
+   // Restore 2d mode
+   BeginMode2D(localCamera);
    
    // Now render the room to the canvas
    // NOTE: to keep things simple, we render the entire roomRT BUT we use the scissor mode to clip out the correct area.
@@ -457,6 +473,8 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       // DEBUG
       //DrawRectangleLines(roomClipOnScreen.point.x, roomClipOnScreen.point.y, roomClipOnScreen.extent.x, roomClipOnScreen.extent.y, RED);
    }
+   EndMode2D();
+   BeginMode2D(globalCam);
 }
 
 void Room::onFixedTick(F32 dt)
@@ -476,7 +494,7 @@ void Room::initPersistFields()
 
 void Room::onEnter()
 {
-   RootUI::sMainInstance->setContent(this);
+   RootUI::sMainInstance->addObject(this);
 }
 
 void Room::onLeave()
@@ -582,6 +600,8 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       {
          Rectangle src = { 0.0f, 0.0f, (float)slot->mTexture.width, (float)slot->mTexture.height };
          Rectangle dest = { (float)offset.x, (float)offset.y, (float)slot->mTexture.width, (float)slot->mTexture.height };
+         
+         RectI fullDest = WorldRectToScreen(RectI(offset, Point2I(slot->mTexture.width, slot->mTexture.height)), globalCam);
          DrawTexturePro(slot->mTexture, src, dest, origin, 0.0f, debug? BLUE : WHITE);
       }
    }

@@ -138,6 +138,17 @@ static inline RectI WorldRectToScreen(RectI r, Camera2D cam)
     );
 }
 
+static inline Rectangle RectIToRectangle(RectI r)
+{
+   return (Rectangle){(float)r.point.x, (float)r.point.y, (float)r.extent.x, (float)r.extent.y};
+}
+
+static inline Camera2D MakeDefaultCamera()
+{
+   Camera2D cam = {};
+   cam.zoom = 1.0;
+   return cam;
+}
 
 // engine objects and apis...
 

@@ -38,6 +38,7 @@ DisplayBase::DisplayBase()
    mCentered = false;
    mEnabled = true;
    mHotKey = 0;
+   mDisplayState = DEFAULT;
 }
 
 bool DisplayBase::onAdd()
