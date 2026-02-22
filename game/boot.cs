@@ -70,7 +70,7 @@ new Room(TestRoom)
         anchorPoint = 104, 48;
         dir = $EAST;
         descName = "plant";
-        state = 1;
+        state = 2;
         
         new RoomObjectState()
         {
@@ -99,19 +99,65 @@ new Room(TestRoom2)
 {
    image = "graphics/rooms/titlescreen.bmp";
 };
+
+new RoomObject(TestVerbRootBg)
+{
+  anchorPoint = 0, 144;
+  state = 1;
+  
+  new RoomObjectState()
+  {
+     image = "graphics/verbs/verb_background.bmp";
+  };
+};
+
+new VerbDisplay(TestVerbRoot)
+{
+   roomObject = TestVerbRootBg;
+   displayText = Test;
+   anchorPoint = 0, 144;
+};
+
+new VerbDisplay(TestGiveVerb)
+{
+   displayText = "Give";
+   anchorPoint = 146, 174;
+   center = true;
+   enabled = true;
+   hotKey = $KEY_G;
+};
+
+
+new Sound(Test_beamedSnd)       { path = "sounds/loading_gun.wav"; };
+
+// ...
+
 TestActor.setCostume(ZifCostume);
 
 startRoom(TestRoom);
 startRoom(TestRoom2);
 
+RootUI.add(TestVerbRoot);
+RootUI.add(TestGiveVerb);
 
 function TestRoom::inputHandler(%this, %area, %cmd, %btn)
 {
-   echo("testRoom inputHandler" SPC %this SPC %area SPC %cmd);
+   echo("testRoom inputHandler" SPC %this SPC %area SPC "cmd=" @ %cmd SPC "btn=" @ %btn);
    if (%area == 2)
    {
       echo("Mouse click:" SPC $VAR_VIRT_MOUSE_X SPC $VAR_VIRT_MOUSE_Y);
       TestActor.walkTo($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
+   }
+   else if (%area == 4)
+   {
+      if (%btn == 81)
+      {
+         TestRoom.setTransitionMode(2, 0, 0.25);
+      }
+      else if (%btn == 87)
+      {
+         TestRoom.setTransitionMode(1, 0, 0.25);
+      }
    }
 }
 
@@ -128,6 +174,8 @@ function TestRoom::walkAbout(%this, %foo)
       //TestActor.walkTo(200,150);
       delayFiber(90);
       startRoom(TestRoom);
+
+      Test_beamedSnd.play();
    }
 }
 
