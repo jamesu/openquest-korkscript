@@ -123,6 +123,17 @@ struct DBIEvent
    
 };
 
+struct MessageDisplayParams
+{
+   Color displayColor;
+   Point2I messageOffset;
+   U32 fontSize;
+   U32 lineSpacing;
+   U32 tickSpeed;
+   bool relative;
+   bool centered;
+};
+
 static inline Point2I WorldPointToScreen(Point2I point, Camera2D cam)
 {
     Vector2 topLeft     = GetWorldToScreen2D((Vector2){ (float)(point.x), (float)(point.y) }, cam);
@@ -158,6 +169,8 @@ static inline Camera2D MakeDefaultCamera()
    return cam;
 }
 
+void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpacing, bool centered, Color color);
+
 // engine objects and apis...
 
 BEGIN_SW_NS
@@ -191,20 +204,61 @@ extern F32 gTimerNext;
 extern SimFiberManager* gFiberManager;
 extern TextureManager* gTextureManager;
 
+struct SentenceQueueItem
+{
+    SimObjectId verb;
+    SimObjectId objA;
+    SimObjectId objB;
+};
 
+struct ActiveMessage
+{
+    MessageDisplayParams params;
+    SimWorld::Actor* actor;
+    SimWorld::Sound* sound;
+    StringTableEntry message;
+    U32 tickLength;
+    U32 tick;
+    bool ticking;
+
+    bool isCompleted();
+    void onStop();
+    void onStart(MessageDisplayParams& newParams, SimWorld::Actor* newActor, SimWorld::Sound* newSound, StringTableEntry newMessage, U32 ovrTicks=0);
+};
+
+// This handles engine ticks
+class EngineTickable : public ITickable
+{
+public:
+   
+   void onFixedTick(F32 dt) override;
+};
+
+// Handy set of globals
 struct EngineGlobals
 {
    SimWorld::Room*  currentRoom;
    SimWorld::Actor* currentEgo;
+   EngineTickable engineTick;
+
+   KorkApi::FiberId sentenceFiber;
+   std::vector<SentenceQueueItem> sentenceQueue;
+   ActiveMessage currentMessage;
    
    RenderTexture2D roomRt;
    RenderTexture2D roomZPlaneRt[SimWorld::RoomRender::NumZPlanes];
    Shader shaderMask;
 
    F32 mChannelVolume[AUDIO_CHANNEL_COUNT];
+
+   U32 messageSpeed;
    
    Point2I screenSize;
+
+   void setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, U32 ovrTicks);
 };
+
+
 
 extern EngineGlobals gGlobals;
 

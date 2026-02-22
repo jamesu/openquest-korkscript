@@ -67,8 +67,10 @@ int main(int argc, char **argv)
    
    gFiberManager = new SimFiberManager();
    gFiberManager->registerObject("FiberManager");
+   gGlobals.engineTick.registerTickable();
    
    Con::addVariable("$VAR_TIMER_NEXT", TypeF32, &gTimerNext);
+   Con::addVariable("$VAR_HAVE_MSG", TypeBool, &gGlobals.currentMessage.ticking);
    Con::addVariable("$VAR_VIRT_MOUSE_X", TypeS32, &gMouseX);
    Con::addVariable("$VAR_VIRT_MOUSE_Y", TypeS32, &gMouseY);
    
@@ -226,6 +228,10 @@ int main(int argc, char **argv)
       }
    }
    
+   Con::shutdown();
+   Sim::shutdown();
+   
+   gGlobals.engineTick.unregisterTickable();
    CloseAudioDevice();
    CloseWindow();
    return 0;

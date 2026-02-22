@@ -105,6 +105,7 @@ void CostumeAnim::initPersistFields()
 Costume::Costume()
 {
    mPalette = NULL;
+   mBaseTalkPos = Point2I(0,0);
    mState.reset();
 }
 
@@ -115,6 +116,7 @@ void Costume::initPersistFields()
    addField("limbs", TypeStringTableEntryVector, Offset(mLimbNames, Costume), "");
    addField("flags", TypeS32, Offset(mState.mFlags, Costume), "");
    addField("palette", TypeSimObjectPtr, Offset(mPalette, Costume), "");
+   addField("baseTalkPos", TypePoint2I, Offset(mBaseTalkPos, Costume), "");
 }
 
 

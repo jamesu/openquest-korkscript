@@ -169,7 +169,9 @@ function TestRoom::walkAbout(%this, %foo)
    while (1)
    {
       //TestActor.walkTo(10,150);
+      TestActor.say("testing");
       delayFiber(90);
+      TestActor.say("testing...");
       echo("walkAbout resumed");
       //TestActor.walkTo(200,150);
       delayFiber(90);

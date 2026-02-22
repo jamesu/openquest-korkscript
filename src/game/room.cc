@@ -424,6 +424,34 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
          }
       }
       
+      // Unset message if not in proper room
+      if (!gGlobals.currentMessage.isCompleted())
+      {
+         if (gGlobals.currentMessage.actor && gGlobals.currentMessage.actor->getGroup() != this)
+         {
+            gGlobals.currentMessage.onStop();
+         }
+      }
+
+      // Render any active message
+      if (!gGlobals.currentMessage.isCompleted())
+      {
+         MessageDisplayParams& params = gGlobals.currentMessage.params;
+         Point2I textOffset = params.messageOffset;
+
+         if (params.relative && gGlobals.currentMessage.actor)
+         {
+            textOffset += gGlobals.currentMessage.actor->getAnchorPosition();
+         }
+
+         UtilDrawTextLines(gGlobals.currentMessage.message,
+                           textOffset,
+                           params.fontSize, 
+                           params.lineSpacing,
+                           params.centered,
+                           params.displayColor);
+      }
+      
 #endif
       
    }

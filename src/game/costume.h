@@ -216,6 +216,8 @@ public:
    Palette* mPalette;
    std::vector<StringTableEntry> mLimbNames;
    
+   Point2I mBaseTalkPos;
+   
    CostumeRenderer::StaticState mState;
    
    void enumerateItems(std::vector<CostumeAnim*> &anims);

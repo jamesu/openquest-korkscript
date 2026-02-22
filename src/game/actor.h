@@ -135,7 +135,6 @@ inline CostumeRenderer::DirectionValue ActorWalkState::dirFromDominantAxis(S32 v
   return lookupTable[(2 * axis) + (value > 0 ? 1 : 0)];
 }
 
-
 class Actor : public DisplayBase, public ITickable
 {
    typedef DisplayBase Parent;
@@ -149,6 +148,8 @@ public:
    S32 mLastBox;
    
    ActorWalkState mWalkState;
+   MessageDisplayParams mTalkParams;
+
    
    Actor();
    
@@ -158,6 +159,8 @@ public:
    void updateLayout(const RectI contentRect);
    
    void setPosition(Point2I pos);
+
+   inline Point2I getTalkPos() const { return mTalkParams.messageOffset; }
    
    void walkTo(Point2I pos);
    
@@ -172,6 +175,10 @@ public:
    void setCostume(SimWorld::Costume* costume);
 
    static void initPersistFields();
+
+
+   void startTalk(StringTableEntry msg);
+   void stopTalk();
    
    
    DECLARE_CONOBJECT(Actor);

@@ -232,6 +232,15 @@ Actor::Actor()
   mTickSpeed = 4;
    mLayer = 0;
    mLastBox = -1;
+
+   mTalkParams = MessageDisplayParams();
+   mTalkParams.messageOffset = Point2I(0,0);
+   mTalkParams.tickSpeed = 2;
+   mTalkParams.displayColor = (Color){255,255,255,255};
+   mTalkParams.fontSize = 10;
+   mTalkParams.lineSpacing = 2;
+   mTalkParams.relative = true;
+   mTalkParams.centered = true;
 }
 
 bool Actor::onAdd()
@@ -459,7 +468,21 @@ void Actor::setCostume(SimWorld::Costume* costume)
      mCostume = costume;
      mLiveCostume.setAnim(costume->mState, StringTable->insert("stand"), 1, false);
      mTickCounter = 0;
+     mTalkParams.messageOffset = costume->mBaseTalkPos;
   }
+}
+
+void Actor::startTalk(StringTableEntry msg)
+{
+   gGlobals.setActiveMessage(mTalkParams, this, nullptr, msg, 0);
+}
+
+void Actor::stopTalk()
+{
+   if (gGlobals.currentMessage.actor == this)
+   {
+      gGlobals.currentMessage.onStop();
+   }
 }
 
 
@@ -501,6 +524,8 @@ ConsoleMethodValue(Actor, isMoving, 3, 3, "")
 
 ConsoleMethodValue(Actor, say, 3, 3, "")
 {
+   StringTableEntry msg = vmPtr->valueAsString(argv[2]);
+   object->startTalk(msg);
    return KorkApi::ConsoleValue();
 }
 

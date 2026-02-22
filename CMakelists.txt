@@ -56,6 +56,7 @@ set(GAME_SRCS
   ./src/game/actor.cc
   ./src/game/costume.cc
   ./src/game/displayBase.cc
+  ./src/game/engine.cc
   ./src/game/main.cc
   ./src/game/resourceManagers.cc
   ./src/game/resources.cc

@@ -25,7 +25,7 @@ void DisplayBase::initDisplayFields()
    addField("paddingTL", TypePoint2I, Offset(mPadding.tl, DisplayBase));
    addField("paddingBR", TypePoint2I, Offset(mPadding.br, DisplayBase));
    addField("center", TypeBool, Offset(mCentered, DisplayBase));
-   addField("fontSize", TypeF32, Offset(mFontSize, DisplayBase));
+   addField("fontSize", TypeS32, Offset(mFontSize, DisplayBase));
 }
 
 DisplayBase::DisplayBase()
@@ -41,7 +41,7 @@ DisplayBase::DisplayBase()
    mEnabled = true;
    mHotKey = 0;
    mDisplayState = DEFAULT;
-   mFontSize = 10.0f;
+   mFontSize = 10;
 }
 
 bool DisplayBase::onAdd()
