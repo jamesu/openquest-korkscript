@@ -146,11 +146,16 @@ public:
    U16 mTickSpeed;
    U8 mLayer;
    S32 mLastBox;
+   bool mTalking;
    
    ActorWalkState mWalkState;
    MessageDisplayParams mTalkParams;
-
    
+   StringTableEntry mStandAnim;
+   StringTableEntry mWalkAnim;
+   StringTableEntry mStartTalkAnim;
+   StringTableEntry mStopTalkAnim;
+
    Actor();
    
    bool onAdd();
@@ -168,7 +173,7 @@ public:
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera);
    
-   void startAnim(StringTableEntry animName, bool isTalking);
+   void startAnim(StringTableEntry animName);
    
    void setDirection(CostumeRenderer::DirectionValue direction);
 
@@ -177,8 +182,11 @@ public:
    static void initPersistFields();
 
 
-   void startTalk(StringTableEntry msg);
+   void startTalk();
    void stopTalk();
+
+   void say(StringTableEntry msg);
+   void print(StringTableEntry msg);
    
    
    DECLARE_CONOBJECT(Actor);

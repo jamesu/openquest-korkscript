@@ -77,11 +77,11 @@ void ActorWalkState::updateTick(Actor& actor)
    {
       if (mAction == ACTION_IDLE)
       {
-         actor.startAnim(StringTable->insert("stand"), false);
+         actor.startAnim(actor.mStandAnim);
       }
       else if (mAction >= ACTION_MOVING)// && prevAction == ACTION_IDLE)
       {
-         actor.startAnim(StringTable->insert("walk"), false);
+         actor.startAnim(actor.mWalkAnim);
       }
    }
 }
@@ -232,15 +232,21 @@ Actor::Actor()
   mTickSpeed = 4;
    mLayer = 0;
    mLastBox = -1;
+   mTalking = false;
 
    mTalkParams = MessageDisplayParams();
    mTalkParams.messageOffset = Point2I(0,0);
-   mTalkParams.tickSpeed = 2;
+   mTalkParams.tickSpeed = 4;
    mTalkParams.displayColor = (Color){255,255,255,255};
    mTalkParams.fontSize = 10;
    mTalkParams.lineSpacing = 2;
    mTalkParams.relative = true;
    mTalkParams.centered = true;
+   
+   mStandAnim = StringTable->insert("stand");
+   mWalkAnim = StringTable->insert("walk");
+   mStartTalkAnim = StringTable->insert("talkStart");
+   mStopTalkAnim = StringTable->insert("talkStop");
 }
 
 bool Actor::onAdd()
@@ -445,9 +451,9 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
   }
 }
 
-void Actor::startAnim(StringTableEntry animName, bool isTalking)
+void Actor::startAnim(StringTableEntry animName)
 {
-  mLiveCostume.setAnim(mCostume->mState, animName, mLiveCostume.curDirection, false);
+  mLiveCostume.setAnim(mCostume->mState, animName, mLiveCostume.curDirection);
 }
 
 void Actor::setDirection(CostumeRenderer::DirectionValue direction)
@@ -456,7 +462,7 @@ void Actor::setDirection(CostumeRenderer::DirectionValue direction)
   if (mLiveCostume.curDirection != direction)
   {
      mLiveCostume.curDirection = direction;
-     mLiveCostume.resetAnim(mCostume->mState, mLiveCostume.curDirection, false);
+     mLiveCostume.resetAnim(mCostume->mState, mLiveCostume.curDirection);
   }
 }
 
@@ -466,22 +472,34 @@ void Actor::setCostume(SimWorld::Costume* costume)
   {
      mLiveCostume.init(costume->mState);
      mCostume = costume;
-     mLiveCostume.setAnim(costume->mState, StringTable->insert("stand"), 1, false);
+     mLiveCostume.setAnim(costume->mState, StringTable->insert("stand"), 1);
      mTickCounter = 0;
      mTalkParams.messageOffset = costume->mBaseTalkPos;
   }
 }
 
-void Actor::startTalk(StringTableEntry msg)
+void Actor::startTalk()
 {
-   gGlobals.setActiveMessage(mTalkParams, this, nullptr, msg, 0);
+   mTalking = true;
+   mLiveCostume.setAnim(mCostume->mState, mStartTalkAnim, mLiveCostume.curDirection);
+}
+
+void Actor::say(StringTableEntry msg)
+{
+   gGlobals.setActiveMessage(mTalkParams, this, nullptr, msg, true, 0);
+}
+
+void Actor::print(StringTableEntry msg)
+{
+   gGlobals.setActiveMessage(mTalkParams, this, nullptr, msg, false, 0);
 }
 
 void Actor::stopTalk()
 {
-   if (gGlobals.currentMessage.actor == this)
+   if (mTalking)
    {
-      gGlobals.currentMessage.onStop();
+     mLiveCostume.setAnim(mCostume->mState, mStopTalkAnim, mLiveCostume.curDirection);
+     mTalking = false;
    }
 }
 
@@ -498,12 +516,7 @@ ConsoleMethodValue(Actor, setCostume, 3, 3, "")
 
 ConsoleMethodValue(Actor, animate, 3, 3, "")
 {
-   object->startAnim(StringTable->insert(vmPtr->valueAsString(argv[2])), false);
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, waitFor, 2, 2, "")
-{
+   object->startAnim(StringTable->insert(vmPtr->valueAsString(argv[2])));
    return KorkApi::ConsoleValue();
 }
 
@@ -514,23 +527,21 @@ ConsoleMethodValue(Actor, getWidth, 2, 2, "")
 
 ConsoleMethodValue(Actor, isInBox, 3, 3, "")
 {
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, isMoving, 3, 3, "")
-{
-   return KorkApi::ConsoleValue();
+   U32 boxId = vmPtr->valueAsInt(argv[2]);
+   return KorkApi::ConsoleValue::makeUnsigned(object->mLastBox);
 }
 
 ConsoleMethodValue(Actor, say, 3, 3, "")
 {
    StringTableEntry msg = vmPtr->valueAsString(argv[2]);
-   object->startTalk(msg);
+   object->say(msg);
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, putAt, 3, 3, "")
+ConsoleMethodValue(Actor, putAt, 4, 4, "")
 {
+   Point2I destPoint(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]));
+   object->setPosition(destPoint);
    return KorkApi::ConsoleValue();
 }
 
@@ -541,6 +552,11 @@ ConsoleMethodValue(Actor, setDirection, 3, 3, "")
 
 ConsoleMethodValue(Actor, putAtObject, 2, 2, "")
 {
+   DisplayBase* targetObject = nullptr;
+   if (Sim::findObject(argv[2], targetObject))
+   {
+      object->setPosition(targetObject->getHotSpot());
+   }
    return KorkApi::ConsoleValue();
 }
 
@@ -553,17 +569,34 @@ ConsoleMethodValue(Actor, walkTo, 4, 4, "")
 
 ConsoleMethodValue(Actor, walkToObject, 3, 3, "")
 {
+   DisplayBase* targetObject = nullptr;
+   if (Sim::findObject(argv[2], targetObject))
+   {
+      object->walkTo(targetObject->getHotSpot());
+   }
    return KorkApi::ConsoleValue();
 }
 
 ConsoleMethodValue(Actor, print, 3, 3, "")
 {
+   StringTableEntry msg = vmPtr->valueAsString(argv[2]);
+   object->print(msg);
    return KorkApi::ConsoleValue();
 }
 
 ConsoleMethodValue(Actor, getScale, 2, 2, "")
 {
    return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, getState, 2, 2, "")
+{
+   return KorkApi::ConsoleValue::makeUnsigned(object->mWalkState.mAction);
+}
+
+ConsoleMethodValue(Actor, isMoving, 2, 2, "")
+{
+   return KorkApi::ConsoleValue::makeUnsigned(object->mWalkState.mAction != ActorWalkState::ACTION_IDLE);
 }
 
 ConsoleMethodValue(Actor, getLayer, 2, 2, "")
@@ -658,6 +691,7 @@ ConsoleMethodValue(Actor, setAnimSpeed, 3, 3, "")
 
 ConsoleMethodValue(Actor, setTalkPos, 4, 4, "")
 {
+   object->mTalkParams.messageOffset = Point2I(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]));
    return KorkApi::ConsoleValue();
 }
 
@@ -668,6 +702,7 @@ ConsoleMethodValue(Actor, setAnimVar, 4, 4, "")
 
 ConsoleMethodValue(Actor, setLayer, 3, 3, "")
 {
+   object->mLayer = vmPtr->valueAsInt(argv[2]);
    return KorkApi::ConsoleValue();
 }
 

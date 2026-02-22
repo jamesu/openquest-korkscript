@@ -139,7 +139,6 @@ struct CostumeRenderer
         U8 globalFlags;   // baked costume flags
         U8 animFlags;     // this is global ANIM flags
         S16 curAnim;      // AnimInfo we are playing
-        S16 curTalkAnim;  // AnimInfo for talk (override)
         U8 curDirection;  // current direction
         U16 curCount;     // walk counter (based on current movement direction)
         Point2F position; // display position
@@ -151,9 +150,9 @@ struct CostumeRenderer
 
        void reset();
        
-       void resetAnim(StaticState& state, U8 direction, bool talking);
+       void resetAnim(StaticState& state, U8 direction);
 
-       void setAnim(StaticState& state, StringTableEntry animName, U8 direction, bool talking);
+       void setAnim(StaticState& state, StringTableEntry animName, U8 direction);
 
        void evalCmd(StaticState& state, LimbState& limbState, Command& cmd);
 
@@ -162,6 +161,10 @@ struct CostumeRenderer
        void render(StaticState& state);
 
        RectI getCurrentBounds(StaticState& state);
+
+       S32 lookupAnim(StaticState& state, StringTableEntry animName);
+       
+       bool isAnimPlaying(StaticState& state, U32 animIdx);
     };
 };
 

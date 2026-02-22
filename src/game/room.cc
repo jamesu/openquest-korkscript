@@ -444,7 +444,10 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
             textOffset += gGlobals.currentMessage.actor->getAnchorPosition();
          }
 
-         UtilDrawTextLines(gGlobals.currentMessage.message,
+         //char msg[256];
+         //snprintf(msg, 256, "%u\nMSG", gGlobals.currentMessage.tick);
+         UtilDrawTextLines(//msg,
+                           gGlobals.currentMessage.message,
                            textOffset,
                            params.fontSize, 
                            params.lineSpacing,

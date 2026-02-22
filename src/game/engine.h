@@ -220,10 +220,11 @@ struct ActiveMessage
     U32 tickLength;
     U32 tick;
     bool ticking;
+    bool talking;
 
     bool isCompleted();
     void onStop();
-    void onStart(MessageDisplayParams& newParams, SimWorld::Actor* newActor, SimWorld::Sound* newSound, StringTableEntry newMessage, U32 ovrTicks=0);
+    void onStart(MessageDisplayParams& newParams, SimWorld::Actor* newActor, SimWorld::Sound* newSound, StringTableEntry newMessage, bool isTalk, U32 ovrTicks=0);
 };
 
 // This handles engine ticks
@@ -255,7 +256,7 @@ struct EngineGlobals
    
    Point2I screenSize;
 
-   void setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, U32 ovrTicks);
+   void setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, bool isTalk, U32 ovrTicks);
 };
 
 

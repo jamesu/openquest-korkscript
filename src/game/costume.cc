@@ -299,7 +299,6 @@ void CostumeRenderer::LiveState::reset()
    globalFlags = 0;
    animFlags = 0;
    curAnim = 0;
-   curTalkAnim = -1;
    curDirection = 0;
    position = Point2F(0.0f, 0.0f);
    mLimbState.clear();
@@ -308,15 +307,14 @@ void CostumeRenderer::LiveState::reset()
    scale = 1.0f;
 }
 
-void CostumeRenderer::LiveState::resetAnim(StaticState& state, U8 direction, bool talking)
+void CostumeRenderer::LiveState::resetAnim(StaticState& state, U8 direction)
 {
-   S16 animNumber = talking ? curTalkAnim : curAnim;
-   if (animNumber < 0)
+   if (curAnim < 0)
    {
       return;
    }
    
-   AnimInfo& animInfo = state.mAnims[animNumber];
+   AnimInfo& animInfo = state.mAnims[curAnim];
    AnimDirection& dirInfo = animInfo.directionTracks[direction];
    
    for (U32 k=0; k<dirInfo.numLimbs; k++)
@@ -328,7 +326,61 @@ void CostumeRenderer::LiveState::resetAnim(StaticState& state, U8 direction, boo
    }
 }
 
-void CostumeRenderer::LiveState::setAnim(StaticState& state, StringTableEntry animName, U8 direction, bool talking)
+S32 CostumeRenderer::LiveState::lookupAnim(StaticState& state, StringTableEntry animName)
+{
+   for (S32 i=0; i<state.mAnims.size(); i++)
+   {
+      AnimInfo& animInfo = state.mAnims[i];
+      
+      if (animInfo.name == animName)
+      {
+         return i;
+      }
+   }
+   
+   return -1;
+}
+
+bool CostumeRenderer::LiveState::isAnimPlaying(StaticState& state, U32 animId)
+{
+   if (animId >= state.mAnims.size())
+   {
+      return false;
+   }
+   
+   AnimInfo& animInfo = state.mAnims[animId];
+   AnimDirection& dirInfo = animInfo.directionTracks[curDirection];
+   
+   if (dirInfo.numLimbs == 0)
+   {
+      return false;
+   }
+   
+   for (U32 k=0; k<dirInfo.numLimbs; k++)
+   {
+      AnimLimbMap& limbTrack = state.mLimbMap[dirInfo.startLimbMap + k];
+      LimbState& liveLimb = mLimbState[limbTrack.targetLimb];
+      
+      if (!(liveLimb.track.startCmd == limbTrack.track.startCmd &&
+          liveLimb.track.numCommands == limbTrack.track.numCommands &&
+          liveLimb.track.flags == limbTrack.track.flags))
+      {
+         return false;
+      }
+      
+      if ((liveLimb.track.flags & NO_LOOP) == 0)
+      {
+         if (liveLimb.lastEvalFrame >= liveLimb.track.numCommands)
+         {
+            return false;
+         }
+      }
+   }
+   
+   return true;
+}
+
+void CostumeRenderer::LiveState::setAnim(StaticState& state, StringTableEntry animName, U8 direction)
 {
    for (U32 i=0; i<state.mAnims.size(); i++)
    {
@@ -348,15 +400,8 @@ void CostumeRenderer::LiveState::setAnim(StaticState& state, StringTableEntry an
             liveLimb.nextCmd = 0;
          }
          
-         // Track current anim
-         if (talking)
-         {
-            curTalkAnim = i;
-         }
-         else
-         {
-            curAnim = i;
-         }
+         // Track current leading anim
+         curAnim = i;
          
          return;
       }

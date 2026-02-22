@@ -20,6 +20,7 @@ IMPLEMENT_CONOBJECT(ContainerDisplay);
 void DisplayBase::initDisplayFields()
 {
    addField("anchorPoint", TypePoint2I, Offset(mAnchor, DisplayBase));
+   addField("hotSpot", TypePoint2I, Offset(mHotSpot, DisplayBase));
    addField("marginTL", TypePoint2I, Offset(mMargin.tl, DisplayBase));
    addField("marginBR", TypePoint2I, Offset(mMargin.br, DisplayBase));
    addField("paddingTL", TypePoint2I, Offset(mPadding.tl, DisplayBase));
@@ -37,6 +38,7 @@ DisplayBase::DisplayBase()
    mColor = (Color){255,255,255,255};
    mHiColor = (Color){0,0,0,255};
    mDimColor = (Color){0,0,0,255};
+   mHotSpot = Point2I(0,0);
    mCentered = false;
    mEnabled = true;
    mHotKey = 0;

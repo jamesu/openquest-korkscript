@@ -49,8 +49,9 @@ void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpac
          if (saved == '\0')
             break;         // finished
          
-         numLines++;
          lineInfo[numLines].ptr = p+1;
+         lineInfo[numLines].offsetX = 0;
+         numLines++;
       }
    }
    
@@ -81,17 +82,21 @@ bool ActiveMessage::isCompleted()
 
 void ActiveMessage::onStop()
 {
-   if (isCompleted())
-   {
-      return;
-   }
+   SimWorld::Actor* saveActor = actor;
    
    ticking = false;
    tick = tickLength;
+   actor = nullptr;
+   sound = nullptr;
+
+   if (saveActor)
+   {
+      saveActor->stopTalk();
+   }
 }
 
 
-void ActiveMessage::onStart(MessageDisplayParams& newParams, SimWorld::Actor* newActor, SimWorld::Sound* newSound, StringTableEntry newMessage, U32 ovrTicks)
+void ActiveMessage::onStart(MessageDisplayParams& newParams, SimWorld::Actor* newActor, SimWorld::Sound* newSound, StringTableEntry newMessage, bool isTalk, U32 ovrTicks)
 {
    params = newParams;
    actor = newActor;
@@ -99,6 +104,7 @@ void ActiveMessage::onStart(MessageDisplayParams& newParams, SimWorld::Actor* ne
    message = newMessage;
    tick = 0;
    ticking = true;
+   talking = isTalk;
    
    if (ovrTicks == 0)
    {
@@ -109,6 +115,11 @@ void ActiveMessage::onStart(MessageDisplayParams& newParams, SimWorld::Actor* ne
    {
       tickLength = ovrTicks;
    }
+
+   if (newActor)
+   {
+      newActor->startTalk();
+   }
 }
 
 void EngineTickable::onFixedTick(F32 dt)
@@ -118,10 +129,14 @@ void EngineTickable::onFixedTick(F32 dt)
    {
       gGlobals.currentMessage.tick++;
       gGlobals.currentMessage.ticking = !gGlobals.currentMessage.isCompleted();
+      if (!gGlobals.currentMessage.ticking)
+      {
+         gGlobals.currentMessage.onStop();
+      }
    }
 }
 
-void EngineGlobals::setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, U32 ovrTicks)
+void EngineGlobals::setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, bool isTalk, U32 ovrTicks)
 {
    // Stop message
    if (!currentMessage.isCompleted())
@@ -129,6 +144,6 @@ void EngineGlobals::setActiveMessage(MessageDisplayParams params, SimWorld::Acto
       currentMessage.onStop();
    }
    
-   currentMessage.onStart(params, actor, sound, message, ovrTicks);
+   currentMessage.onStart(params, actor, sound, message, isTalk, ovrTicks);
 }
 

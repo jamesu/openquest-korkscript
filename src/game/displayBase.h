@@ -34,6 +34,7 @@ public:
    RectI mBounds;   // Current control pos + extent
    Point2I mAnchor; // 
    Point2I mMinContentSize;
+   Point2I mHotSpot;
    DisplayPair mMargin;
    DisplayPair mPadding;
    
@@ -54,6 +55,7 @@ public:
    DisplayBase();
    
    inline Point2I getAnchorPosition() const { return mAnchor; }
+   inline Point2I getHotSpot() const { return mAnchor + mHotSpot; }
    inline Point2I getBoundedPosition() const { return mBounds.point; }
    inline Point2I getBoundedExtent() const { return mBounds.extent; }
    RectI getContentRect() const { return RectI(mPadding.tl, mBounds.extent - (mPadding.tl + mPadding.br)); }
