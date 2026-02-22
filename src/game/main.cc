@@ -112,6 +112,13 @@ int main(int argc, char **argv)
    
    InitWindow(screenWidth, screenHeight, "openquest");
    {
+      InitAudioDevice();
+
+      for (U32 i=0; i<AUDIO_CHANNEL_COUNT; i++)
+      {
+         gGlobals.mChannelVolume[i] = 1.0f;
+      }
+      
       ClearWindowState(FLAG_VSYNC_HINT);
       
       gGlobals.shaderMask = LoadShaderFromMemory(NULL, fsMaskCutout);
@@ -219,6 +226,7 @@ int main(int argc, char **argv)
       }
    }
    
+   CloseAudioDevice();
    CloseWindow();
    return 0;
 }

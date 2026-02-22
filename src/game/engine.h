@@ -85,6 +85,14 @@ enum Direction : U8
    EAST
 };
 
+enum AudioChannels : U8
+{
+    AUDIO_CHANNEL_SFX,
+    AUDIO_CHANNEL_VOICE,
+    AUDIO_CHANNEL_MUSIC,
+    AUDIO_CHANNEL_COUNT
+};
+
 
 typedef enum {
     UI_EVENT_MOUSE_MOVE,
@@ -192,6 +200,8 @@ struct EngineGlobals
    RenderTexture2D roomRt;
    RenderTexture2D roomZPlaneRt[SimWorld::RoomRender::NumZPlanes];
    Shader shaderMask;
+
+   F32 mChannelVolume[AUDIO_CHANNEL_COUNT];
    
    Point2I screenSize;
 };

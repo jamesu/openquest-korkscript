@@ -18,7 +18,19 @@ class Sound : public SimObject
 public:
    
    StringTableEntry mPath;
+   U32 mChannel;
    ::Sound mSound;
+
+   Sound();
+
+   bool onAdd();
+   void onRemove();
+
+   void play();
+
+   void updateResources();
+
+   static void initPersistFields();
    
 public:
    DECLARE_CONOBJECT(Sound);
