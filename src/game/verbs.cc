@@ -51,17 +51,35 @@ void VerbDisplay::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamer
       {
          DrawRectangle(offset.x, offset.y, mBounds.extent.x, mBounds.extent.y, mBackColor);
       }
-      DrawText(mDisplayText, offset.x, offset.y, 12.0, mColor);
+      int textWidth = MeasureText(mDisplayText, mFontSize);
+      int extra = mCentered ? (textWidth / 2) : 0;
+      DrawText(mDisplayText, offset.x - extra, offset.y, mFontSize, mColor);
    }
+   
+   DrawRectangleLines(drawRect.point.x, drawRect.point.y, drawRect.extent.x, drawRect.extent.y, RED);
 }
 
 void VerbDisplay::updateLayout(const RectI contentRect)
 {
+   Point2I realStart = mAnchor;
    if (mRoomObject)
    {
       mRoomObject->updateLayout(contentRect);
-      resize(mAnchor, mRoomObject->mBounds.extent);
+      if (mCentered)
+      {
+         realStart -= mRoomObject->mBounds.extent / 2;
+      }
+      mMinContentSize = mRoomObject->mBounds.extent;
    }
+   else if (mDisplayText && mDisplayText[0] != '\0')
+   {
+      int textWidth = MeasureText(mDisplayText, mFontSize);
+      int extra = mCentered ? (textWidth / 2) : 0;
+      realStart.x -= extra;
+      mMinContentSize = Point2I(textWidth, std::ceil(mFontSize));
+   }
+   
+   resize(realStart, mMinContentSize);
 }
 
 void VerbDisplay::initPersistFields()

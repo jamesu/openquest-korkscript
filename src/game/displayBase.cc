@@ -24,6 +24,8 @@ void DisplayBase::initDisplayFields()
    addField("marginBR", TypePoint2I, Offset(mMargin.br, DisplayBase));
    addField("paddingTL", TypePoint2I, Offset(mPadding.tl, DisplayBase));
    addField("paddingBR", TypePoint2I, Offset(mPadding.br, DisplayBase));
+   addField("center", TypeBool, Offset(mCentered, DisplayBase));
+   addField("fontSize", TypeF32, Offset(mFontSize, DisplayBase));
 }
 
 DisplayBase::DisplayBase()
@@ -32,13 +34,14 @@ DisplayBase::DisplayBase()
    mAnchor = Point2I(0,0);
    mMinContentSize = Point2I(0,0);
    mBackColor = (Color){0,0,0,0};
-   mColor = (Color){0,0,0,255};
+   mColor = (Color){255,255,255,255};
    mHiColor = (Color){0,0,0,255};
    mDimColor = (Color){0,0,0,255};
    mCentered = false;
    mEnabled = true;
    mHotKey = 0;
    mDisplayState = DEFAULT;
+   mFontSize = 10.0f;
 }
 
 bool DisplayBase::onAdd()

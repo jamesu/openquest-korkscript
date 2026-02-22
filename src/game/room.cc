@@ -163,6 +163,9 @@ void Room::updateLayout(const RectI contentRect)
    mPadding.br = Point2I(0,0);
    
    Parent::updateLayout(contentRect);
+   
+   mBounds.extent.y = 144;
+   mRenderState.roomDisplaySize.y = 144;
 }
 
 void Room::updateResources()

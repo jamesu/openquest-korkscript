@@ -42,6 +42,7 @@ public:
    Color mColor;
    Color mHiColor;
    Color mDimColor;
+   F32 mFontSize;
    
    bool mCentered;
    bool mEnabled;
