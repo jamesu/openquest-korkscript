@@ -18,6 +18,7 @@ struct ActorWalkState
 {
    enum CurrentAction
    {
+      ACTION_FROZEN,
       ACTION_IDLE,                  // standing
       ACTION_CHECK_MOVE,            // calculate move target next tick
       ACTION_MOVING,                // move straight to target
@@ -150,6 +151,7 @@ public:
    
    ActorWalkState mWalkState;
    MessageDisplayParams mTalkParams;
+   Point2I mDisplayOffset;
    
    StringTableEntry mStandAnim;
    StringTableEntry mWalkAnim;
@@ -164,6 +166,7 @@ public:
    void updateLayout(const RectI contentRect);
    
    void setPosition(Point2I pos);
+   void setStanding();
 
    inline Point2I getTalkPos() const { return mTalkParams.messageOffset; }
    

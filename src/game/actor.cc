@@ -29,7 +29,7 @@ void ActorWalkState::updateTick(Actor& actor)
 {
    CurrentAction prevAction = mAction;
    
-   if (prevAction == ACTION_IDLE)
+   if (prevAction == ACTION_IDLE || prevAction == ACTION_FROZEN)
    {
       return;
    }
@@ -233,6 +233,8 @@ Actor::Actor()
    mLayer = 0;
    mLastBox = -1;
    mTalking = false;
+   
+   mDisplayOffset = Point2I(0,0);
 
    mTalkParams = MessageDisplayParams();
    mTalkParams.messageOffset = Point2I(0,0);
@@ -303,10 +305,21 @@ void Actor::updateLayout(const RectI contentRect)
    resize(boundsRect.point, boundsRect.extent);
 }
 
+void Actor::setStanding()
+{
+   mWalkState.mAction = ActorWalkState::ACTION_IDLE;
+   mWalkState.mWalkTarget = mWalkState.mRealWalkTarget = mAnchor;
+   startAnim(mStandAnim);
+}
 
 
 void Actor::walkTo(Point2I pos)
 {
+   if (mWalkState.mAction == ActorWalkState::ACTION_FROZEN)
+   {
+      return;
+   }
+   
    // Determine real pos
    mWalkState.mWalkTarget = mAnchor;
    mWalkState.mRealWalkTarget = pos;
@@ -371,7 +384,7 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
 {
   if (mCostume)
   {
-     mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y);
+     mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y) + Point2F(mDisplayOffset.x, mDisplayOffset.y);
      //mLiveCostume.w
      mLiveCostume.render(mCostume->mState);
      
@@ -498,8 +511,13 @@ void Actor::stopTalk()
 {
    if (mTalking)
    {
-     mLiveCostume.setAnim(mCostume->mState, mStopTalkAnim, mLiveCostume.curDirection);
-     mTalking = false;
+      mLiveCostume.setAnim(mCostume->mState, mStopTalkAnim, mLiveCostume.curDirection);
+      mTalking = false;
+      
+      if (mWalkState.mAction >= ActorWalkState::ACTION_MOVING)
+      {
+         startAnim(mWalkAnim);
+      }
    }
 }
 
@@ -547,6 +565,7 @@ ConsoleMethodValue(Actor, putAt, 4, 4, "")
 
 ConsoleMethodValue(Actor, setDirection, 3, 3, "")
 {
+   object->setDirection((CostumeRenderer::DirectionValue)vmPtr->valueAsInt(argv[2]));
    return KorkApi::ConsoleValue();
 }
 
@@ -596,7 +615,7 @@ ConsoleMethodValue(Actor, getState, 2, 2, "")
 
 ConsoleMethodValue(Actor, isMoving, 2, 2, "")
 {
-   return KorkApi::ConsoleValue::makeUnsigned(object->mWalkState.mAction != ActorWalkState::ACTION_IDLE);
+   return KorkApi::ConsoleValue::makeUnsigned(object->mWalkState.mAction > ActorWalkState::ACTION_IDLE);
 }
 
 ConsoleMethodValue(Actor, getLayer, 2, 2, "")
@@ -624,13 +643,9 @@ ConsoleMethodValue(Actor, setFrozen, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, setTalkScript, 3, 3, "")
-{
-   return KorkApi::ConsoleValue();
-}
-
 ConsoleMethodValue(Actor, setStanding, 2, 2, "")
 {
+   object->setStanding();
    return KorkApi::ConsoleValue();
 }
 
@@ -644,13 +659,9 @@ ConsoleMethodValue(Actor, setElevation, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, setDefaultFrames, 2, 2, "")
+ConsoleMethodValue(Actor, setTalkColor, 6, 6, "")
 {
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, setTalkColor, 3, 3, "")
-{
+   object->mTalkParams.displayColor = (Color){(U8)vmPtr->valueAsInt(argv[2]), (U8)vmPtr->valueAsInt(argv[3]), (U8)vmPtr->valueAsInt(argv[4]), (U8)vmPtr->valueAsInt(argv[5])};
    return KorkApi::ConsoleValue();
 }
 
