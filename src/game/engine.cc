@@ -147,3 +147,35 @@ void EngineGlobals::setActiveMessage(MessageDisplayParams params, SimWorld::Acto
    currentMessage.onStart(params, actor, sound, message, isTalk, ovrTicks);
 }
 
+ConsoleFunctionValue(setFiberSuspendMode, 2, 2, "(mode)")
+{
+   gFiberManager->setSuspendMode(vmPtr->valueAsInt(argv[1]));
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(throwFibersWithMask, 3, 4, "(mask, catchMask, soft)")
+{
+   U32 catchValue = vmPtr->valueAsInt(argv[2]);
+   if (argc > 3 && vmPtr->valueAsBool(argv[3]))
+   {
+      catchValue |= BIT(31);
+   }
+   gFiberManager->throwWithMask(vmPtr->valueAsInt(argv[1]), catchValue);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(throwFibersWithObject, 3, 4, "(object, catchMask, soft)")
+{
+   U32 catchValue = vmPtr->valueAsInt(argv[2]);
+   if (argc > 3 && vmPtr->valueAsBool(argv[3]))
+   {
+      catchValue |= BIT(31);
+   }
+   gFiberManager->throwWithObject(vmPtr->valueAsInt(argv[1]), catchValue);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(startCutscene, 2, 2, "")
+{
+   return KorkApi::ConsoleValue();
+}

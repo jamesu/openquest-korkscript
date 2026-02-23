@@ -171,15 +171,31 @@ function TestRoom::walkAbout(%this, %foo)
       //TestActor.walkTo(10,150);
       TestActor.say("testing");
       delayFiber(90);
+
+      echo("**should stop run for a short while...");
+      pushFiberSuspendFlags(0x4);
       TestActor.say("testing...");
       echo("walkAbout resumed");
       //TestActor.walkTo(200,150);
       delayFiber(90);
       startRoom(TestRoom);
+      popFiberSuspendFlags();
+      echo("**should run for a short while...");
 
       Test_beamedSnd.play();
    }
 }
+
+function testRunWhileMask()
+{
+   while (1)
+   {
+      delayFiber(10);
+      echo("running");
+   }
+}
+
+spawnFiber(0x4, testRunWhileMask);
 
 // Start walking thread
 $walkFiber = TestRoom.spawnFiber(0, walkAbout, "foo");

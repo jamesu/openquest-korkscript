@@ -136,10 +136,36 @@ ConsoleFunctionValue(stopFiber, 2, 2, "fiberId")
    return KorkApi::ConsoleValue();
 }
 
-
 ConsoleFunctionValue(throwFiber, 3, 3, "value, soft")
 {
-   vmPtr->throwFiber((vmPtr->valueAsInt(argv[1]) | vmPtr->valueAsInt(argv[2])) ? BIT(31) : 0);
+   U32 catchMask = vmPtr->valueAsInt(argv[1]) | (vmPtr->valueAsInt(argv[2]) ? BIT(31) : 0);
+   vmPtr->throwFiber(catchMask);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(throwFibersWithMask, 4, 4, "fiberMask, catchMask, soft")
+{
+   U32 catchMask = vmPtr->valueAsInt(argv[2]) | (vmPtr->valueAsInt(argv[3]) ? BIT(31) : 0);
+   gFiberManager->throwWithMask(vmPtr->valueAsInt(argv[1]), catchMask);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(throwFibersWithObject, 4, 4, "objectId, catchMask, soft")
+{
+   U32 catchMask = vmPtr->valueAsInt(argv[2]) | (vmPtr->valueAsInt(argv[3]) ? BIT(31) : 0);
+   gFiberManager->throwWithObject(vmPtr->valueAsInt(argv[1]), catchMask);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(pushFiberSuspendFlags, 2, 2, "fiberMask")
+{
+   gFiberManager->pushFiberSuspendFlags((U64)vmPtr->valueAsInt(argv[1]));
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(popFiberSuspendFlags, 1, 1, "")
+{
+   gFiberManager->popFiberSuspendFlags();
    return KorkApi::ConsoleValue();
 }
 
