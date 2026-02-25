@@ -18,6 +18,7 @@ VerbDisplay::VerbDisplay()
    mDisplayText = StringTable->EmptyString;
    mVerbName = StringTable->EmptyString;
    mRoomObject = nullptr;
+   mDisplayState = DEFAULT;
 }
 
 bool VerbDisplay::onAdd()
@@ -34,9 +35,66 @@ void VerbDisplay::onRemove()
    Parent::onRemove();
 }
 
+
+void VerbDisplay::onGainedCapture(DBIEvent& event)
+{
+   event.capturedControl = this;
+   if (mDisplayState != DISABLED)
+   {
+      mDisplayState = HIGHLIGHTED;
+   }
+}
+
+void VerbDisplay::onLostCapture(DBIEvent& event)
+{
+   event.capturedControl = nullptr;
+   if (mDisplayState != DISABLED)
+   {
+      mDisplayState = DEFAULT;
+   }
+}
+
 bool VerbDisplay::processInput(DBIEvent& event)
 {
-   return false;
+   if (!mEnabled)
+   {
+      if (event.capturedControl == this)
+      {
+         event.capturedControl->onLostCapture(event);
+      }
+      
+      return false;
+   }
+   
+   switch (event.type)
+   {
+      case UI_EVENT_MOUSE_MOVE:
+      {
+         if (mDisplayState != DISABLED)
+         {
+            const Point2I p = event.mouse.pos;
+            const bool inside = mBounds.pointInRect(p);
+
+            if (inside && event.capturedControl != this)
+            {
+               if (event.capturedControl)
+               {
+                  event.capturedControl->onLostCapture(event);
+               }
+               onGainedCapture(event);
+            }
+            else if (!inside && event.capturedControl == this)
+            {
+               onLostCapture(event);
+            }
+
+            mDisplayState = inside ? HIGHLIGHTED : DEFAULT;
+         }
+
+         return false;
+      }
+   }
+   
 }
 
 void VerbDisplay::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
@@ -56,7 +114,7 @@ void VerbDisplay::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamer
       DrawText(mDisplayText, offset.x - extra, offset.y, mFontSize, mColor);
    }
    
-   DrawRectangleLines(drawRect.point.x, drawRect.point.y, drawRect.extent.x, drawRect.extent.y, RED);
+   DrawRectangleLines(drawRect.point.x, drawRect.point.y, drawRect.extent.x, drawRect.extent.y, mDisplayState == HIGHLIGHTED ? GREEN : RED);
 }
 
 void VerbDisplay::updateLayout(const RectI contentRect)
@@ -89,6 +147,7 @@ void VerbDisplay::initPersistFields()
    
    addField("roomObject", TypeSimObjectPtr, Offset(mRoomObject, VerbDisplay));
    addField("displayText", TypeString, Offset(mDisplayText, VerbDisplay));
+   addField("enabled", TypeBool, Offset(mEnabled, VerbDisplay));
 }
 
 

@@ -116,17 +116,148 @@ new VerbDisplay(TestVerbRoot)
    roomObject = TestVerbRootBg;
    displayText = Test;
    anchorPoint = 0, 144;
+   enabled = false;
 };
 
-new VerbDisplay(TestGiveVerb)
-{
-   displayText = "Give";
-   anchorPoint = 146, 174;
-   center = true;
-   enabled = true;
-   hotKey = $KEY_G;
-};
+new SimSet(TestVerbSet) {
 
+    new VerbDisplay([WalkTo]) {
+    
+       displayText = "Walk to";
+       hotKey = "w";
+    };
+    
+    new VerbDisplay([Give]) {
+    
+       displayText = "Give";
+       anchorPoint = 146, 174;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "g";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([PickUp]) {
+    
+       displayText = "Pick up";
+       anchorPoint = 102, 161;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "p";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Use]) {
+    
+       displayText = "Use";
+       anchorPoint = 146, 187;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "u";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Open]) {
+    
+       displayText = "Open";
+       anchorPoint = 188, 161;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "o";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([LookAt]) {
+    
+       displayText = "Examine";
+       anchorPoint = 146, 161;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "e";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Smell]) {
+    
+       displayText = "Smell";
+       anchorPoint = 188, 174;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "s";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([TalkTo]) {
+    
+       displayText = "Talk to";
+       anchorPoint = 102, 174;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "t";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Move]) {
+    
+       displayText = "Move";
+       anchorPoint = 188, 187;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+       center = 1;
+       enabled = 1;
+       hotKey = "m";
+        isPreposition = true;
+    };
+
+    // Inventory scrollers
+    new VerbDisplay([invUp]) {
+       displayText = "\x03";     // up arrow glyph
+          anchorPoint = 309, 165;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+    };
+
+    new VerbDisplay([invDown]) {
+       displayText = "\x02";     // down arrow glyph
+          anchorPoint = 309, 185;
+       //backColor = %backColor;
+       //color = %color;
+       //hiColor = %hiColor;
+       //dimColor = %dimColor;
+    };
+};
 
 new Sound(Test_beamedSnd)       { path = "sounds/loading_gun.wav"; };
 
@@ -138,7 +269,12 @@ startRoom(TestRoom);
 startRoom(TestRoom2);
 
 RootUI.add(TestVerbRoot);
-RootUI.add(TestGiveVerb);
+
+foreach (%verb in TestVerbSet)
+{
+   echo("FORECH", %verb);
+   RootUI.add(%verb);
+}
 
 function TestRoom::inputHandler(%this, %area, %cmd, %btn)
 {
@@ -212,6 +348,7 @@ function testRunWhileMask()
 
 spawnFiber(0x4, testRunWhileMask);
 
+
 // Start walking thread
 $walkFiber = TestRoom.spawnFiber(0, walkAbout, "foo");
 echo("Started walking in: " @ $walkFiber);
@@ -219,5 +356,12 @@ echo("Started walking in: " @ $walkFiber);
 
 
 $VAR_TIMER_NEXT = 2; // run at 30 fps
+
+
+// Cutscenes:
+// beginCutscene -> push cutscene fiber
+// endCutscene -> pop stack 
+
+
 
 

@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <cstdint>
 #include <algorithm>
@@ -105,24 +106,50 @@ typedef enum {
     UI_EVENT_CHAR
 } DBIEventType;
 
+namespace SimWorld
+{
+class DisplayBase;
+}
+
 struct DBIEvent
 {
     DBIEventType type;
     bool handled;
+    SimWorld::DisplayBase* capturedControl;
    
    struct MouseData
    {
-      Vector2 pos;
+      Point2I pos;
       S32 button;
       F32 wheelPos;
    };
-   
-   union
+
+   struct KeyData
    {
       U32 key;
       U32 codePoint;
    };
+
+   struct PadData
+   {
+        U64 v1;
+        U64 v2;
+        U64 v3;
+   };
    
+   union
+   {
+      MouseData mouse;
+      KeyData keys;
+      PadData pad;
+   };
+
+   DBIEvent()
+   {
+    pad.v1 = 0;
+    pad.v2 = 0;
+    pad.v3 = 0;
+   }
 };
 
 struct MessageDisplayParams
@@ -139,6 +166,16 @@ struct MessageDisplayParams
 static inline Point2I WorldPointToScreen(Point2I point, Camera2D cam)
 {
     Vector2 topLeft     = GetWorldToScreen2D((Vector2){ (float)(point.x), (float)(point.y) }, cam);
+
+    return Point2I(
+        topLeft.x,
+        topLeft.y
+    );
+}
+
+static inline Point2I ScreenPointToWorld(Point2I point, Camera2D cam)
+{
+    Vector2 topLeft     = GetScreenToWorld2D((Vector2){ (float)(point.x), (float)(point.y) }, cam);
 
     return Point2I(
         topLeft.x,
@@ -265,6 +302,30 @@ public:
    void onFixedTick(F32 dt) override;
 };
 
+
+// Input handler
+
+
+class RaylibInputRouter
+{
+public:
+    RaylibInputRouter(SimWorld::DisplayBase* root);
+   
+   ~RaylibInputRouter();
+
+    void update(Camera2D& cam);
+
+private:
+    SimWorld::DisplayBase* mRoot = nullptr;
+    Point2I mLastMouse{};
+
+    DBIEvent mLastEvent;
+
+    std::unordered_set<int> mActiveKeys;
+    std::unordered_set<int> mActiveMouseButtons;
+};
+
+
 // Handy set of globals
 struct EngineGlobals
 {
@@ -273,6 +334,7 @@ struct EngineGlobals
    EngineTickable engineTick;
 
    SimWorld::SentenceQueueManager* sentenceQueue;
+   RaylibInputRouter* inputHandler;
 
    KorkApi::FiberId sentenceFiber;
    ActiveMessage currentMessage;
@@ -289,7 +351,6 @@ struct EngineGlobals
 
    void setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, bool isTalk, U32 ovrTicks);
 };
-
 
 
 extern EngineGlobals gGlobals;

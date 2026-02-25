@@ -25,6 +25,9 @@ public:
    
    bool onAdd();
    void onRemove();
+
+   void onGainedCapture(DBIEvent& event) override;
+   void onLostCapture(DBIEvent& event) override;
    
    bool processInput(DBIEvent& event);
    void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera);

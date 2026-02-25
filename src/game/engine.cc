@@ -179,3 +179,142 @@ ConsoleFunctionValue(startCutscene, 2, 2, "")
 {
    return KorkApi::ConsoleValue();
 }
+
+
+
+RaylibInputRouter::RaylibInputRouter(SimWorld::DisplayBase* root)
+: mRoot(root)
+{
+   const Vector2 mouseR = GetMousePosition();
+   mLastMouse = Point2I(mouseR.x, mouseR.y);
+}
+
+RaylibInputRouter::~RaylibInputRouter()
+{
+   
+}
+
+void RaylibInputRouter::update(Camera2D& cam)
+{
+   if (!mRoot) return;
+   
+   const Vector2 mouseR = GetMousePosition();
+   Point2I mouse(mouseR.x, mouseR.y);
+   
+   mouse = ScreenPointToWorld(mouse, cam);
+   
+   SimWorld::DisplayBase* capturedControl = mLastEvent.capturedControl;
+   
+   mLastEvent = {};
+   mLastEvent.capturedControl = capturedControl;
+   
+   if (mouse.x != mLastMouse.x || mouse.y != mLastMouse.y)
+   {
+      mLastEvent.type = UI_EVENT_MOUSE_MOVE;
+      mLastEvent.handled = false;
+      mLastEvent.mouse.pos = mouse;
+      mLastEvent.mouse.button = -1;
+      mLastEvent.mouse.wheelPos = 0.0f;
+      
+      mRoot->processInput(mLastEvent);
+      
+      mLastMouse = mouse;
+   }
+   
+   const float wheel = GetMouseWheelMove();
+   if (wheel != 0.0f)
+   {
+      DBIEvent e{};
+      mLastEvent.type = UI_EVENT_MOUSE_WHEEL;
+      mLastEvent.handled = false;
+      mLastEvent.mouse.pos = mouse;
+      mLastEvent.mouse.button = -1;
+      mLastEvent.mouse.wheelPos = wheel;
+      
+      mRoot->processInput(mLastEvent);
+   }
+   
+   for (int b = 0; b <= MOUSE_BUTTON_MIDDLE; ++b)
+   {
+      if (IsMouseButtonPressed(b))
+      {
+         mActiveMouseButtons.insert(b);
+         
+         DBIEvent e{};
+         mLastEvent.type = UI_EVENT_MOUSE_DOWN;
+         mLastEvent.handled = false;
+         mLastEvent.mouse.pos = mouse;
+         mLastEvent.mouse.button = b;
+         mLastEvent.mouse.wheelPos = 0.0f;
+         
+         mRoot->processInput(mLastEvent);
+      }
+   }
+   
+   if (!mActiveMouseButtons.empty())
+   {
+      for (auto it = mActiveMouseButtons.begin(); it != mActiveMouseButtons.end(); )
+      {
+         const int b = *it;
+         if (IsMouseButtonReleased(b))
+         {
+            mLastEvent.type = UI_EVENT_MOUSE_UP;
+            mLastEvent.handled = false;
+            mLastEvent.mouse.pos = mouse;
+            mLastEvent.mouse.button = b;
+            mLastEvent.mouse.wheelPos = 0.0f;
+            
+            mRoot->processInput(mLastEvent);
+            
+            it = mActiveMouseButtons.erase(it);
+         }
+         else
+         {
+            ++it;
+         }
+      }
+   }
+   
+   for (int k = GetKeyPressed(); k != 0; k = GetKeyPressed())
+   {
+      mActiveKeys.insert(k);
+      
+      mLastEvent.type = UI_EVENT_KEY_DOWN;
+      mLastEvent.handled = false;
+      mLastEvent.keys.key = (U32)k;
+      
+      mRoot->processInput(mLastEvent);
+   }
+   
+   if (!mActiveKeys.empty())
+   {
+      for (auto it = mActiveKeys.begin(); it != mActiveKeys.end(); )
+      {
+         const int k = *it;
+         if (IsKeyReleased(k))
+         {
+            mLastEvent.type = UI_EVENT_KEY_UP;
+            mLastEvent.handled = false;
+            mLastEvent.keys.key = (U32)k;
+            
+            mRoot->processInput(mLastEvent);
+            
+            it = mActiveKeys.erase(it);
+         }
+         else
+         {
+            ++it;
+         }
+      }
+   }
+   
+   for (int cp = GetCharPressed(); cp != 0; cp = GetCharPressed())
+   {
+      mLastEvent.type = UI_EVENT_CHAR;
+      mLastEvent.handled = false;
+      mLastEvent.keys.codePoint = (U32)cp;
+      
+      mRoot->processInput(mLastEvent);
+   }
+}
+

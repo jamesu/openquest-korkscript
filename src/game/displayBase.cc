@@ -56,6 +56,16 @@ void DisplayBase::onRemove()
   Parent::onRemove();
 }
 
+void DisplayBase::onGainedCapture(DBIEvent& event)
+{
+
+}
+
+void DisplayBase::onLostCapture(DBIEvent& event)
+{
+
+}
+
 void DisplayBase::updateLayout(const RectI contentRect)
 {
    // NOTE: default layout; only TL margin used.
@@ -154,6 +164,10 @@ ConsoleMethodValue(DisplayBase, updateLayout, 2, 2, "")
 
 RootUI* RootUI::sMainInstance;
 
+RootUI::RootUI()
+{
+}
+
 bool RootUI::onAdd()
 {
   if (Parent::onAdd())
@@ -172,6 +186,19 @@ void RootUI::onRemove()
   }
   
   Parent::onRemove();
+}
+
+bool RootUI::processInput(DBIEvent& event)
+{
+   if (event.capturedControl && 
+      event.type >= UI_EVENT_MOUSE_MOVE && event.type <= UI_EVENT_MOUSE_WHEEL) 
+   {
+      event.capturedControl->processInput(event);
+   }
+   else
+   {
+      forwardEvent(event);
+   }
 }
 
 void RootUI::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)

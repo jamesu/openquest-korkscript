@@ -62,6 +62,9 @@ public:
    
    bool onAdd() override;
    void onRemove() override;
+
+   virtual void onGainedCapture(DBIEvent& event);
+   virtual void onLostCapture(DBIEvent& event);
    
    virtual void resize(const Point2I newPosition, const Point2I newExtent);
    virtual void updateLayout(const RectI contentRect);
@@ -88,11 +91,16 @@ class RootUI : public DisplayBase
 public:
    static RootUI* sMainInstance;
    
+   RootUI();
+   
    bool onAdd() override;
    
    void onRemove() override;
    
+   bool processInput(DBIEvent& event) override;
+   
    void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera) override;
+   
    
    void setContent(DisplayBase* obj);
    
