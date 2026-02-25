@@ -186,6 +186,21 @@ function TestRoom::walkAbout(%this, %foo)
    }
 }
 
+echo("TEST SQM");
+
+$dHandler = new VerbDisplay([testHandler]) {
+};
+
+function DisplayBase::onTestHandler(%this, %vrb, %objA, %objB)
+{
+   echo("onTestHandler called:" SPC %vrb SPC %obja SPC %objB);
+   nop();
+}
+
+echo("ze push");
+SentenceQueue.push($dHandler, $dHandler, 0);
+
+
 function testRunWhileMask()
 {
    while (1)

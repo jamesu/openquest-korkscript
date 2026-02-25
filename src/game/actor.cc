@@ -222,6 +222,8 @@ void Actor::initPersistFields()
 {
    Parent::initPersistFields();
 
+   addField("descName", TypeString, Offset(mDescName, Actor));
+
    initDisplayFields();
 }
 

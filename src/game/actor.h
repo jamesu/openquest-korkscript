@@ -157,6 +157,8 @@ public:
    StringTableEntry mWalkAnim;
    StringTableEntry mStartTalkAnim;
    StringTableEntry mStopTalkAnim;
+   
+   StringTableEntry mDescName;
 
    Actor();
    

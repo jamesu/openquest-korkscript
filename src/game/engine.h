@@ -51,6 +51,7 @@
 
 
 // Flags for waiting fibers
+#define SCHEDULE_FLAG_IS_SENTENCE_HANDLER BIT(2)
 #define SCHEDULE_FLAG_MESSAGE       BIT(8)
 #define SCHEDULE_FLAG_CAMERA_MOVING BIT(9)
 #define SCHEDULE_FLAG_SENTENCE_BUSY BIT(10)
@@ -107,6 +108,7 @@ typedef enum {
 struct DBIEvent
 {
     DBIEventType type;
+    bool handled;
    
    struct MouseData
    {
@@ -211,6 +213,34 @@ struct SentenceQueueItem
     SimObjectId objB;
 };
 
+
+BEGIN_SW_NS
+
+class SentenceQueueManager : public SimObject
+{
+typedef SimObject Parent;
+public:
+
+   enum
+   {
+      MaxSentences = 5
+   };
+
+   std::vector<SentenceQueueItem> mSentences;
+   KorkApi::FiberId mLastFiber;
+
+   SentenceQueueManager();
+
+   bool pushItem(SimObjectId verb, SimObjectId objA, SimObjectId objB);
+   void execItem();
+   bool isBusy();
+   void cancel();
+
+   DECLARE_CONOBJECT(SentenceQueueManager);
+};
+
+END_SW_NS
+
 struct ActiveMessage
 {
     MessageDisplayParams params;
@@ -242,8 +272,9 @@ struct EngineGlobals
    SimWorld::Actor* currentEgo;
    EngineTickable engineTick;
 
+   SimWorld::SentenceQueueManager* sentenceQueue;
+
    KorkApi::FiberId sentenceFiber;
-   std::vector<SentenceQueueItem> sentenceQueue;
    ActiveMessage currentMessage;
    
    RenderTexture2D roomRt;

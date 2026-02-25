@@ -51,6 +51,8 @@ void ITickable::doFixedTick(F32 dt)
 BEGIN_SW_NS
 
 
+IMPLEMENT_CONOBJECT(SentenceQueueManager);
+
 ConsoleFunctionValue(yieldFiber, 2, 2, "value")
 {
    vmPtr->suspendCurrentFiber();
@@ -80,7 +82,7 @@ ConsoleFunctionValue(delayFiber, 2, 2, "ticks")
 ConsoleFunctionValue(spawnFiber, 3, 20, "flagMask, func, ...")
 {
    SimFiberManager::ScheduleInfo initialInfo = {};
-   initialInfo.waitMode = SimFiberManager::WAIT_IGNORE;
+   initialInfo.waitMode = SimFiberManager::WAIT_REMOVE;
    initialInfo.param.flagMask = (U64)vmPtr->valueAsInt(argv[1]);
    KorkApi::FiberId fiberId = gFiberManager->spawnFiber(NULL, argc-2, argv+2, initialInfo);
    
@@ -97,7 +99,7 @@ ConsoleFunctionValue(spawnFiber, 3, 20, "flagMask, func, ...")
 ConsoleMethodValue(SimObject, spawnFiber, 4, 20, "flagMask, func, ...")
 {
    SimFiberManager::ScheduleInfo initialInfo = {};
-   initialInfo.waitMode = SimFiberManager::WAIT_IGNORE;
+   initialInfo.waitMode = SimFiberManager::WAIT_REMOVE; // should be in this state so can be cleaned up if no wait
    initialInfo.param.flagMask = (U64)vmPtr->valueAsInt(argv[1]);
    
    // params are:       spawnFiber, obj, func, ...
@@ -206,6 +208,116 @@ ConsoleFunctionValue(waitForFiber, 2, 2, "")
    sp.minTime = vmPtr->valueAsInt(argv[1]);
    gFiberManager->setFiberWaitMode(vmPtr->getCurrentFiber(), SimFiberManager::WAIT_FIBER, sp);
    vmPtr->suspendCurrentFiber();
+   return KorkApi::ConsoleValue();
+}
+
+
+SentenceQueueManager::SentenceQueueManager()
+{
+   mLastFiber = 0;
+}
+
+bool SentenceQueueManager::pushItem(SimObjectId verb, SimObjectId objA, SimObjectId objB)
+{
+   if (mSentences.size() >= MaxSentences)
+   {
+      return false;
+   } 
+
+   SentenceQueueItem item;
+   item.verb = verb;
+   item.objA = objA;
+   item.objB = objB;
+   mSentences.push_back(item);
+   return true;
+}
+
+void SentenceQueueManager::execItem()
+{
+   // Wait until last fiber has stopped running
+   if (isBusy())
+   {
+      return;
+   }
+
+   cancel();
+
+   if (!mSentences.empty())
+   {
+      SentenceQueueItem lastItem = mSentences.front();
+      mSentences.erase(mSentences.begin());
+
+      VerbDisplay* verbObject = nullptr;
+      DisplayBase* objA = nullptr;
+      DisplayBase* objB = nullptr;
+      
+      Sim::findObject(lastItem.verb, verbObject);
+      Sim::findObject(lastItem.objA, objA);
+      Sim::findObject(lastItem.objB, objB);
+
+      if (lastItem.verb && lastItem.objA)
+      {
+         char verbFunc[64];
+         snprintf(verbFunc, 64, "on%s", verbObject->getInternalName());
+
+         KorkApi::ConsoleValue rv = Con::executef(objA, 
+                       "spawnFiber", 
+                       KorkApi::ConsoleValue::makeUnsigned(SCHEDULE_FLAG_IS_SENTENCE_HANDLER),
+                       KorkApi::ConsoleValue::makeString(verbFunc), 
+                       KorkApi::ConsoleValue::makeUnsigned(lastItem.objA), 
+                       KorkApi::ConsoleValue::makeUnsigned(lastItem.objB));
+
+         mLastFiber = (KorkApi::FiberId)getVM()->valueAsInt(rv);
+      }
+   }
+}
+
+bool SentenceQueueManager::isBusy()
+{
+   auto state = getVM()->getFiberState(mLastFiber);
+   return (state == KorkApi::FiberRunResult::State::SUSPENDED || 
+           state == KorkApi::FiberRunResult::State::RUNNING);
+}
+
+void SentenceQueueManager::cancel()
+{
+   gFiberManager->cleanupFiber(mLastFiber);
+   mLastFiber = 0;
+}
+
+ConsoleMethodValue(SentenceQueueManager, push, 5, 5, "(verb, objA, objB)")
+{
+   VerbDisplay* verbObject = nullptr;
+   DisplayBase* objA = nullptr;
+   DisplayBase* objB = nullptr;
+
+   Sim::findObject(argv[2], verbObject);
+   Sim::findObject(argv[3], objA);
+   Sim::findObject(argv[4], objB);
+
+   if (verbObject && objA)
+   {
+      object->pushItem(verbObject->getId(),
+         objA->getId(),
+         objB ? objB->getId() : 0);
+   }
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(SentenceQueueManager, isBusy, 2, 2, "")
+{
+   return KorkApi::ConsoleValue::makeUnsigned(object->isBusy());
+}
+
+ConsoleMethodValue(SentenceQueueManager, cancel, 2, 2, "")
+{
+   object->cancel();
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(nop, 1, 1, "")
+{
+   Con::printf("NOP");
    return KorkApi::ConsoleValue();
 }
 

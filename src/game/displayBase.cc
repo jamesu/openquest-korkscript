@@ -104,6 +104,10 @@ void DisplayBase::forwardEvent(DBIEvent& event)
      if (displayObj)
      {
         displayObj->processInput(event);
+        if (event.handled)
+        {
+           break;
+        }
      }
   }
 }

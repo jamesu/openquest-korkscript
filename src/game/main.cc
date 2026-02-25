@@ -68,6 +68,9 @@ int main(int argc, char **argv)
    gFiberManager = new SimFiberManager();
    gFiberManager->registerObject("FiberManager");
    gGlobals.engineTick.registerTickable();
+
+   gGlobals.sentenceQueue = new SimWorld::SentenceQueueManager();
+   gGlobals.sentenceQueue->registerObject("SentenceQueue");
    
    Con::addVariable("$VAR_TIMER_NEXT", TypeF32, &gTimerNext);
    Con::addVariable("$VAR_HAVE_MSG", TypeBool, &gGlobals.currentMessage.ticking);
@@ -205,6 +208,8 @@ int main(int argc, char **argv)
             accumulator -= fixedDt;
             steps++;
          }
+
+         gGlobals.sentenceQueue->execItem();
          
          BeginDrawing();
          
