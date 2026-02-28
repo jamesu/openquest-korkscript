@@ -150,5 +150,11 @@ void VerbDisplay::initPersistFields()
    addField("enabled", TypeBool, Offset(mEnabled, VerbDisplay));
 }
 
+ConsoleMethodValue(VerbDisplay, setOn, 3, 3, "(enabled)")
+{
+   object->mEnabled = vmPtr->valueAsBool(argv[2]);
+   return KorkApi::ConsoleValue();
+}
+
 
 END_SW_NS

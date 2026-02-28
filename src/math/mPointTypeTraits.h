@@ -45,7 +45,7 @@ static bool getPointDataImpl(
       {
          for (int i = 0; i < Traits::N; ++i)
          {
-            Traits::at(v, i) = (F32)argv[i].getFloat((F64)argv[i].getInt(0));
+            Traits::at(v, i) = vmPtr->valueAsInt(argv[i]);
          }
       }
       else if (argc == 1)

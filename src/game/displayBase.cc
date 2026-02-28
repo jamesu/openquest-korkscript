@@ -27,10 +27,10 @@ void DisplayBase::initDisplayFields()
    addField("paddingBR", TypePoint2I, Offset(mPadding.br, DisplayBase));
    addField("center", TypeBool, Offset(mCentered, DisplayBase));
    addField("fontSize", TypeS32, Offset(mFontSize, DisplayBase));
-   addField("backColor", TypeS32, Offset(mBackColor, DisplayBase));
-   addField("color", TypeS32, Offset(mColor, DisplayBase));
-   addField("hiColor", TypeS32, Offset(mHiColor, DisplayBase));
-   addField("dimColor", TypeS32, Offset(mDimColor, DisplayBase));
+   addField("backColor", TypeColor, Offset(mBackColor, DisplayBase));
+   addField("color", TypeColor, Offset(mColor, DisplayBase));
+   addField("hiColor", TypeColor, Offset(mHiColor, DisplayBase));
+   addField("dimColor", TypeColor, Offset(mDimColor, DisplayBase));
 }
 
 DisplayBase::DisplayBase()
