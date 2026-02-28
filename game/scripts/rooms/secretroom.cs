@@ -28,10 +28,10 @@ $SecretRoom::hasShotAtNode     = 0;
 // =========================
 // Resources
 // =========================
-new Sound(Secret_shootCageSnd) { path = "shoot_cage.soun"; };
-new Sound(Secret_shootDeadSnd) { path = "shoot_dead.soun"; };
-new Sound(Secret_fallDeadSnd)  { path = "fall_dead.soun"; };
-new Sound(Secret_mwwwahSnd)    { path = "sounds/mwwwah_huh_huh.voc"; };
+new Sound(Secret_shootCageSnd) { path = "sounds/shoot_cage.wav"; };
+new Sound(Secret_shootDeadSnd) { path = "sounds/shoot_dead.wav"; };
+new Sound(Secret_fallDeadSnd)  { path = "sounds/fall_dead.av"; };
+new Sound(Secret_mwwwahSnd)    { path = "sounds/mwwwah_huh_huh.wav"; };
 
 // =========================
 // Room: SecretRoom
@@ -120,13 +120,13 @@ function SecretRoom::outro()
 
         setObjectOwner(InventoryItems->gun, commanderZif);
 
-        animateActor(ensignZob,   zob_anim_raiseArm);  delayFiber(15);
-        animateActor(commanderZif, zif_anim_raiseArm); delayFiber(15);
-        animateActor(ensignZob,   zob_anim_lowerArm);  delayFiber(15);
-        animateActor(commanderZif, zif_anim_lowerArm); delayFiber(15);
+        ensignZob.animate(  raiseArm);  delayFiber(15);
+        commanderZif.animate(raiseArm); delayFiber(15);
+        ensignZob.animate(  lowerArm);  delayFiber(15);
+        commanderZif.animate(lowerArm); delayFiber(15);
 
         actorSay(commanderZif, "Right, stand back."); waitForMessage();
-        walkActorTo(ensignZob, 210,120); waitForActor(ensignZob);
+        ensignZob.walkTo( 210,120); waitForActor(ensignZob);
 
         walkActorToObj(commanderZif, node, 0); waitForActor(commanderZif);
         actorFace(ensignZob, commanderZif);
@@ -134,7 +134,7 @@ function SecretRoom::outro()
 
         delayFiber(100);
         startSound(Secret_shootCageSnd);
-        animateActor(commanderZif, zif_anim_fireup);
+        commanderZif.animate(fireup);
         delayFiber(30);
 
         setCurrentActor(bluecupActor);
@@ -151,13 +151,13 @@ function SecretRoom::outro()
         delayFiber(100);
 
         // Move relic to inventory “room”
-        putActorAt(bluecupActor, 0,0, InventoryItems);
+        bluecupActor.putAt( 0,0, InventoryItems);
 
         actorSay(commanderZif, "At last, the power of the relic is mine."); waitForMessage();
         egoSay("Expertly done, Sir."); waitForMessage();
         egoSay("Pass over the relic, and I shall place it in the containment vessel."); waitForMessage();
 
-        walkActorTo(commanderZif, 100,115); waitForActor(commanderZif);
+        commanderZif.walkTo( 100,115); waitForActor(commanderZif);
         actorFace(commanderZif, ensignZob);
 
         actorSay(commanderZif, "Never!"); waitForMessage();
@@ -169,21 +169,21 @@ function SecretRoom::outro()
         actorSay(commanderZif, "Never give up the gun."); waitForMessage();
 
         startSound(Secret_shootDeadSnd);
-        animateActor(commanderZif, zif_anim_firestraight);
+        commanderZif.animate(firestraight);
         delayFiber(50);
 
         startSound(Secret_fallDeadSnd);
-        animateActor(ensignZob, zob_anim_die);
+        ensignZob.animate(die);
         delayFiber(150);
 
-        walkActorTo(commanderZif, 170,120); waitForActor(commanderZif);
+        commanderZif.walkTo( 170,120); waitForActor(commanderZif);
         actorSay(commanderZif, "What a shame..."); waitForMessage();
         actorSay(commanderZif, "We could have ruled the cosmos together."); waitForMessage();
 
         setCurrentActor(commanderZif);
         setActorDirection(180);
         Actors::setZifOnThePhone();
-        animateActor(commanderZif, zif_anim_lookAround); delayFiber(30);
+        commanderZif.animate(lookAround); delayFiber(30);
 
         actorSay(commanderZif, "Commander's log, star date 432.2"); waitForMessage();
         actorSay(commanderZif, "I have obtained the stolen artifact."); waitForMessage();
@@ -195,9 +195,9 @@ function SecretRoom::outro()
         if ($VAR_OVERRIDE)
         {
             actorSay(0xFF, ""); // stopTalking
-            putActorAt(ensignZob,     276,110, SecretRoom);
-            putActorAt(commanderZif,  170,120, SecretRoom);
-            putActorAt(bluecupActor,     0,  0, InventoryItems);
+            ensignZob.putAt(     276,110, SecretRoom);
+            commanderZif.putAt(  170,120, SecretRoom);
+            bluecupActor.putAt(     0,  0, InventoryItems);
             setCurrentActor(commanderZif);
             setActorDirection(180);
             Actors::setZifOffThePhone();
@@ -264,18 +264,18 @@ function computerTerminal::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(2);
                 //{
                     // try { ... }
-                    animateActor($VAR_EGO, zif_anim_raiseArm);  // (as in original)
+                    $VAR_EGO.animate(raiseArm);  // (as in original)
                     delayFiber(25);
-                    animateActor($VAR_EGO, zif_anim_lowerArm);
+                    $VAR_EGO.animate(lowerArm);
                     delayFiber(25);
 
-                    animateActor(cubeActor, cube_anim_dissolve);
+                    cubeActor.animate(dissolve);
                     delayFiber(50);
 
                     egoSay("Looks like I broke the encryption."); waitForMessage();
 
-                    putActorAt(commanderZif, 40,100, SecretRoom);
-                    walkActorTo(commanderZif, 95,100); waitForActor(commanderZif);
+                    commanderZif.putAt( 40,100, SecretRoom);
+                    commanderZif.walkTo( 95,100); waitForActor(commanderZif);
                     actorFace(commanderZif, $VAR_EGO);
 
                     actorSay(commanderZif, "Well done, ensign.");       waitForMessage();
@@ -290,12 +290,12 @@ function computerTerminal::onVerb(%this, %verb, %objA, %objB)
                     if ($VAR_OVERRIDE)
                     {
                         actorSay(0xFF, ""); // stopTalking
-                        putActorAt(commanderZif, 90,100, SecretRoom);
+                        commanderZif.putAt( 90,100, SecretRoom);
                         actorFace(commanderZif, $VAR_EGO);
                     }
 
                     // Post-actions (in original after block)
-                    putActorAt(cubeActor, 0,0, InventoryItems);
+                    cubeActor.putAt( 0,0, InventoryItems);
                     $SecretRoom::cubeDisappeared = 1;
                     Actors::startRoaming(commanderZif, 80,220, 105,130);
                 //}
@@ -333,8 +333,8 @@ function keySlot::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(0);
                 //{
                     egoSay("I think this should activate the terminal."); waitForMessage();
-                    animateActor($VAR_EGO, zob_anim_raiseArm); delayFiber(25);
-                    animateActor($VAR_EGO, zob_anim_lowerArm);
+                    $VAR_EGO.animate(raiseArm); delayFiber(25);
+                    $VAR_EGO.animate(lowerArm);
                     $SecretRoom::terminalActivated = 1;
                     setObjectOwner(InventoryItems->card, 0);
                 //}
@@ -370,7 +370,7 @@ function node::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(2);
                 //{
                     $SecretRoom::hasShotAtNode = 1;
-                    animateActor($VAR_EGO, zob_anim_fireup);
+                    $VAR_EGO.animate(fireup);
                     startSound(Secret_shootCageSnd);
                     delayFiber(120);
                     egoSay("Missed!"); waitForMessage();

@@ -471,6 +471,10 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
 
 void Actor::startAnim(StringTableEntry animName)
 {
+   if (mCostume == nullptr)
+   {
+      return;
+   }
   mLiveCostume.setAnim(mCostume->mState, animName, mLiveCostume.curDirection);
 }
 
@@ -499,6 +503,10 @@ void Actor::setCostume(SimWorld::Costume* costume)
 void Actor::startTalk()
 {
    mTalking = true;
+   if (mCostume == nullptr)
+   {
+      return;
+   }
    mLiveCostume.setAnim(mCostume->mState, mStartTalkAnim, mLiveCostume.curDirection);
 }
 
@@ -516,8 +524,13 @@ void Actor::stopTalk()
 {
    if (mTalking)
    {
-      mLiveCostume.setAnim(mCostume->mState, mStopTalkAnim, mLiveCostume.curDirection);
       mTalking = false;
+      
+      if (mCostume == nullptr)
+      {
+         return;
+      }
+      mLiveCostume.setAnim(mCostume->mState, mStopTalkAnim, mLiveCostume.curDirection);
       
       if (mWalkState.mAction >= ActorWalkState::ACTION_MOVING)
       {
@@ -561,10 +574,21 @@ ConsoleMethodValue(Actor, say, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, putAt, 4, 4, "")
+ConsoleMethodValue(Actor, putAt, 4, 5, "")
 {
    Point2I destPoint(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]));
+   
+   if (argc > 4)
+   {
+      Room* theRoom = nullptr;
+      if (Sim::findObject(argv[4], theRoom) && object->getGroup() != theRoom)
+      {
+         theRoom->addObject(object);
+      }
+   }
+   
    object->setPosition(destPoint);
+   
    return KorkApi::ConsoleValue();
 }
 

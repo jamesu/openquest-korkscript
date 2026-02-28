@@ -357,17 +357,12 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       }
       
       std::sort(sortedActors.begin(), sortedActors.end(), [](const Actor* a, const Actor* b){
-         if (a->mBounds.point.y < b->mBounds.point.y)
+         if (a->mBounds.point.y != b->mBounds.point.y)
          {
-            return true;
+            return a->mBounds.point.y < b->mBounds.point.y;
          }
-         
-         if (a->getId() < b->getId())
-         {
-            return true;
-         }
-         
-         return false;
+
+         return a->getId() < b->getId();
       });
       
       // Actors need to be masked by the current z planes.
@@ -528,7 +523,12 @@ void Room::onFixedTick(F32 dt)
       mRenderState.transitionEnded = true;
       if (isMethod("onEntry"))
       {
-         Con::executef(this, "onEntry");
+         SimFiberManager::ScheduleInfo initialInfo = {};
+         initialInfo.waitMode = SimFiberManager::WAIT_REMOVE;
+         initialInfo.param.flagMask = SCHEDULE_FLAG_IS_ROOM_CALLBACK;
+         KorkApi::ConsoleValue cv[2];
+         cv[0] = KorkApi::ConsoleValue::makeString("onEntry");
+         KorkApi::FiberId fiberId = gFiberManager->spawnFiber(this, 2, cv, initialInfo);
       }
    }
 }
@@ -558,7 +558,12 @@ void Room::onEnter()
    
    if (isMethod("onPreEntry"))
    {
-      Con::executef(this, "onPreEntry");
+      SimFiberManager::ScheduleInfo initialInfo = {};
+      initialInfo.waitMode = SimFiberManager::WAIT_REMOVE;
+      initialInfo.param.flagMask = SCHEDULE_FLAG_IS_ROOM_CALLBACK;
+      KorkApi::ConsoleValue cv[2];
+      cv[0] = KorkApi::ConsoleValue::makeString("onPreEntry");
+      KorkApi::FiberId fiberId = gFiberManager->spawnFiber(this, 2, cv, initialInfo);
    }
    
    registerTickable();
@@ -569,7 +574,12 @@ void Room::onLeave()
    RootUI::sMainInstance->removeObject(this);
    if (isMethod("onExit"))
    {
-      Con::executef(this, "onExit");
+      SimFiberManager::ScheduleInfo initialInfo = {};
+      initialInfo.waitMode = SimFiberManager::WAIT_REMOVE;
+      initialInfo.param.flagMask = SCHEDULE_FLAG_IS_ROOM_CALLBACK;
+      KorkApi::ConsoleValue cv[2];
+      cv[0] = KorkApi::ConsoleValue::makeString("onExit");
+      KorkApi::FiberId fiberId = gFiberManager->spawnFiber(this, 2, cv, initialInfo);
    }
    
    unregisterTickable();
@@ -939,6 +949,10 @@ ConsoleFunctionValue(loadRoom, 2, 3, "(room, force)")
    if (Platform::isFile(filename))
    {
       Con::exec(filename);
+   }
+   else
+   {
+      Con::errorf("Unable to load room %s", vmPtr->valueAsString(argv[1]));
    }
 }
 

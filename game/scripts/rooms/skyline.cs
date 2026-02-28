@@ -44,16 +44,16 @@ function Skyline::onEntry(%this)
         %actor.setWalkSpeed(2,1);
         %actor.setTalkColor(ZIF_COLOR);
         %actor.setWidth(20);
-        %actor.setIgnoreBoxes();
+        %actor.setIgnoreBoxes(true);
         %actor.setAnimSpeed(4);
         
         %actor.putAt(-50,80,Skyline);
         %actor.walkTo(140, 80);
-        %actor.wait();
+        waitForActor(%actor);
         %actor.say("These are the coordinates.");
-        %actor.wait();
+        waitForMessage();
         %actor.say("Ensign, bring the teleportation device online.");
-        %actor.wait();
+        waitForMessage();
 
         delayFiber(100);
         endCutscene();

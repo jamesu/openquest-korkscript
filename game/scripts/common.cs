@@ -882,6 +882,8 @@ function ResRoom::main(%this, %bootParam)
     // Preload rooms kept resident
     //loadRoom(ResRoom);
     ResRoom.lock();
+    echo("Loading rooms...");
+    loadRoom(Actors);
     loadRoom(OfficeRoom);
     loadRoom(TitleScreen);
     loadRoom(Skyline);

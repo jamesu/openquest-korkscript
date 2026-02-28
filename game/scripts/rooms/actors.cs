@@ -44,11 +44,11 @@ new Room(Actors)
 	roaming = "";
 
     // --- ACTORS (displayable) ---
-    new Actor([ensignZob])      { className = EnsignZobClass; };
-    new Actor([commanderZif])   { className = CommanderZifClass; };
-    new Actor([carol])          { className = CarolClass; };
-    new Actor([bluecupActor])   { className = BlueCupClass; };
-    new Actor([cubeActor])      { className = CubeClass; };
+    new Actor(ensignZob)      { class = EnsignZobClass; };
+    new Actor(commanderZif)   { class = CommanderZifClass; };
+    new Actor(carol)          { class = CarolClass; };
+    new Actor(bluecupActor)   { class = BlueCupClass; };
+    new Actor(cubeActor)      { class = CubeClass; };
 
 };
 
@@ -71,19 +71,19 @@ function Actors::loadObjects(%this)
 // -------------------------
 function Actors::setZifOnThePhone(%this)
 {
-	%actor = %this->commanderZif;
-    %actor.setStandFrame(zif_anim_standWithPhone);
-    %actor.setInitFrame(zif_anim_standWithPhone);
-    %actor.setTalkFrame(zif_anim_talkToPhoneStart, zif_anim_standWithPhone);
+	%actor = commanderZif;
+    %actor.setStandFrame(standWithPhone);
+    %actor.setInitFrame(standWithPhone);
+    %actor.setTalkFrame(talkToPhoneStart, standWithPhone);
     %actor.setStanding();
 }
 
 function Actors::setZifOffThePhone(%this)
 {
-	%actor = %this->commanderZif;
-    %actor.setStandFrame(zif_anim_stand);
-    %actor.setInitFrame(zif_anim_init);
-    %actor.setTalkFrame(zif_anim_talkStart, zif_anim_talkStop);
+	%actor = commanderZif;
+    %actor.setStandFrame(stand);
+    %actor.setInitFrame(init);
+    %actor.setTalkFrame(talkStart, talkStop);
     %actor.setStanding();
 }
 
@@ -209,16 +209,16 @@ function Actors::setupActors(%this)
     echo("setupActors()");
 
     // costumes
-    %ensignZobCost    = "zob.cost";
-    %commanderZifCost = "zif.cost";
-    %carolCost        = "carol.cost";
-    %bluecupCost      = "bluecup.cost";
-    %cubeCost         = "cube.cost";
+    %ensignZobCost    = ZobCostume;
+    %commanderZifCost = ZifCostume;
+    %carolCost        = CarolCostume;
+    %bluecupCost      = BlueCupCostunme;
+    %cubeCost         = CubeCostume;
 
     // ---- ensign Zob ----
-    %actor = %this->ensignZob;
+    %actor = ensignZob;
     %actor.setCostume(%ensignZobCost);
-    %actor.setName("Ensign Zob");
+    %actor.descName = ("Ensign Zob");
     %actor.setWalkSpeed(2,1);
     %actor.setTalkColor($ZOB_COLOR);
     %actor.setWidth(20);
@@ -230,9 +230,9 @@ function Actors::setupActors(%this)
     $VAR_EGO = ensignZob;
 
     // ---- Commander Zif ----
-    %actor = %this->commanderZif;
+    %actor = commanderZif;
     %actor.setCostume(%commanderZifCost);
-    %actor.setName("Commander Zif");
+    %actor.descName = ("Commander Zif");
     %actor.setWalkSpeed(2,1);
     %actor.setTalkColor(ZIF_COLOR);
     %actor.setWidth(20);
@@ -241,28 +241,28 @@ function Actors::setupActors(%this)
     %actor.setPalette(29, 122); // scummvm fix
 
     // ---- Carol ----
-    %actor = %this->carol;
+    %actor = carol;
     %actor.setCostume(%carolCost);
-    %actor.setName("indigenous lifeform");
+    %actor.descName = ("indigenous lifeform");
     %actor.setWidth(20);
-    %actor.setIgnoreBoxes();
+    %actor.setIgnoreBoxes(true);
     %actor.setAnimSpeed(7);
     %actor.setTalkColor(CAROL_COLOR);
     // TOFIX %actor.setObjectClass([ 0x80 + Person ]);
 
     // ---- Blue cup (as actor) ----
-    %actor = %this->bluecupActor;
+    %actor = bluecupActor;
     %actor.setCostume(%bluecupCost);
-    %actor.setName("blue cup");
+    %actor.descName = ("blue cup");
     %actor.setAnimSpeed(2);
     %actor.putActorAt(159,97,SecretRoom);
     %actor.setElevation(55);
     %actor.setWidth(0);
 
     // ---- Cube (as actor) ----
-    %actor = %this->cubeActor;
+    %actor = cubeActor;
     %actor.setCostume(%cubeCost);
-    %actor.setName("cube");
+    %actor.descName = ("cube");
     %actor.setAnimSpeed(2);
     // TOFIX %actor.setObjectClass([ 0x80 + ClassUntouchable ]);
     %actor.putActorAt(cubeActor,160,98,SecretRoom);
@@ -289,7 +289,7 @@ function loadObjects(%this)
 function Actors::zobTalkToZif(%this)
 {
     %sentence = "";
-    %commanderZif = %this->commanderZif;
+    %commanderZif = commanderZif;
 
     beginCutscene(1);
     //{
@@ -301,7 +301,7 @@ function Actors::zobTalkToZif(%this)
 
     while (true)
     {
-    	%commanderZif = %this->commanderZif;
+    	%commanderZif = commanderZif;
         %sentence = "What are your orders?";
         Dialog.dialogAdd("What are your orders?");
 
@@ -393,7 +393,7 @@ function Actors::zobTalkToZifInSecretRoom(%this)
 
     beginCutscene(1);
     //{
-    	%actor = %this->commanderZif;
+    	%actor = commanderZif;
         %actor.face($VAR_EGO);
         %actor.say("Yes, ensign?");
         waitForMessage();
@@ -423,7 +423,7 @@ function Actors::zobTalkToZifInSecretRoom(%this)
             %chosen = Dialog.dialogList[$selectedSentence];
             egoSay("%s{" @ %chosen @ "");
             waitForMessage();
-        	%commanderZif = %this->commanderZif;
+        	%commanderZif = commanderZif;
 
             switch ($selectedSentence)
             {

@@ -121,6 +121,9 @@ void ActiveMessage::onStop()
    {
       saveActor->stopTalk();
    }
+
+
+   gFiberManager->mFiberGlobalFlags &= ~SCHEDULE_FLAG_MESSAGE;
 }
 
 
@@ -133,6 +136,8 @@ void ActiveMessage::onStart(MessageDisplayParams& newParams, SimWorld::Actor* ne
    tick = 0;
    ticking = true;
    talking = isTalk;
+
+   gFiberManager->mFiberGlobalFlags |= SCHEDULE_FLAG_MESSAGE;
    
    if (ovrTicks == 0)
    {
