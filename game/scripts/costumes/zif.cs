@@ -88,6 +88,7 @@ new Costume(ZifCostume)
     palette = zifPalette;
     flags   = $FLIP;         // costume-wide
     limbs   = body;          // single limb
+    baseTalkPos = 0, -48;
 
     // --- Anim: walk ---
     new CostumeAnim([walk])

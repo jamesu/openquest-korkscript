@@ -46,6 +46,7 @@ new Costume(CarolCostume)
     palette = carolPalette;
     //flags   = FLIP;          // costume-wide
     limbs   = body;          // single limb
+    baseTalkPos = 0, -56;
 
     // --- Anim: stand ---
     new CostumeAnim([stand])

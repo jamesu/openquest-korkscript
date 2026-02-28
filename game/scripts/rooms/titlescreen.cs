@@ -23,14 +23,8 @@ new Room(TitleScreen)
     image = "graphics/rooms/titlescreen_small.bmp";
 };
 
-function TitleSceen::proceed(%area, %cmd, %btn)
+function TitleSceen::inputHandler(%this, %area, %cmd, %btn)
 {
-    $VAR_VERB_SCRIPT = "ResRoom::inputHandler";
     screenEffect(0x8787);
     startRoom(Skyline);
-}
-
-function TitleSceen::entry()
-{
-    $VAR_VERB_SCRIPT = proceed;
 }

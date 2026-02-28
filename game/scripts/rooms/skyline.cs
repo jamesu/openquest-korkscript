@@ -20,6 +20,7 @@
 
 new Room(Skyline)
 {
+    class = CoreRoom;
     image = "graphics/rooms/skyline.bmp";
 
     new Actor([ufoActor])

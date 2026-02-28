@@ -38,6 +38,8 @@ new Sound(Secret_mwwwahSnd)    { path = "sounds/mwwwah_huh_huh.voc"; };
 // =========================
 new Room(SecretRoom)
 {
+    class = CoreRoom;
+    
     image  = "graphics/rooms/back02_merged.bmp";
     boxd   = "graphics/rooms/back02.box";
     zplane =
@@ -55,7 +57,7 @@ new Room(SecretRoom)
 
     new RoomObject(computerTerminal)
     {
-        position = 176, 56;extent = 16, 24;
+        basePosition = 176, 56;extent = 16, 24;
         hotspot = 30, 43;
         descName = "computer terminal";
         dir  = WEST;
@@ -63,7 +65,7 @@ new Room(SecretRoom)
 
     new RoomObject(keySlot)
     {
-        position = 176, 80;extent = 16, 16;
+        basePosition = 176, 80;extent = 16, 16;
         hotspot = 25, 30;
         descName = "key slot";
         dir  = WEST;
@@ -71,7 +73,7 @@ new Room(SecretRoom)
 
     new RoomObject(node)
     {
-        position = 152, 16;extent = 16, 8;
+        basePosition = 152, 16;extent = 16, 8;
         hs_x = -50; hs_y = 75;
         descName = "node";
         dir  = EAST;
@@ -79,7 +81,7 @@ new Room(SecretRoom)
 
     new RoomObject(exitToOfficeRoom)
     {
-        position = 48, 32;extent = 32, 72;
+        basePosition = 48, 32;extent = 32, 72;
         hotspot = 42, 68;
         descName = "room";
         dir  = WEST;
@@ -204,10 +206,21 @@ function SecretRoom::outro()
     endCutscene();
 
     // Kill mouseWatch and queue quit
-    if (isScriptRunning(ResRoom.mouseWatch))
-        stopScript(ResRoom.mouseWatch);
+    ResRoom.stopMouseWatch();
 
-    $VAR_VERB_SCRIPT = ResRoom.quit;
+    %this.gameOver = true;
+}
+
+function SecretRoom::inputHandler(%this, %area, %cmd, %btn)
+{
+    if (%this.gameOver)
+    {
+        // TODO: quit
+    }
+    else
+    {
+        return ResRoom.call(ResRoom.realInputHandler, %area, %cmd, %btn);
+    }
 }
 
 

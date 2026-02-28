@@ -1,3 +1,5 @@
+echo("ZE COMMON CS STARTT");
+
 /* ScummC
  * Copyright (C) 2007  Alban Bedel, Gerrit Karius
  * Conversion and adaptation to KorkScript Copyright (C) 2026 James S Urquhart
@@ -22,15 +24,21 @@
 // =========================
 // Resources (charsets, cursor image)
 // =========================
+ /*
 new Charset(chset1)       { path = "vera-gui.char";   };
 new Charset(chtest)       { path = "vera.char";       };
-new Charset(dialogCharset){ path = "vera-small.char"; };
+new Charset(dialogCharset){ path = "vera-small.char"; };*/
+
+echo("COMMON CS START");
 
 new ImageSet(CursorImg)   { path = "graphics/cursor/cursor.bmp"; flags = TRANSPARENT; };
 
 // Cursor sprite shown as a room object (for hit/mask parity with SCUMMC)
 new Room(ResRoom)
 {
+    inputDelegate = ResRoom;
+    realInputHandler = defaultInputHandler;
+
     new RoomObject(cursor)
     {
         x = 0; y = 0; w = 16; h = 16;
@@ -39,9 +47,82 @@ new Room(ResRoom)
     };
 };
 
-// =========================
-// Globals (mirror SCUMMC vars used here)
-// =========================
+
+function DisplayBase::isPerson(%this)
+{
+    return false;
+}
+
+function DisplayBase::isOpenable(%this)
+{
+    return false;
+}
+
+function DisplayBase::getPreposition(%this)
+{
+    return "To";
+}
+
+// Wait helpers - these replicate scumm-like waiting; 
+// in this case these are ones that check object states so 
+// polling is required
+// waitForMessage, waitForCamera, and waitForSentence are all 
+// implemented natively through flag waits.
+
+function waitForActor(%actor)
+{
+    while (%actor.isMoving())
+    {
+        delayFiber(1);
+    }
+}
+
+function Actor::waitForAnimation(%this)
+{
+    %lastFrame = %actor.getCurrentFrame();
+    while (1)
+    {
+        delayFiber(1);
+        %nextFrame = %actor.getCurrentFrame();
+        if (%nextFrame == %lastFrame)
+        {
+            // Handle case where actor has been deleted
+            if (!isObject(%actor))
+            {
+                return;
+            }
+        }
+    }
+}
+
+function Actor::waitFor(%this)
+{
+    while (%actor.getState() != 0)
+    {
+        delayFiber(1);
+    }
+
+}
+
+function waitForTurn(%actor)
+{
+    %lastDirection = %actor.getCurrentDirection();
+    while (1)
+    {
+        delayFiber(1);
+        %nextDirection = %actor.getCurrentDirection();
+        if (%nextDirection == %lastDirection)
+        {
+            // Handle case where actor has been deleted
+            if (!isObject(%actor))
+            {
+                return;
+            }
+        }
+    }
+}
+
+// Common globals
 $selVerb   = 0;
 $altVerb   = 0;
 $tryPick   = 0;
@@ -49,17 +130,31 @@ $tryPick   = 0;
 $cursorOn      = 0;
 $cursorLoaded  = 0;
 
-// =========================
-// Local test (no waits)
-// =========================
-function ResRoom::localTest(%this) { echo("Ltst"); }
+function ResRoom::resetMouseWatch(%this)
+{
+    if (isFiberRunning(%this.mouseWatchFID))
+    {
+        stopFiber(%this.mouseWatchFID);
+    }
+    %this.mouseWatchFID = ResRoom.spawnFiber(mouseWatch);
+}
 
-// =========================
-// Mouse watch (runs continuously; uses breakScript) -> script
-// =========================
+function ResRoom::stopMouseWatch(%this)
+{
+    if (isFiberRunning(%this.mouseWatchFID))
+    {
+        stopFiber(%this.mouseWatchFID);
+    }
+    %this.mouseWatchFID = 0;
+}
+
+// mouse watch script
+// 
+// This is responsible for setting sntcVerb, sntcObjA, sntcObjB depending on what the mouse is hovering over.
+// Actual execution of commands is done in inputHandler.
 function ResRoom::mouseWatch(%this)
 {
-    %vrb = 0; %obj = 0; %target = 0; %alt = 0; %desc = 0;
+    %vrb = 0; %obj = 0; %target = 0; %alt = 0;
 
     while (true)
     {
@@ -67,82 +162,94 @@ function ResRoom::mouseWatch(%this)
         {
             if ($altVerb)
             {
-                setCurrentVerb($altVerb); setVerbOn(); redrawVerb();
+                $altVerb.setOn();
                 $altVerb = 0;
             }
-            do { breakScript(); } while (!$cursorOn);
+            do { breakFiber(); } while (!$cursorOn);
         }
 
-        if (isScriptRunning($VAR_SENTENCE_SCRIPT))
+        // NOTE: should probbaly use flag here
+        if (SentenceQueue.isBusy())
         {
-            breakScript();
+            echo("mouseWatch: waiting for sentence");
+            breakFiber();
             continue;
         }
 
-        // ---- Read current state / hover target ----
-        %vrb = 0; %desc = 0;
-
+        // Get hover target
+        %vrb = 0;
         %obj = getObjectAt($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
 
         if (!isObject(%obj))
         {
             %obj = getActorAt($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
-            if (%obj == $VAR_EGO) %obj = 0;
-            else if ($actorObject[%obj]) %desc = $actorObject[%obj];
+            if (%obj == $VAR_EGO) 
+            {
+                %obj = 0;
+            }
         }
 
         if (!isObject(%obj))
         {
             %obj = getVerbAt($VAR_MOUSE_X, $VAR_MOUSE_Y);
-            if (%obj >= $invSlot0 && %obj <= invSlot7)
+            if (%obj.inventorySlot)
             {
-                %obj = findInventory($VAR_EGO, %obj - $invSlot0 + 1 + $invOffset);
-                %vrb = (!$selVerb || $selVerb == PickUp) ? Use : $selVerb;
+                %obj = $VAR_EGO.findInventory(%obj.inventorySlot + $invOffset);
+                %vrb = (!$selVerb || $selVerb.getInternalName() $= PickUp) ? Verbs-->Use : $selVerb;
             }
-            else %obj = 0;
+            else 
+            {
+                %obj = 0;
+            }
         }
 
-        if (%vrb $= "") %vrb = ($selVerb ? $selVerb : WalkTo);
-
-        // Description object defaults to %obj
-        if (%desc $= "") %desc = %obj;
+        if (!isObject(%vrb)) 
+        {
+            %vrb = isObject($selVerb) ? $selVerb : Verbs-->WalkTo;
+        }
 
         if ($sntcPrepo)
         {
             %target = $sntcObjB;
-            if (%obj == sntcObjA) { %obj = 0; %desc = 0; }
+            if (%obj == $sntcObjA) 
+            { 
+                %obj = 0;
+            }
         }
         else 
         {
             %target = $sntcObjA;
         }
 
-        if (%vrb == sntcVerb && %obj == %target)
+        if (!(%vrb = $sntcVerb 
+            && %obj == %target))
         {
             $sntcVerb = %vrb;
 
             if ($sntcPrepo)
             {
                 $sntcObjB     = %obj;
-                $sntcObjBDesc = %desc;
             }
             else
             {
                 $sntcObjA     = %obj;
-                $sntcObjADesc = %desc;
             }
-
-            setCurrentVerb($SntcLine);
-            redrawVerb();
         }
 
-        // ---- Alt verb hinting ----
         if (%obj)
         {
-            // TOFIX
-            //if (%obj is Person)       %alt = TalkTo;
-            //else if (%obj is Openable) %alt = Open;
-            //else                       %alt = LookAt;
+            if (%obj.isPerson())       
+            {
+                %alt = Verbs-->TalkTo;
+            }
+            else if (%obj.isOpenable())
+            {
+                %alt = Verbs-->Open;
+            }
+            else
+            {
+                %alt = Verbs-->LookAt;
+            }
         }
         else 
         {
@@ -151,344 +258,475 @@ function ResRoom::mouseWatch(%this)
 
         if (%alt != $altVerb)
         {
-            if ($altVerb) { setCurrentVerb($altVerb); setVerbOn(); redrawVerb(); }
-            if (%alt)    { setCurrentVerb(%alt); verbDim(); redrawVerb(); }
+            if ($altVerb) 
+            { 
+                $altVerb.setOn();  
+            }
+            if (%alt)    
+            { 
+                %alt.setDim();  
+            }
             $altVerb = %alt;
         }
 
-        breakScript();
+        breakFiber();
     }
 }
 
-// =========================
-// Cursor show/hide (no waits)
-// =========================
-function ResRoom::showCursor(%this)
+// Cursor...
+
+function BaseRoom::showCursor(%this)
 {
-    if ($cursorOn) return;
-/*
-    unless (cursorLoaded)
+    if ($cursorOn) 
     {
-        cursorLoaded = 1;
-        loadFlObject(cursor, ResRoom);
-        setCursorImage(cursor, ResRoom);
-        setCursorTransparency(31);
+        return;
     }
-*/
+
     cursorOn();
     userPutOn();
     $cursorOn = 1;
 }
 
-function ResRoom::hideCursor(%this)
+function BaseRoom::hideCursor(%this)
 {
-    if (!$cursorOn) return;
+    if (!$cursorOn) 
+    {
+        return;
+    }
+
     cursorOff();
     userPutOff();
     $cursorOn = 0;
 }
 
-// =========================
-// Cutscene hooks (no waits)
-// =========================
-function ResRoom::cutsceneStart(%type)
+// Cutscene hooks...
+
+function BaseRoom::cutsceneStart(%type)
 {
     echo("cutscene start");
     %this.hideCursor();
+
     if (%type > 0)
     {
         // ensure mouseWatch is stopped before hiding verbs
-        breakScript();
+        breakFiber();
         Verbs.showVerbs(0);
     }
 }
 
-function ResRoom::cutsceneEnd(%type)
+function BaseRoom::cutsceneEnd(%type)
 {
     echo("cutscene end");
     %this.showCursor();
-    if (%type > 1) Verbs.showVerbs(1);
+
+    if (%type > 1) 
+    {
+        Verbs.showVerbs(1);
+    }
 }
 
 // =========================
 // Sentence helpers
 // =========================
-function ResRoom::resetSntc(%vrb)
+function BaseRoom::resetSntc(%vrb)
 {
     $sntcObjA = 0;
-    $sntcObjADesc = 0;
 
-    if ($sntcPrepo)
+    if ($sntcPrepo !$= "")
     {
         $sntcPrepo = "";
         $sntcObjB = 0;
-        $sntcObjBDesc = 0;
     }
 
     $selVerb = %vrb;
-    setCurrentVerb($SntcLine);
-    redrawVerb();
+    
 }
 
-// defaultAction uses waitForMessage -> script
-function ResRoom::defaultAction(%vrb, %objA, %objB)
+// Default verb handlers
+// NOTE: all verb handlers get executed within the sentence fiber which can be cancelled at any point; 
+// if you opt to run another script in a handler, be aware that unless it's appropriately flagged it will 
+// continue executing even though everything else has been cancelled.
+
+function DisplayBase::onWalkTo(%this)
 {
-    switch$ (%vrb)
+}
+
+function DisplayBase::onPickUp(%this, %vrb, %objA, %objB)
+{
+    if (%objA.isMethod(onPickup))
     {
-        case "WalkTo":
+        %returnValue = %objA.onPickup();
+
+        if (%returnValue !$= "")
+        {
+            $VAR_EGO.pickupObject(%returnValue);
+            %objA.setState(0);
             return;
+        }
+    }
 
-        case "PickUp":
-            if (%objA)// TOFIX is Pickable && getObjectVerbEntrypoint(%objA, InventoryObject))
-            {
-                // TOFIX startObject2(%objA, InventoryObject, [ InventoryObject, %objA ]);
-                if ($VAR_RETURN)
-                {
-                    pickupObject($VAR_RETURN, InventoryItems);
-                    // TOFIX setObjectClass(%objA, [ 0x80 + ClassUntouchable ]);
-                    setObjectState(%objA, 0);
-                    return;
-                }
+    if (%objA.isPerson())
+    {
+        egoSay("I don't need them.");
+    }
+    else
+    {                  
+        egoSay("I don't need that.");
+    }
+
+    waitForMessage();
+}
+
+function DisplayBase::onUse(%this, %vrb, %objA, %objB)
+{
+    if (%objA.isPerson())
+    {
+        if (%objA.getId() == commanderZif.getId() || 
+            %objA.getId() == ensignZob.getId())
+        {
+            $VAR_EGO = %objA.getId();
+            cameraFollowActor($VAR_EGO);
+        }
+        else 
+        {
+            egoSay("I can't just *use* someone.");
+        }
+    }
+    else
+    {
+        if (%objB)
+        {
+            // NOTE: in scummc version, this is implemented via a verb. We just use a named function here.
+            if (%vrb.getInternalName() $= Use && 
+                %objB.isMethod(%objB, onUsedWith))
+            { 
+                %objB.onUsedWith(objA);
             }
-            if (%objA)// TOFIX is Person) 
-                egoSay("I don't need them.");
-            else                  
-                egoSay("I don't need that.");
-            break;
-
-        case "Use":
-        case "UsedWith":
-            if (%objA)// TOFIX is Person)
+            else if (%objB.isPerson()) 
             {
-                if (%objA == commanderZif || %objA == ensignZob)
-                {
-                    $VAR_EGO = %objA;
-                    cameraFollowActor($VAR_EGO);
-                }
-                else egoSay("I can't just *use* someone.");
-                break;
+                egoSay("I can't use that on someone!");
             }
-
-            if (%objB)
+            else
             {
-                //  TOFIX if (%vrb == Use && getObjectVerbEntrypoint(%objB, UsedWith))
-                //  TOFIX { startObject2(%objB, UsedWith, [ UsedWith, %objB, %objA ]); break; }
-
-                //  TOFIX if (%objB is Person) egoSay("I can't use that on someone!");
-                //  TOFIX else                  egoSay("That doesn't work.");
+                egoSay("That doesn't work.");
             }
-            else 
-            {
-                egoSay("I don't know how to operate that.");
-            }
-            break;
+        }
+        else 
+        {
+            egoSay("I don't know how to operate that.");
+        }
+    }
 
-        case "Give":
-            //  TOFIX if (%objB && %objB is Person) 
-            //  TOFIX     egoSay("I don't think i should be giving this away.");
-            //  TOFIX else                           
-            //  TOFIX     egoSay("I can't do that !");
-            break;
+    waitForMessage();
+}
 
-        case "LookAt":
-            //  TOFIX if (%objA is Person) 
-            //  TOFIX     egoSay("Some kind of lifeform.");
-            //  TOFIX else                  
-            //  TOFIX     egoSay("Looks pretty ordinary.");
-            break;
+function DisplayBase::onGive(%this, %vrb, %objA, %objB)
+{
+    if (isObject(%objB) && %objB.isPerson()) 
+        egoSay("I don't think i should be giving this away.");
+    else                           
+        egoSay("I can't do that !");
+    waitForMessage();
+}
 
-        case "Move":
-            //  TOFIX if (%objA is Person) 
-            //  TOFIX     egoSay("Moving them would accomplish nothing.");
-            //  TOFIX else                  
-            //  TOFIX     egoSay("Moving that would accomplish nothing.");
-            break;
+function DisplayBase::onLookAt(%this, %vrb, %objA, %objB)
+{
+    if (%objA.isPerson()) 
+        egoSay("Some kind of lifeform.");
+    else                  
+        egoSay("Looks pretty ordinary.");
+    waitForMessage();
+}
 
-        case "Open":
-            // TOFIX if (%objA is Person) { egoSay("They don't seem to open."); break; }
-            // TOFIX if (%objA is !Openable) { egoSay("That doesn't seem to open."); break; }
+function DisplayBase::onMove(%this, %vrb, %objA, %objB)
+{
+    if (%objA.isPerson()) 
+        egoSay("Moving them would accomplish nothing.");
+    else                  
+        egoSay("Moving that would accomplish nothing.");
+    waitForMessage();
+}
 
-            setObjectState(%objA, !getObjectState(%objA));
-            if (getObjectVerbEntrypoint(%objA, SetBoxes))
-            {
-                // TOFIX startObject2(%objA, SetBoxes, [ %vrb, %objA ]);
-            }
-            break;
+function DisplayBase::onOpen(%this, %vrb, %objA, %objB)
+{
+    if (%objA.isPerson()) 
+    { 
+        egoSay("They don't seem to open."); 
+        waitForMessage();
+    }
+    if (!%objA.isOpenable()) 
+    { 
+        egoSay("That doesn't seem to open."); 
+        waitForMessage();
+    }
 
-        case "Smell":
-            // TOFIX if (%objA is Person) egoSay("They have no odour.");
-            // TOFIX else                  egoSay("That has no odour.");
-            break;
+    %objA.setState(%objA, !%objA.getState());
+    if (isMethod(%objA, SetBoxes))
+    {
+        // TOFIX startObject2(%objA, SetBoxes, [ %vrb, %objA ]);
+    }
+}
 
-        case "TalkTo":
-            //  TOFIX if (%objA is Person) egoSay("I don't know how to communicate with them.");
-            //  TOFIX else                  egoSay("I don't know how to communicate with that.");
-            break;
-
-        default:
-            egoSay("Hmm. No.");
-            break;
+function DisplayBase::onSmell(%this, %vrb, %objA, %objB)
+{
+    if (%objA.isPerson()) 
+    {
+        egoSay("They have no odour.");
+    }
+    else
+    {
+        egoSay("That has no odour.");
     }
     waitForMessage();
 }
 
-// sentenceHandler uses waits -> script
-function ResRoom::sentenceHandler(%vrb, %objA, %objB)
+function DisplayBase::onTalkTo(%this, %vrb, %objA, %objB)
 {
-    %owner = 0; %act = 0;
-
-    if (%vrb == $SntcLine)
+    if (%objA.isPerson()) 
     {
-        %vrb  = sntcVerb;
-        %objA = sntcObjA;
-        %objB = sntcObjB;
+        egoSay("I don't know how to communicate with them.");
+    }
+    else
+    {
+        egoSay("I don't know how to communicate with that.");
+    }
+    waitForMessage();
+}
+
+function DisplayBase::onDefaultAction(%this, %vrb, %objA, %objB)
+{
+    egoSay("Hmm. No.");
+    waitForMessage();
+}
+
+// sentenceHandler uses waits -> script
+function ResRoom::sentenceHandler(%verb, %objA, %objB)
+{
+    %owner = 0; 
+    %act = 0;
+
+    if (%verb == $SntcLine)
+    {
+        %verb  = $sntcVerb;
+        %objA = $sntcObjA;
+        %objB = $sntcObjB;
     }
 
-    %owner = getObjectOwner(%objA);
+    %owner = %objA.getGroup();
 
     // Use/Give must own first
-    while (false) // TOFIX isAnyOf(%vrb, [ Use, Give ]))
+    while (%verb.getInternalName() $= Use || 
+           %verb.getInternalName() $= Give)
     {
         if (!isObject(%objB))
         {
-            if (getObjectVerbEntrypoint(%objA, Preposition))
+            // NOTE: this is a script in SCUMM, instead we use a method.
+            if (%objA.isMethod(getPreposition))
             {
-                // TOFIX startObject2(%objA, Preposition, [ %vrb, %objA ]);
-                if ($sntcPrepo) { setCurrentVerb($SntcLine); redrawVerb(); return; }
+                $sntcPrepo = %objA.getPreposition(%verb);
+                if ($sntcPrepo !$= "") 
+                { 
+                    return; 
+                }
             }
             break;
         }
 
         if (%owner != $VAR_EGO)
         {
-            if ($tryPick == %objA) { $tryPick = 0; return; }
-
-            if (getObjectVerbEntrypoint(%objA, InventoryObject))
-            {
-                // TOFIX startObject2(%objA, InventoryObject, [ InventoryObject, %objA ]);
-                $tryPick = $VAR_RETURN;
+            if ($tryPick == %objA) 
+            { 
+                $tryPick = 0; 
+                return;
             }
-            else $tryPick = %objA;
 
-            doSentence(%vrb, $tryPick, 0, %objB);
-            doSentence(PickUp, %objA, 0, 0);
+            if (isMethod(%objA, onPickup))
+            {
+                $tryPick = %objA.onPickup(%objA);
+            }
+            else
+            {
+                $tryPick = %objA;
+            }
+
+            // Try alternate sentences
+            SentenceQueueManager.push(%verb, $tryPick, %objB);
+            SentenceQueueManager.push(Verbs-->PickUp, %objA, 0);
             return;
         }
-        else $tryPick = 0;
+        else 
+        {
+            $tryPick = 0;
+        }
         break;
     }
 
     // Walk near room object/actor if needed
-    if (%objA <= 0xF || %owner == 0xF)
+    %targetObject = 0;
+    if (isObject(%objA))
     {
-        walkActorToObj($VAR_EGO, %objA, 0);
-        waitForActor($VAR_EGO);
-        if (%objA <= 0xF) actorFace($VAR_EGO, %objA);
+        %targetObject = %objA;
     }
-    else if (%objB) if (%objB <= 0xF || getObjectOwner(%objB) == 0xF)
+    else if (isObject(%objB))
     {
-        walkActorToObj($VAR_EGO, %objB, 0);
-        waitForActor($VAR_EGO);
-        if (%objB <= 0xF) actorFace($VAR_EGO, %objB);
+        %targetObject = %objB;
     }
 
-    // Resolve actor proxy object if needed
-    if (%objA <= 0xF) if ($actorObject[%objA]) { %act = %objA; %objA = $actorObject[%objA]; }
+    if (isObject(%targetObject))
+    {
+        $VAR_EGO.walkToObject(%targetObject);
+        waitForActor($VAR_EGO);
+
+        if (%targetObject.getClassName() $= "Actor")
+        {
+            $VAR_EGO.faceObject(%targetObject);
+        }
+    }
 
     // Dispatch to object verb or fallback
-    if (getObjectVerbEntrypoint(%objA, %vrb))
+    %handler = on @ %verb.getInternalName();
+    if (%objA.isMethod(%handler))
     {
-        // TOFIX startObject(2, %objA, %vrb, [ %vrb, %objA, %objB ]);
-        do { breakScript();  } while (!$cursorOn);
+        %objA.spawnFiber(0, %handler, %verb, %objA, %objB);
+        // NOTE: in this case, we're assuming "cursor off" == "busy" 
+        // We would probably be better off just having a "wait" for fiber to return thing here.
+        do { breakFiber();  } while (!$cursorOn);
     }
     else
     {
-        %this.defaultAction(%vrb, (%act ? %act : %objA), %objB);
+        %this.defaultAction(%verb, (%act ? %act : %objA), %objB);
     }
 
     // If verb needs objB, stop now
-    if ($sntcPrepo && !%objB) return;
+    if ($sntcPrepo !$= "" && !%objB) 
+    {
+        return;
+    }
 
     %this.resetSntc(0);
 }
 
 // keyboardHandler uses waitForMessage/restart -> script
-function ResRoom::keyboardHandler(%key)
+function BaseRoom::keyboardHandler(%this, %key)
 {
     switch$ (%key)
     {
-        case "o":
+        case $KEY_O:
             egoSay("Hooo");
             break;
 
-        case "r":
-            egoSay("Let's restart."); waitForMessage();
+        case %KEY_R:
+            egoSay("Let's restart."); 
+            waitForMessage();
             restartGame();
             break;
 
-        case "q":
+        case $KEY_Q:
             shutdown();
             break;
     }
 }
 
-// =========================
-// Input (mouse/keyboard dispatcher) — no waits -> function
-// =========================
-function ResRoom::inputHandler(%area, %cmd, %btn)
+// Input handler; this uses the SCUMM conventions here, i.e.
+// areas:
+// 0 = invalid
+// 1 = system ui
+// 2 = room;  cmd = 0; btn = L=1/R=2/KB=0
+// 3 = verbs; cmd = verb
+// 4 = keyboard; cmd = keycode
+// Callback is shared by all room instances, 
+// unlike scumm which uses a "delegate" script we just use 
+// a delegate object + handler name in ResRoom. 
+// (ALSO: inputHandler can simply be overridden for room specific cases)
+function BaseRoom::inputHandler(%this, %area, %cmd, %btn)
+{
+    return ResRoom.inputDelegate.call(ResRoom.realInputHandler, %area, %cmd, %btn);
+}
+
+$INVENTORY_COL = 2;
+$INVENTORY_LINE = 2;
+$INVENTORY_SLOTS = ($INVENTORY_COL*$INVENTORY_LINE);
+$invOffset = 0;
+$invOffsetMax = 0;
+
+echo("INVENTORY_LINE=" @ $INVENTORY_LINE);
+echo("INVENTORY_COL=" @ $INVENTORY_COL);
+
+function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
 {
     %invCount = 0; $invOffsetMax = 0;
 
-    echoBegin();
     echo("Area=%" @ %area @ " cmd=%" @ %cmd @ " button=%" @ %btn);
-    echoEnd();
 
     egoPrintBegin();
     egoPrintOverhead();
     actorPrintEnd();
 
-    if (%area == 4) { %this.keyboardHandler(%cmd); return; }
-
-    if (false)// TOFIXisAnyOf(%cmd, [ Give, PickUp, Use, Open, LookAt, Smell, TalkTo, Move ]))
-    {
-        %this.resetSntc(%cmd);
-        return;
+    if (%area == 4) 
+    { 
+        %this.keyboardHandler(%cmd); 
+        return; 
     }
 
-    if (%cmd == invUp || %cmd == invDown)
+    if (%area == 3)
     {
-        %invCount = getInventoryCount($VAR_EGO);
-        $invOffset += ((%cmd == invUp) ? -1 : 1) * INVENTORY_COL;
-        $invOffsetMax = ((%invCount + INVENTORY_COL - 1) / INVENTORY_COL - INVENTORY_LINE) * INVENTORY_COL;
+        // NOTE: cmd is verb object so we can query metadata about it here
+        if (%verb.isPreposition)
+        {
+            %this.resetSntc();
+            return;
+        }
 
-        if ($invOffset > $invOffsetMax) $invOffset = $invOffsetMax;
-        if ($invOffset < 0)             $invOffset = 0;
+        %cmdName = %verb.internalName;
 
-        echo("Inventory offset: %i{" @ $invOffset @ "}");
-        Verbs::showVerbs(1);
-        %this.inventoryHandler(0);
-        return;
+        if (%cmdName $= invUp || 
+            %cmdName $= invDown)
+        {
+            %invCount = getInventoryCount($VAR_EGO);
+            $invOffset += ((%cmd $= invUp) ? -1 : 1) * $INVENTORY_COL;
+            $invOffsetMax = ((%invCount + $INVENTORY_COL - 1) / $INVENTORY_COL - $INVENTORY_LINE) * $INVENTORY_COL;
+
+            if ($invOffset > $invOffsetMax) $invOffset = $invOffsetMax;
+            if ($invOffset < 0)             $invOffset = 0;
+
+            echo("Inventory offset: " @ $invOffset);
+            Verbs::showVerbs(1);
+
+
+            %this.inventoryUpdate();
+            return;
+        }
     }
 
     // Stop current sentence and (re)start mouse watch to refresh sentence line
-    stopSentence();
-    %this.mouseWatch();
+    SentenceQueueManager.cancel();
+    %this.resetMouseWatch();
+
+    %prepoSet = $sntcPrepo !$= "";
 
     // RMB with no selection cancels walk
-    if (%btn == 2 && !($sntcPrepo ? %sntcObjB : %sntcObjA))
+    if (%btn == 2 && !(%prepoSet ? $sntcObjB : $sntcObjA))
     {
-        setCurrentActor($VAR_EGO);
-        setActorStanding();
+        $VAR_EGO.setStanding();
         %this.resetSntc(0);
         return;
     }
 
     // Clicked an object (room or inventory)
-    if ($sntcPrepo ? sntcObjB : sntcObjA)
+    if (%prepoSet ? $sntcObjB : $sntcObjA)
     {
-        if (%cmd) $selVerb = sntcVerb;               // keep displayed verb
-        if (%btn == 2 && $altVerb) { $selVerb = $altVerb; %this.mouseWatch(); }
-        doSentence(sntcVerb, sntcObjA, 0, sntcObjB); // queue sentence
+        if (%cmd) 
+        {
+            $selVerb = $sntcVerb;               // keep displayed verb
+        }
+
+        if (%btn == 2 && $altVerb) 
+        { 
+            $selVerb = $altVerb; 
+            %this.resetMouseWatch(); 
+        }
+
+        SentenceQueueManager.push($sntcVerb, $sntcObjA, $sntcObjB);
         return;
     }
 
@@ -496,37 +734,33 @@ function ResRoom::inputHandler(%area, %cmd, %btn)
     if (%area != 2) return;
 
     // Clicked on empty room space: walk there
-    if ($selVerb) %this.resetSntc(0);
-    walkActorTo($VAR_EGO, $VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
+    if ($selVerb) 
+    {
+        %this.resetSntc(0);
+    }
+    $VAR_EGO.walkTo($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
 }
 
-// =========================
-// Inventory helpers (no waits) -> function
-// =========================
-function ResRoom::setInventoryIcon(%icon, %slot)
+function BaseRoom::inventoryUpdate(%this)
 {
-    setCurrentVerb(%slot);
-    setVerbObject(%icon, InventoryItems);
-    redrawVerb();
-}
-
-function ResRoom::inventoryHandler(%obj)
-{
-    %i = 0; %count = getInventoryCount($VAR_EGO);
+    %i = 0; 
+    %count = $VAR_EGO.getInventoryCount();
     echo(%count @ " obj in inv");
 
-    for (%i = 0; %i < INVENTORY_SLOTS; %i++)
+    for (%i = 0; %i < $INVENTORY_SLOTS; %i++)
     {
         if (%i + $invOffset < %count)
         {
-            %obj = findInventory($VAR_EGO, %i + 1 + $invOffset);
-            %this.setInventoryIcon(%obj, $invSlot0 + %i);
+            %obj = $VAR_EGO.findInventory(%i + 1 + $invOffset);
+            if (isObject(%obj))
+            {
+                %obj.setInventoryIcon(%obj, $invSlot0 + %i);
+            }
         }
         else
         {
-            setCurrentVerb($invSlot0 + %i);
-            setVerbNameString(0);
-            redrawVerb();
+            %verb = $invSlot0 + %i;
+            %verb.setNameString("");
         }
     }
 }
@@ -534,8 +768,20 @@ function ResRoom::inventoryHandler(%obj)
 // =========================
 // Hooks: pre-entry & quit (no waits)
 // =========================
-function ResRoom::preEntry(%this) { Actors::loadObjects(); }
-function ResRoom::quit(%this)     { shutdown(); }
+function ResRoom::preEntry(%this) 
+{ 
+    Actors.loadObjects(); 
+}
+
+function ResRoom::quit(%this)     
+{ 
+    shutdown(); 
+}
+
+function ResRoom::setupUI(%this)
+{
+
+}
 
 // =========================
 // Main (engine entry) — no waits -> function
@@ -550,11 +796,11 @@ function ResRoom::main(%this, %bootParam)
     $VAR_CUTSCENEEXIT_KEY = 27;
 
     $VAR_GAME_VERSION = 0;
-    $VAR_GUI_COLORS[0] = 0x00,0x00,0x43,0x00,0xD7,0x34,0x52,0x90,0x00,0x6A,
+    /*$VAR_GUI_COLORS[0] = 0x00,0x00,0x43,0x00,0xD7,0x34,0x52,0x90,0x00,0x6A,
                           0x06,0x1A,0xD5,0xE5,0xE3,0xE5,0xE3,0xE5,0xE3,0xE5,
                           0xE3,0x00,0x00,0x00,0x00,0x14,0xD7,0xE5,0xE3,0xE5,
                           0xE3,0x37,0x1C,0xE5,0xE3,0xE5,0xE3,0x14,0xD7,0xE5,
-                          0xE3,0xE5,0xE3,0x00,0x00,0x00,0x00,0x00,0x00,0x00;
+                          0xE3,0xE5,0xE3,0x00,0x00,0x00,0x00,0x00,0x00,0x00;*/
 
     $VAR_DEBUG_PASSWORD[0] = "";
 
@@ -588,38 +834,28 @@ function ResRoom::main(%this, %bootParam)
 
     // Timing & engine hook-up
     $VAR_TIMER_NEXT           = 2;
-    $VAR_VERB_SCRIPT          = ResRoom, inputHandler;
-    $VAR_SENTENCE_SCRIPT      = ResRoom, sentenceHandler;
-    $VAR_INVENTORY_SCRIPT     = ResRoom, inventoryHandler;
-    $VAR_CUTSCENE_START_SCRIPT= ResRoom, cutsceneStart;
-    $VAR_CUTSCENE_END_SCRIPT  = ResRoom, cutsceneEnd;
-    $VAR_PRE_ENTRY_SCRIPT     = ResRoom, preEntry;
 
     // Preload rooms kept resident
-    loadRoom(ResRoom);   lockRoom(ResRoom);
-    loadRoom(OfficeRoom);lockRoom(OfficeRoom);
+    loadRoom(ResRoom);
+    ResRoom.lock();
+    loadRoom(OfficeRoom);
+    OfficeRoom.lock();
 
     // Screen height must match room
-    setScreen(0,144);
-
-    // Actor<->object mapping array
-    dimInt($actorObject, 0x10);
+    %this.setupUI();
 
     // Init default charset
-    initCharset(chtest);
+    //initCharset(chtest);
 
     // Cursor & mouse tracking
     %this.showCursor();
-    %this.mouseWatch();
-
-    // Talking print slots
-    printBegin(); printCenter(); printOverhead(); printEnd();
+    %this.resetMouseWatch();
 
     // Boot path
     switch (%bootParam)
     {
         case 2:
-            setObjectState(OfficeRoom->exitToSecretRoom, 7);
+            OfficeRoom->exitToSecretRoom.setState(7);
             $OfficeRoom::didOfficeIntro = 1;
             startRoom(OfficeRoom);
 

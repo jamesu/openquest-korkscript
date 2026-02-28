@@ -42,99 +42,224 @@ $verbsOn = 0;
 
 // Verbs in this case are globals
 
-// =========================
-// Room: Verbs
-// =========================
-new Room(Verbs)
+new RoomObject(VerbRootBg)
 {
-    new RoomObject(background)
-    {
-        position    = 0, 144;                 // SCUMM puts the bar at y=144
-        extent      = 0, 0;                   // optional if your UI sizes to image
-        description = "Verb Background";
-        imageSet    = VerbBackground_Set;
-    };
-
-    new VerbDisplay([backgroundVerb])
-    {
-
-    };
-
-    new VerbDisplay([$SntcLine])
-    {
-
-    };
-
-    new ContainerDisplay([mainVerbs])
-    {
-        new VerbDisplay([WalkTo])
-        {
-
-        };
-
-        new VerbDisplay([Give])
-        {
-
-        };
-
-        new VerbDisplay([PickUp])
-        {
-
-        };
-
-        new VerbDisplay([Use])
-        {
-
-        };
-
-        new VerbDisplay([Open])
-        {
-
-        };
-
-        new VerbDisplay([LookAt])
-        {
-
-        };
-
-        new VerbDisplay([Smell])
-        {
-
-        };
-
-        new VerbDisplay([TalkTo])
-        {
-
-        };
-
-        new VerbDisplay([Move])
-        {
-
-        };
-
-        new VerbDisplay([invUp])
-        {
-
-        };
-
-        new VerbDisplay([invDown])
-        {
-
-        };
-    };
-
-    new ContainerDisplay([invItems])
-    {
-
-    };
+  anchorPoint = 0, 144;
+  state = 1;
+  
+  new RoomObjectState()
+  {
+     image = "graphics/verbs/verb_background.bmp";
+  };
 };
 
+$VBACK: TypeColor = 255, 255, 255, 0;
+$VCOL: TypeColor = 255, 255, 255, 255;
+$VHI: TypeColor = 255, 255, 0, 255;
+$VDIM: TypeColor = 128, 128, 128, 255;
 
-// =========================
-// Verbs namespace functions
-// =========================
+echo("VERBS LOADING");
 
-// Sets up all verbs, labels, positions, colors, and inventory slots.
+
+function Verbs::onAdd(%this) 
+{
+    // Add inventory verbs
+    %ic = 0;
+    echo("Making", $INVENTORY_LINE SPC $INVENTORY_COL, "-verbs");
+    for(%l = 0; %l < $INVENTORY_LINE ; %l++)
+    {
+        for(%c = 0 ; %c < $INVENTORY_COL ; %c++) {
+
+            %px = 216 + %c*48;
+            %py = 162 + %l*18;
+            echo("MAKE: " @ inv @ %ic SPC %px SPC %py);
+            echo($VCOL);
+
+            nop();
+
+            %verb = new VerbDisplay([inv @ %ic]) {
+               displayText = "[I]";
+               anchorPoint = %px, %py;
+               backColor = $VBACK;
+               color = $VCOL;
+               hiColor = $VHI;
+               dimColor = $VDIM;
+               center = true;
+               enabled = 1;
+            };
+
+            echo("POINT=" @ %verb.anchorPoint);
+
+            echo(%verb.getInternalName());
+            echo(%verb.getId());
+
+            %this.add(%verb);
+
+            %ic++;
+        }
+    }
+}
+
+// Verbs collection
+new SimSet(Verbs)
+{
+    new VerbDisplay([backgroundVerb])
+    {
+       roomObject = VerbRootBg;
+       anchorPoint = 0, 144;
+    };
+
+    new VerbDisplay([SntcLine]) {
+    
+       displayText = "%v{sntcVerb} %n{sntcObjADesc} %s{sntcPrepo} %n{sntcObjBDesc}";
+       anchorPoint = 160, 147;
+       color = $VDIM;
+       center = 1;
+    };
+
+    new VerbDisplay([WalkTo]) {
+    
+       displayText = "Walk to";
+       hotKey = "w";
+    };
+    
+    new VerbDisplay([Give]) {
+    
+       displayText = "Give";
+       anchorPoint = 146, 174;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "g";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([PickUp]) {
+    
+       displayText = "Pick up";
+       anchorPoint = 102, 161;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "p";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Use]) {
+    
+       displayText = "Use";
+       anchorPoint = 146, 187;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "u";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Open]) {
+    
+       displayText = "Open";
+       anchorPoint = 188, 161;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "o";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([LookAt]) {
+    
+       displayText = "Examine";
+       anchorPoint = 146, 161;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "e";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Smell]) {
+    
+       displayText = "Smell";
+       anchorPoint = 188, 174;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "s";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([TalkTo]) {
+    
+       displayText = "Talk to";
+       anchorPoint = 102, 174;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "t";
+        isPreposition = true;
+    };
+
+    new VerbDisplay([Move]) {
+    
+       displayText = "Move";
+       anchorPoint = 188, 187;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+       center = 1;
+       enabled = 1;
+       hotKey = "m";
+        isPreposition = true;
+    };
+
+    // Inventory scrollers
+    new VerbDisplay([invUp]) {
+       displayText = "\x03";     // up arrow glyph
+          anchorPoint = 309, 165;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+    };
+
+    new VerbDisplay([invDown]) {
+       displayText = "\x02";     // down arrow glyph
+          anchorPoint = 309, 185;
+       backColor = $VBACK;
+       color = $VCOL;
+       hiColor = $VHI;
+       dimColor = $VDIM;
+    };
+
+    // NOTE: inventory items populated here
+};
+
+echo("ZE VERRBS");
+nop();
+
 function Verbs::setupVerbs(%this)
 {
     %color     = $VERB_COLOR;
@@ -142,162 +267,10 @@ function Verbs::setupVerbs(%this)
     %dimColor  = $VERB_DIM_COLOR;
     %backColor = $VERB_BACK_COLOR;
 
-    initCharset(verbChset);
-
-    // Background “verb” occupies the art; anchor it.
-    setCurrentVerb(backgroundVerb);
-    initVerb();
-    setVerbObject(background, Verbs);
-    setVerbXY(0, 144);
-
-    // Sentence line
-    $sntcVerb = WalkTo;
-    // sntcObjA / sntcObjB are set elsewhere as needed.
-
-    setCurrentVerb($SntcLine);
-    initVerb();
-    setVerbName("%v{sntcVerb} %n{sntcObjADesc} %s{sntcPrepo} %n{sntcObjBDesc}");
-    setVerbXY(160, 147);
-    setVerbColor(%dimColor);
-    verbCenter();
 
     // Main verbs
-    setCurrentVerb(WalkTo);
-    initVerb();
-    setVerbName("Walk to");
-    setVerbKey('w');
-
-    setCurrentVerb(Give);
-    initVerb();
-    setVerbName("Give");
-    setVerbXY(146, 174);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('g');
-
-    setCurrentVerb(PickUp);
-    initVerb();
-    setVerbName("Pick up");
-    setVerbXY(102, 161);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('p');
-
-    setCurrentVerb(Use);
-    initVerb();
-    setVerbName("Use");
-    setVerbXY(146, 187);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('u');
-
-    setCurrentVerb(Open);
-    initVerb();
-    setVerbName("Open");
-    setVerbXY(188, 161);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('o');
-
-    setCurrentVerb(LookAt);
-    initVerb();
-    setVerbName("Examine");
-    setVerbXY(146, 161);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('e');
-
-    setCurrentVerb(Smell);
-    initVerb();
-    setVerbName("Smell");
-    setVerbXY(188, 174);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('s');
-
-    setCurrentVerb(TalkTo);
-    initVerb();
-    setVerbName("Talk to");
-    setVerbXY(102, 174);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('t');
-
-    setCurrentVerb(Move);
-    initVerb();
-    setVerbName("Move");
-    setVerbXY(188, 187);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-    verbCenter();
-    setVerbOn();
-    setVerbKey('m');
-
-    // Inventory scrollers
-    setCurrentVerb(invUp);
-    initVerb();
-    setVerbName("\x03");     // up arrow glyph
-    setVerbXY(309, 165);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-
-    setCurrentVerb(invDown);
-    initVerb();
-    setVerbName("\x02");     // down arrow glyph
-    setVerbXY(309, 185);
-    setVerbBackColor(%backColor);
-    setVerbColor(%color);
-    setVerbHiColor(%hiColor);
-    setVerbDimColor(%dimColor);
-
-    // Inventory grid (visibility managed by save/restore below)
-    %vrb = 0;
-    for (%l = 0; %l < $INVENTORY_LINE; %l++)
-    {
-        for (%c = 0; %c < $INVENTORY_COL; %c++)
-        {
-            %vrb = new VerbDisplay() {
-                internalName = invSlot @ %i;
-            };
-            %vrb.init();
-            %vrb.setOn();
-            %vrb.setPos(216 + %c*48, 162 + %l*18);
-            %this->invItems.add(%vrb);
-            %vrb++;
-        }
-    }
+    $sntcVerb = %this-->WalkTo;
+    %sntcLine = %this-->SntcLine;
 
     for (%i=0; %i<8; %i++)
     {
@@ -309,22 +282,15 @@ function Verbs::setupVerbs(%this)
 // Toggles the verb UI on/off and restores/saves groups.
 function Verbs::showVerbs(%this, %show)
 {
-    if (%show == $verbsOn) return;
+    if (%show == $verbsOn) 
+    {
+        return;
+    }
 
-    foreach(%verb in %this->mainVerbs)
+    foreach(%verb in %this)
     {
         %verb.setOn(%show);
     }
-
-    foreach(%verb in %this->invItems)
-    {
-        %verb.setOn(%show);
-    }
-
-    %this->SntcLine->setOn(%show);
-    %this->invUp->setOn(%show);
-    %this->invDown->setOn(%show);
-    %this->backgroundVerb->setOn(%show);
 
     if (%show)
     {

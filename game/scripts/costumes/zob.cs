@@ -82,6 +82,7 @@ new Costume(ZobCostume)
     palette = zobPalette;
     flags   = FLIP;             // costume-wide
     limbs   = body, talk_body;  // two limbs
+    baseTalkPos = 0, -48;
 
     // --- Anim: walk ---
     new CostumeAnim([walk])

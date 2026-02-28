@@ -130,7 +130,7 @@ function Dialog::showDialog(%this)
         setVerbColor($dialogColor);
         setVerbHiColor($dialogHiColor);
         setVerbOn();
-        redrawVerb();
+        
 
         %v++; %d++;
     }
@@ -140,7 +140,7 @@ function Dialog::showDialog(%this)
     {
         setCurrentVerb($dialogVerb0 + %d);
         setVerbOff();
-        redrawVerb();
+        
     }
 
     echo("Sentence: " @ %firstSentence @ " " @ %lastSentence @ "}");
@@ -156,12 +156,12 @@ function Dialog::showDialog(%this)
         setVerbColor($dialogColor);
         setVerbHiColor($dialogHiColor);
         setVerbOn();
-        redrawVerb();
+        
     }
     else
     {
         setVerbOff();
-        redrawVerb();
+        
     }
 
     // Down arrow
@@ -174,12 +174,12 @@ function Dialog::showDialog(%this)
         setVerbColor($dialogColor);
         setVerbHiColor($dialogHiColor);
         setVerbOn();
-        redrawVerb();
+        
     }
     else
     {
         setVerbOff();
-        redrawVerb();
+        
     }
 
     // restore default charset
@@ -274,7 +274,8 @@ function Dialog::dialogStart(%this, %color, %hiColor)
         stopScript(ResRoom.mouseWatch);
 
     // Route input to our handler
-    $VAR_VERB_SCRIPT = "Dialog::dialogInputHandler";
+    ResRoom.inputDelegate = ResRoom;
+    ResRoom.inputHandler = dialogInputHandler;
 }
 
 // Hide dialog UI (but do not restore verb bar)
@@ -286,11 +287,11 @@ function Dialog::dialogHide(%this)
     {
         setCurrentVerb($dialogVerb0 + %i);
         setVerbOff();
-        redrawVerb();
+        
     }
 
-    setCurrentVerb(dialogUp);   setVerbOff(); redrawVerb();
-    setCurrentVerb(dialogDown); setVerbOff(); redrawVerb();
+    setCurrentVerb(dialogUp);   setVerbOff(); 
+    setCurrentVerb(dialogDown); setVerbOff(); 
 }
 
 // End dialog, restore verb bar + input, restart mouse watch
@@ -298,7 +299,8 @@ function Dialog::dialogEnd(%this)
 {
     %this.dialogHide();
     Verbs.showVerbs(1);
-    $VAR_VERB_SCRIPT = ResRoom.inputHandler;
+    ResRoom.inputDelegate = ResRoom;
+    ResRoom.inputHandler = defaultInputHandler;
 
     // Restart the mouse watching thread
     startRoomScript(ResRoom, mouseWatch);

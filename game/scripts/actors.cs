@@ -109,7 +109,7 @@ function Actors::roam(%this, %a)
                 %paused = 1;
                 echo("Roaming function for " @ %a @ " paused");
             }
-            breakScript();
+            breakFiber();
         }
         if (%paused) echo("Roaming function for " @ %a @ " resumed");
 
@@ -121,7 +121,7 @@ function Actors::roam(%this, %a)
                 // pick a new reachable point not currently occupied
                 do
                 {
-                    breakScript();
+                    breakFiber();
                     %dstX = getRandom( %this.roaming[%a,$RM_MIN_X], %this.roaming[%a,$RM_MAX_X] );
                     %dstY = getRandom( %this.roaming[%a,$RM_MIN_Y], %this.roaming[%a,$RM_MAX_Y] );
                 }
@@ -315,7 +315,7 @@ function Actors::zobTalkToZif(%this)
         Dialog.dialogStart($ZOB_DIM_COLOR, $ZOB_COLOR);
         do 
         {
-        	breakScript();
+        	breakFiber();
         }
         while ($selectedSentence < 0);
 
@@ -410,7 +410,7 @@ function Actors::zobTalkToZifInSecretRoom(%this)
 
         Dialog.dialogStart($ZOB_DIM_COLOR, $ZOB_COLOR);
         do {
-        	breakScript(); 
+        	breakFiber(); 
         } while ($selectedSentence < 0);
         Dialog.dialogHide();
 
@@ -478,18 +478,18 @@ function CommanderZifClass::onVerb(%this, %verb, %objA, %objB)
             if ($SecretRoom::cubeDisappeared)
             {
             	Actors.handle_zobTalkToZifInSecretRoom = runRoomScript(Actors, zobTalkToZifInSecretRoom);
-                while (isScriptRunning(Actors.handle_zobTalkToZifInSecretRoom))
+                while (isFiberRunning(Actors.handle_zobTalkToZifInSecretRoom))
                 {
-                	breakScript();
+                	breakFiber();
                 }
                 Actors.handle_zobTalkToZifInSecretRoom = 0;
             }
             else
             {
             	Actors.inst_zobTalkToZif = runRoomScript(Actors, zobTalkToZif);
-                while (isScriptRunning(Actors.inst_zobTalkToZif.isRunning()))
+                while (isFiberRunning(Actors.inst_zobTalkToZif.isRunning()))
                 {
-                	breakScript();
+                	breakFiber();
                 }
                 Actors.inst_zobTalkToZif = 0;
             }

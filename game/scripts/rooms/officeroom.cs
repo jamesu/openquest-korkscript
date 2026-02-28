@@ -52,6 +52,7 @@ new Sound(Office_openedDoorSnd)   { path = "opened_door.soun"; };
 // =========================
 new Room(OfficeRoom)
 {
+    class = CoreRoom;
     image   = "graphics/rooms/back01_merged.bmp";
     zplane  = "graphics/rooms/back01_mask1.bmp", "graphics/rooms/back01_mask2.bmp", "graphics/rooms/back01_mask2.bmp";
     boxd    = "graphics/rooms/back01.box";
@@ -61,7 +62,7 @@ new Room(OfficeRoom)
     // Order matters: bullets before plant to draw above it.
     new RoomObject(bullets)
     {
-        position = 112, 80;dir = EAST;
+        basePosition = 112, 80;dir = EAST;
         descName = "ammunition";
         className = Pickable;  // mirrors { Pickable }
         stateOffset[0] = -8, 16;
@@ -76,7 +77,7 @@ new Room(OfficeRoom)
 
     new RoomObject(plant)
     {
-        position = 104, 48;dir = EAST;
+        basePosition = 104, 48;dir = EAST;
         descName = "plant";
         stateOffset[0] = 0, 48;
         stateBitmap[0] = "graphics/background_items/plant_unmoved.bmp";
@@ -91,7 +92,7 @@ new Room(OfficeRoom)
 
     new RoomObject(cabinetDrawer)
     {
-        position = 128, 72;dir = NORTH;
+        basePosition = 128, 72;dir = NORTH;
         descName = "cabinet";
         className = Openable;
         stateOffset[0] = 30, 16;
@@ -106,14 +107,14 @@ new Room(OfficeRoom)
 
     new RoomObject(plate)
     {
-        position = 248, 64;dir = EAST;
+        basePosition = 248, 64;dir = EAST;
         extent = 8, 16; hs_x = -14; hs_y = 30;
         descName = "plate";
     };
 
     new RoomObject(exitToSecretRoom)
     {
-        position = 248, 32;dir = EAST;
+        basePosition = 248, 32;dir = EAST;
         descName = "secret room";
         stateOffset[0] = 8, 78;
         stateBitmap[0] = "graphics/door/door_closed.bmp";
@@ -135,21 +136,21 @@ new Room(OfficeRoom)
 
     new RoomObject(lightSwitch)
     {
-        position = 34, 71;extent = 7, 9;
+        basePosition = 34, 71;extent = 7, 9;
         descName = "light switch"; dir = WEST;
         hotspot = 20, 40;
     };
 
     new RoomObject(powerSocket)
     {
-        position = 220, 84;extent = 11, 6;
+        basePosition = 220, 84;extent = 11, 6;
         descName = "power socket"; dir = NORTH;
         hotspot = 5, 20;
     };
 
     new RoomObject(bulletinBoard)
     {
-        position = 65, 39;extent = 14, 24;
+        basePosition = 65, 39;extent = 14, 24;
         descName = "bulletin board"; dir = WEST;
         hotspot = 20, 46;
     };
@@ -327,7 +328,7 @@ function OfficeRoom::zobTalkToCarol(%this)
         
 
         Dialog::dialogStart(ZOB_DIM_COLOR, ZOB_COLOR);
-        do { breakScript(); } while ($selectedSentence < 0);
+        do { breakFiber(); } while ($selectedSentence < 0);
         Dialog::dialogHide();
 
         beginCutscene();
