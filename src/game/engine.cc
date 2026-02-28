@@ -208,6 +208,15 @@ ConsoleFunctionValue(startCutscene, 2, 2, "")
    return KorkApi::ConsoleValue();
 }
 
+ConsoleFunctionValue(cursorState, 2, 2, "(value)")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(userPutState, 2, 2, "(value)")
+{
+   return KorkApi::ConsoleValue();
+}
 
 
 RaylibInputRouter::RaylibInputRouter(SimWorld::DisplayBase* root)

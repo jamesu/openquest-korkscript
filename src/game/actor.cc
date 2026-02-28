@@ -463,6 +463,9 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
            }
         }
      }
+
+     RectI costumeBounds = mLiveCostume.getCurrentBounds(mCostume->mState);
+     ::DrawRectangleLines(costumeBounds.point.x, costumeBounds.point.y, costumeBounds.extent.x, costumeBounds.extent.y, BLUE);
   }
 }
 

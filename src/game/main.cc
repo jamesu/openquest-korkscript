@@ -183,38 +183,6 @@ int main(int argc, char **argv)
 
          gGlobals.inputHandler->update(cam);
          
-         // Call input handler
-         if (gGlobals.currentRoom)
-         {
-            int key = GetKeyPressed();
-            while (key > 0)
-            {
-               // NOW: fallback to normal key handler
-               Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(4), Con::getIntArg(0), Con::getIntArg(key));
-               key = GetKeyPressed();   // get next key from queue
-            }
-            
-            // NOTE: We will assume room for now
-            bool mb0Pressed = IsMouseButtonPressed(0);
-            bool mb1Pressed = IsMouseButtonPressed(1);
-            
-            if (mb0Pressed || mb1Pressed)
-            {
-               // FIRST: see if input is handled on display level
-               
-               // NOW: fallback to normal handlers
-               if (mb0Pressed)
-               {
-                  Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(0), Con::getIntArg(1));
-               }
-               
-               if (mb1Pressed)
-               {
-                  Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(2), Con::getIntArg(0), Con::getIntArg(2));
-               }
-            }
-         }
-         
          // Run fixed sim steps as needed
          int steps = 0;
          while (accumulator >= fixedDt && steps < MAX_STEPS)

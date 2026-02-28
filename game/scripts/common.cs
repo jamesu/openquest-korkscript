@@ -1,5 +1,3 @@
-echo("ZE COMMON CS STARTT");
-
 /* ScummC
  * Copyright (C) 2007  Alban Bedel, Gerrit Karius
  * Conversion and adaptation to KorkScript Copyright (C) 2026 James S Urquhart
@@ -29,13 +27,24 @@ new Charset(chset1)       { path = "vera-gui.char";   };
 new Charset(chtest)       { path = "vera.char";       };
 new Charset(dialogCharset){ path = "vera-small.char"; };*/
 
-echo("COMMON CS START");
+
+$VAR_TIMER_NEXT = 2; // run at 30 fps
+
+// Fiber types
+$SCHEDULE_SENTENCE = 0x2;
+
+// Wait flags
+$SCHEDULE_MESSAGE = 0x8;
+$SCHEDULE_MESSAGE = 0x10;
+$SCHEDULE_CAMERA_MOVING = 0x20;
+$SCHEDULE_SENTENCE_BUSY = 0x40;
 
 new ImageSet(CursorImg)   { path = "graphics/cursor/cursor.bmp"; flags = TRANSPARENT; };
 
 // Cursor sprite shown as a room object (for hit/mask parity with SCUMMC)
 new Room(ResRoom)
 {
+    class = BaseRoom;
     inputDelegate = ResRoom;
     realInputHandler = defaultInputHandler;
 
@@ -136,7 +145,7 @@ function ResRoom::resetMouseWatch(%this)
     {
         stopFiber(%this.mouseWatchFID);
     }
-    %this.mouseWatchFID = ResRoom.spawnFiber(mouseWatch);
+    %this.mouseWatchFID = ResRoom.spawnFiber(0, mouseWatch);
 }
 
 function ResRoom::stopMouseWatch(%this)
@@ -146,6 +155,31 @@ function ResRoom::stopMouseWatch(%this)
         stopFiber(%this.mouseWatchFID);
     }
     %this.mouseWatchFID = 0;
+}
+
+function ResRoom::updateSentence(%this)
+{
+    $SntcLine.displayText = "";
+
+    %str = "";
+    if (isObject($sntcVerb))
+    {
+        %str = %str @ $sntcVerb.displayText;
+    }
+
+    if (isObject($sntcObjA))
+    {
+        %str = %str SPC $sntcObjA.displayText;
+    }
+
+    %str = %str SPC $sntcPrepo;
+
+    if (isObject($sntcObjB))
+    {
+        %str = %str SPC $sntcObjB.displayText;
+    }
+
+    $SntcLine.displayText = %str;
 }
 
 // mouse watch script
@@ -269,6 +303,7 @@ function ResRoom::mouseWatch(%this)
             $altVerb = %alt;
         }
 
+        %this.updateSentence();
         breakFiber();
     }
 }
@@ -282,8 +317,8 @@ function BaseRoom::showCursor(%this)
         return;
     }
 
-    cursorOn();
-    userPutOn();
+    cursorState(true);
+    userPutState(true);
     $cursorOn = 1;
 }
 
@@ -294,8 +329,8 @@ function BaseRoom::hideCursor(%this)
         return;
     }
 
-    cursorOff();
-    userPutOff();
+    cursorState(false);
+    userPutState(false);
     $cursorOn = 0;
 }
 
@@ -550,8 +585,8 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
             }
 
             // Try alternate sentences
-            SentenceQueueManager.push(%verb, $tryPick, %objB);
-            SentenceQueueManager.push(Verbs-->PickUp, %objA, 0);
+            SentenceQueue.push(%verb, $tryPick, %objB);
+            SentenceQueue.push(Verbs-->PickUp, %objA, 0);
             return;
         }
         else 
@@ -640,7 +675,9 @@ function BaseRoom::keyboardHandler(%this, %key)
 // (ALSO: inputHandler can simply be overridden for room specific cases)
 function BaseRoom::inputHandler(%this, %area, %cmd, %btn)
 {
-    return ResRoom.inputDelegate.call(ResRoom.realInputHandler, %area, %cmd, %btn);
+    echo("BASE Area=" @ %area @ " cmd=" @ %cmd @ " button=" @ %btn);
+    ResRoom.inputDelegate.call(ResRoom.realInputHandler, %area, %cmd, %btn);
+    ResRoom.updateSentence(); // in case its updated
 }
 
 $INVENTORY_COL = 2;
@@ -649,18 +686,11 @@ $INVENTORY_SLOTS = ($INVENTORY_COL*$INVENTORY_LINE);
 $invOffset = 0;
 $invOffsetMax = 0;
 
-echo("INVENTORY_LINE=" @ $INVENTORY_LINE);
-echo("INVENTORY_COL=" @ $INVENTORY_COL);
-
 function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
 {
     %invCount = 0; $invOffsetMax = 0;
 
-    echo("Area=%" @ %area @ " cmd=%" @ %cmd @ " button=%" @ %btn);
-
-    egoPrintBegin();
-    egoPrintOverhead();
-    actorPrintEnd();
+    echo("Area=" @ %area @ " cmd=" @ %cmd @ " button=" @ %btn);
 
     if (%area == 4) 
     { 
@@ -699,7 +729,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     }
 
     // Stop current sentence and (re)start mouse watch to refresh sentence line
-    SentenceQueueManager.cancel();
+    SentenceQueue.cancel();
     %this.resetMouseWatch();
 
     %prepoSet = $sntcPrepo !$= "";
@@ -726,7 +756,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
             %this.resetMouseWatch(); 
         }
 
-        SentenceQueueManager.push($sntcVerb, $sntcObjA, $sntcObjB);
+        SentenceQueue.push($sntcVerb, $sntcObjA, $sntcObjB);
         return;
     }
 
@@ -780,7 +810,11 @@ function ResRoom::quit(%this)
 
 function ResRoom::setupUI(%this)
 {
-
+    echo("Setup verbs");
+    foreach (%verb in Verbs)
+    {
+       RootUI.add(%verb);
+    }
 }
 
 // =========================
@@ -836,9 +870,12 @@ function ResRoom::main(%this, %bootParam)
     $VAR_TIMER_NEXT           = 2;
 
     // Preload rooms kept resident
-    loadRoom(ResRoom);
+    //loadRoom(ResRoom);
     ResRoom.lock();
     loadRoom(OfficeRoom);
+    loadRoom(TitleScreen);
+    loadRoom(Skyline);
+    loadRoom(SecretRoom);
     OfficeRoom.lock();
 
     // Screen height must match room

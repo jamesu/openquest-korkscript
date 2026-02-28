@@ -11,6 +11,12 @@ $TRANSPARENT = 1;
 // global flags
 $FLIP = 1;
 
+// directions
+$NORTH = 0;
+$SOUTH = 1;
+$WEST = 2;
+$EAST = 3;
+
 exec("./bluecup.cs");
 exec("./carol.cs");
 exec("./cube.cs");

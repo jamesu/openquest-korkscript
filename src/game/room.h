@@ -130,7 +130,7 @@ public:
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCam);
    
-   
+   virtual bool processInput(DBIEvent& event);
    virtual void onFixedTick(F32 dt);
 
    static void enterRoom(Room* room);

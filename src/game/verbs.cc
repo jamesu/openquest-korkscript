@@ -68,6 +68,15 @@ bool VerbDisplay::processInput(DBIEvent& event)
    
    switch (event.type)
    {
+      case UI_EVENT_MOUSE_UP:
+         
+         if (event.capturedControl == this)
+         {
+            Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(4), Con::getIntArg(getId()), Con::getIntArg(0));
+         }
+         
+         break;
+         
       case UI_EVENT_MOUSE_MOVE:
       {
          if (mDisplayState != DISABLED)

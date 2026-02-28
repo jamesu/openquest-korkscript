@@ -257,20 +257,11 @@ new SimSet(Verbs)
     // NOTE: inventory items populated here
 };
 
-echo("ZE VERRBS");
-nop();
-
 function Verbs::setupVerbs(%this)
 {
-    %color     = $VERB_COLOR;
-    %hiColor   = $VERB_HI_COLOR;
-    %dimColor  = $VERB_DIM_COLOR;
-    %backColor = $VERB_BACK_COLOR;
-
-
     // Main verbs
     $sntcVerb = %this-->WalkTo;
-    %sntcLine = %this-->SntcLine;
+    $sntcLine = %this-->SntcLine;
 
     for (%i=0; %i<8; %i++)
     {

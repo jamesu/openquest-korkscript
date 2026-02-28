@@ -105,6 +105,7 @@ Room::Room()
    mImageFileName ="";
    mBoxFileName = "";
    mTransFlags = 0;
+   mNSLinkMask = LinkClassName;
 
    for (U32 i=0; i<RoomRender::NumZPlanes; i++)
    {
@@ -519,6 +520,7 @@ void Room::onFixedTick(F32 dt)
 void Room::initPersistFields()
 {
    Parent::initPersistFields();
+   registerClassNameFields(false);
    
    addField("image", TypeString, Offset(mImageFileName, Room));
    addField("boxFile", TypeString, Offset(mBoxFileName, Room));
@@ -555,6 +557,25 @@ void Room::leaveCurrentRoom()
       gGlobals.currentRoom->onLeave();
    }
    gGlobals.currentRoom = nullptr;
+}
+
+bool Room::processInput(DBIEvent& event)
+{
+   // NOTE: we should already be in the correct space
+   //forwardEvent(event);
+   
+   if (event.type == UI_EVENT_KEY_DOWN)
+   {
+      event.handled = true;
+      Con::executef(this, "inputHandler", Con::getIntArg(4), Con::getIntArg(0), Con::getIntArg(event.keys.key));
+   }
+   else if (event.type == UI_EVENT_MOUSE_DOWN)
+   {
+      event.handled = true;
+      Con::executef(this, "inputHandler", Con::getIntArg(2), Con::getIntArg(0), Con::getIntArg(event.mouse.button+1));
+   }
+   
+   return event.handled;
 }
 
 ConsoleMethodValue(Room, setTransitionMode, 5, 5, "mode, param, time")
@@ -846,5 +867,51 @@ ConsoleFunctionValue(putActorAtObject, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
+ConsoleMethodValue(Room, lock, 2, 2, "()")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Room, unlock, 2, 2, "()")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(loadRoom, 2, 3, "(room, force)")
+{
+   char filename[1024];
+   bool force = vmPtr->valueAsBool(argv[2]);
+   snprintf(filename, sizeof(filename), "scripts/rooms/%s.cs", vmPtr->valueAsString(argv[1]));
+   
+   Room* loadedRoom = nullptr;
+   if (Sim::findObject(argv[1], loadedRoom))
+   {
+      if (force)
+      {
+         loadedRoom->deleteObject();
+         loadedRoom = nullptr;
+      }
+   }
+   
+   if (Platform::isFile(filename))
+   {
+      Con::exec(filename);
+   }
+}
+
+ConsoleFunctionValue(getObjectAt, 3, 3, "(x,y)")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(getActorAt, 3, 3, "(x,y)")
+{
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(getVerbAt, 3, 3, "(x,y)")
+{
+   return KorkApi::ConsoleValue();
+}
 
 END_SW_NS

@@ -21,10 +21,14 @@
 new Room(TitleScreen)
 {
     image = "graphics/rooms/titlescreen_small.bmp";
+    class = BaseRoom;
 };
 
-function TitleSceen::inputHandler(%this, %area, %cmd, %btn)
+function TitleScreen::inputHandler(%this, %area, %cmd, %btn)
 {
+    echo("TitleScreen inputHandler");
     screenEffect(0x8787);
     startRoom(Skyline);
 }
+
+echo("LOADED TITLE");

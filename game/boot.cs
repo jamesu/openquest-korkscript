@@ -44,67 +44,11 @@ function evalInput()
 
 exec("scripts/costumes/costumes.cs");
 exec("scripts/common.cs");
-echo("TIME TO EXEC VERBS...");
 exec("scripts/verbs.cs");
-echo("DONE EXEC VERBS...");
 
-
-nop();
 
 new RootUI(RootUI)
 {
-};
-
-$NORTH = 0;
-$SOUTH = 1;
-$WEST = 2;
-$EAST = 3;
-
-new Room(TestRoom)
-{
-	image = "graphics/rooms/back01_merged.bmp";
-   boxFile = "graphics/rooms/back01.box";
-   zPlane[0]  = "graphics/rooms/back01_mask1.bmp";
-   zPlane[1] = "graphics/rooms/back01_mask2.bmp";
-   zPlane[2] = "graphics/rooms/back01_mask2.bmp";
-
-   new Actor(TestActor)
-   {
-   };
-
-    new RoomObject(plant)
-    {
-        anchorPoint = 104, 48;
-        dir = $EAST;
-        descName = "plant";
-        state = 2;
-        
-        new RoomObjectState()
-        {
-           hotSpot = 0, 48;
-           image = "graphics/background_items/plant_unmoved.bmp";
-
-           zPlane[0] = "";
-           zPlane[1] = "graphics/background_items/plant_mask2.bmp";
-           zPlane[2] = "graphics/background_items/plant_unmoved_mask3.bmp";
-         };
-
-
-        new RoomObjectState()
-        {
-           hotSpot = 0, 48;
-           image = "graphics/background_items/plant_moved.bmp";
-
-           zPlane[0] = "";
-           zPlane[1] = "graphics/background_items/plant_mask2.bmp";
-           zPlane[2] = "graphics/background_items/plant_moved_mask3.bmp";
-        };
-    };
-
-};
-new Room(TestRoom2)
-{
-   image = "graphics/rooms/titlescreen.bmp";
 };
 
 
@@ -112,102 +56,12 @@ new Sound(Test_beamedSnd)       { path = "sounds/loading_gun.wav"; };
 
 // ...
 
-TestActor.setCostume(ZifCostume);
+//TestActor.setCostume(ZifCostume);
 
-startRoom(TestRoom);
-startRoom(TestRoom2);
+ResRoom.main();
 
-//RootUI.add(Verbs);
 
-foreach (%verb in Verbs)
-{
-   echo("FORECH" SPC %verb SPC %verb.getInternalName());
-   RootUI.add(%verb);
-}
-
-echo("MAKE SURE BKG IS IN RIGHT BIT");
 RootUI.bringToFront(RootUI->backgroundVerb);
-
-function TestRoom::inputHandler(%this, %area, %cmd, %btn)
-{
-   echo("testRoom inputHandler" SPC %this SPC %area SPC "cmd=" @ %cmd SPC "btn=" @ %btn);
-   if (%area == 2)
-   {
-      echo("Mouse click:" SPC $VAR_VIRT_MOUSE_X SPC $VAR_VIRT_MOUSE_Y);
-      TestActor.walkTo($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
-   }
-   else if (%area == 4)
-   {
-      if (%btn == 81)
-      {
-         TestRoom.setTransitionMode(2, 0, 0.25);
-      }
-      else if (%btn == 87)
-      {
-         TestRoom.setTransitionMode(1, 0, 0.25);
-      }
-   }
-}
-
-function TestRoom::walkAbout(%this, %foo)
-{
-   echo("walkAbout started" SPC %foo);
-   TestActor.setPosition(200, 150);
-
-   while (1)
-   {
-      //TestActor.walkTo(10,150);
-      TestActor.say("testing");
-      delayFiber(90);
-
-      echo("**should stop run for a short while...");
-      pushFiberSuspendFlags(0x4);
-      TestActor.say("testing...");
-      echo("walkAbout resumed");
-      //TestActor.walkTo(200,150);
-      delayFiber(90);
-      startRoom(TestRoom);
-      popFiberSuspendFlags();
-      echo("**should run for a short while...");
-
-      Test_beamedSnd.play();
-   }
-}
-
-echo("TEST SQM");
-
-$dHandler = new VerbDisplay([testHandler]) {
-};
-
-function DisplayBase::onTestHandler(%this, %vrb, %objA, %objB)
-{
-   echo("onTestHandler called:" SPC %vrb SPC %obja SPC %objB);
-   nop();
-}
-
-echo("ze push");
-SentenceQueue.push($dHandler, $dHandler, 0);
-
-
-function testRunWhileMask()
-{
-   while (1)
-   {
-      delayFiber(10);
-      echo("running");
-   }
-}
-
-spawnFiber(0x4, testRunWhileMask);
-
-
-// Start walking thread
-$walkFiber = TestRoom.spawnFiber(0, walkAbout, "foo");
-echo("Started walking in: " @ $walkFiber);
-//TestActor.animate("beam");
-
-
-$VAR_TIMER_NEXT = 2; // run at 30 fps
 
 
 // Cutscenes:

@@ -37,14 +37,14 @@ $OfficeRoom::didOfficeIntro        = 0;
 // =========================
 // Room resources
 // =========================
-new Sound(Office_beamedSnd)       { path = "beamed.soun"; };
-new Sound(Office_phoneSnd)        { path = "phone.soun"; };
-new Sound(Office_openCabinetSnd)  { path = "open_cabinet.soun"; };
-new Sound(Office_closeCabinetSnd) { path = "close_cabinet.soun"; };
-new Sound(Office_switchSnd)       { path = "switch.soun"; };
-new Sound(Office_movePlantSnd)    { path = "move_plant.soun"; };
-new Sound(Office_openDoorSnd)     { path = "open_door.soun"; };
-new Sound(Office_openedDoorSnd)   { path = "opened_door.soun"; };
+new Sound(Office_beamedSnd)       { path = "sounds/beamed.wav"; };
+new Sound(Office_phoneSnd)        { path = "sounds/phone.wav"; };
+new Sound(Office_openCabinetSnd)  { path = "sounds/open_cabinet.wav"; };
+new Sound(Office_closeCabinetSnd) { path = "sounds/close_cabinet.wav"; };
+new Sound(Office_switchSnd)       { path = "sounds/switch.wav"; };
+new Sound(Office_movePlantSnd)    { path = "sounds/move_plant.wav"; };
+new Sound(Office_openDoorSnd)     { path = "sounds/open_door.wav"; };
+new Sound(Office_openedDoorSnd)   { path = "sounds/opened_door.wav"; };
 
 // =========================
 // Room: OfficeRoom
@@ -52,11 +52,12 @@ new Sound(Office_openedDoorSnd)   { path = "opened_door.soun"; };
 // =========================
 new Room(OfficeRoom)
 {
-    class = CoreRoom;
-    image   = "graphics/rooms/back01_merged.bmp";
-    zplane  = "graphics/rooms/back01_mask1.bmp", "graphics/rooms/back01_mask2.bmp", "graphics/rooms/back01_mask2.bmp";
-    boxd    = "graphics/rooms/back01.box";
-    trans   = 0;
+    class = BaseRoom;
+    image = "graphics/rooms/back01_merged.bmp";
+    boxFile = "graphics/rooms/back01.box";
+    zPlane[0] = "graphics/rooms/back01_mask1.bmp";
+    zPlane[1] = "graphics/rooms/back01_mask2.bmp";
+    zPlane[2] = "graphics/rooms/back01_mask2.bmp";
 
     // ---------- Objects ----------
     // Order matters: bullets before plant to draw above it.
@@ -177,7 +178,7 @@ function OfficeRoom::entry(%this)
     {
         putActorAt($VAR_EGO, 296,110, OfficeRoom);
         walkActorTo($VAR_EGO, 250,110);
-        if (getObjectState(lightSwitch) == 1)
+        if (lightSwitch.state == 1)
             setRoomRGBIntensity(143,123,119,0,255);
         return;
     }
@@ -384,7 +385,7 @@ function OfficeRoom::zobTalkToCarol(%this)
         endCutscene();
 
         Dialog::dialogClear(1);
-        if (selectedSentence == 5) break;
+        if ($selectedSentence == 5) break;
     }
 
     Dialog::dialogEnd();
