@@ -1,4 +1,32 @@
 #include "engine.h"
+#include "math/mPointTypeTraits.h"
+
+template <>
+struct PointTraits<Color>
+{
+   static constexpr int  N      = 4;
+   
+   static S32* typeIdPtr() { return &TypeColor; }
+
+   static void zero(Color& p) { p = (Color){0,0,0,0}; }
+
+   static U8& at(Color& p, int i)
+   {
+      return ((U8*)&p)[i];
+   }
+
+   static const char* scanFmt()  { return "%hhu %hhu %hhu %hhu"; }
+   static const char* printFmt() { return "%hhu %hhu %hhu %hhu"; }
+};
+
+
+ConsoleType( Color, TypeColor, sizeof(Color), sizeof(Color), "" )
+ConsoleTypeOpDefault(TypeColor)
+
+ConsoleGetType( TypeColor )
+{
+   return getPointDataImpl<Color>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
+}
 
 
 void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpacing, bool centered, Color color)

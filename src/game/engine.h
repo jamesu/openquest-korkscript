@@ -236,6 +236,9 @@ END_SW_NS
 #include "verbs.h"
 
 
+DefineConsoleType( TypeColor )
+
+
 // globals
 
 extern F32 gTimerNext;
