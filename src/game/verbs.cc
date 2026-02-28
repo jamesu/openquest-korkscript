@@ -108,6 +108,11 @@ bool VerbDisplay::processInput(DBIEvent& event)
 
 void VerbDisplay::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
 {
+   if (!mEnabled)
+   {
+      return;
+   }
+   
    if (mRoomObject)
    {
       mRoomObject->onRender(offset, drawRect, globalCamera);

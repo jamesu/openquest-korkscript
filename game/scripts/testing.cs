@@ -359,10 +359,6 @@ echo("Started walking in: " @ $walkFiber);
 $VAR_TIMER_NEXT = 2; // run at 30 fps
 
 
-// Cutscenes:
-// beginCutscene -> push cutscene fiber
-// endCutscene -> pop stack 
-
 
 
 

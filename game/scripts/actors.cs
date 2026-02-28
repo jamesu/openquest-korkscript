@@ -132,7 +132,7 @@ function Actors::roam(%this, %a)
                 break;
         }
 
-        delay( getRandom(50,200) );
+        delayFiber( getRandom(50,200) );
     }
 
     echo("Roaming function for " @ %a @ " finished");

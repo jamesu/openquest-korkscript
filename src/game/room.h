@@ -38,6 +38,12 @@ struct RoomRender
       U8 params : 4;
    };
    
+   struct TransitionInfo
+   {
+      TransitionParams data;
+      F32 time;
+   };
+   
    enum
    {
        NumZPlanes = 3
@@ -77,11 +83,11 @@ struct RoomRender
    RectI clipRect;
    ColorI bgColor;
    
-   TransitionParams currentTransition;
+   TransitionInfo currentTransition;
    F32 transitionPos;
-   F32 transitionTime;
    
    bool mZPlanesDirty;
+   bool transitionEnded;
    
    static float smoothstep(float t);
 
@@ -119,7 +125,7 @@ public:
    void onEnter();
    void onLeave();
    
-   void setTransitionMode(U8 mode, U8 param, F32 time);
+   void setTransitionMode(U8 mode, U8 param, F32 time, bool force=false);
    
    virtual void resize(const Point2I newPosition, const Point2I newExtent);
    virtual void updateLayout(const RectI contentRect);

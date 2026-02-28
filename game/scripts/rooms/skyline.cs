@@ -25,19 +25,20 @@ new Room(Skyline)
 
     new Actor([ufoActor])
     {
-        className = ZifClass;
+        className = UfoClass;
     };
 };
 
-function Skyline::entry(%this)
+function Skyline::onEntry(%this)
 {
+    echo("Skyline onEntry");
+
     try 
     {
-        beginCutscene();
+        beginCutscene(1);
         %actor = %this->ufoActor;
         %actor.init();
-        %actor.setCostume(ufoCostume);
-        %actor.setCostume(ufoCost);
+        %actor.setCostume(UfoCostume);
         %actor.setTalkPos(-60,-70);
         %actor.setName("Ufo");
         %actor.setWalkSpeed(2,1);
@@ -54,17 +55,18 @@ function Skyline::entry(%this)
         %actor.say("Ensign, bring the teleportation device online.");
         %actor.wait();
 
-        delay(100);
+        delayFiber(100);
         endCutscene();
 
         // Won't get $CUTSCENE_OVERRIDE after this point
-        screenEffect(0x8686);
+        OfficeRoom.setTransitionMode(2, 0, 1.0);
     }
     catch ($CUTSCENE_OVERRIDE) 
     {
+        endCutscene();
         %didSkip = true;
         stopTalking();
-        screenEffect(0x8186);
+        OfficeRoom.setTransitionMode(2, 0, 1.0);
     }
     
     startRoom(OfficeRoom);

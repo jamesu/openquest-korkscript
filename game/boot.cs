@@ -35,7 +35,7 @@ function evalInput()
 
     if (IsKeyDown(81)) // q
     {
-    	TestRoom.setTransitionMode(2, 0, 0.25);
+    	TestRoom.setTransitionMode(2, 0, 5.25);
     }
 
     //fib(7000000);
@@ -50,9 +50,6 @@ exec("scripts/verbs.cs");
 new RootUI(RootUI)
 {
 };
-
-
-new Sound(Test_beamedSnd)       { path = "sounds/loading_gun.wav"; };
 
 // ...
 

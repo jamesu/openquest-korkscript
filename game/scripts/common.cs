@@ -39,6 +39,9 @@ $SCHEDULE_MESSAGE = 0x10;
 $SCHEDULE_CAMERA_MOVING = 0x20;
 $SCHEDULE_SENTENCE_BUSY = 0x40;
 
+// Exception flags
+$CUTSCENE_OVERRIDE = 0x1;
+
 new ImageSet(CursorImg)   { path = "graphics/cursor/cursor.bmp"; flags = TRANSPARENT; };
 
 // Cursor sprite shown as a room object (for hit/mask parity with SCUMMC)
@@ -737,7 +740,10 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     // RMB with no selection cancels walk
     if (%btn == 2 && !(%prepoSet ? $sntcObjB : $sntcObjA))
     {
-        $VAR_EGO.setStanding();
+        if (isObject($VAR_EGO))
+        {
+            $VAR_EGO.setStanding();
+        }
         %this.resetSntc(0);
         return;
     }
@@ -768,7 +774,11 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     {
         %this.resetSntc(0);
     }
-    $VAR_EGO.walkTo($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
+
+    if(isObject($VAR_EGO))
+    {
+        $VAR_EGO.walkTo($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
+    }
 }
 
 function BaseRoom::inventoryUpdate(%this)
@@ -810,7 +820,7 @@ function ResRoom::quit(%this)
 
 function ResRoom::setupUI(%this)
 {
-    echo("Setup verbs");
+    echo("Setup verbs:" SPC Verbs.getCount());
     foreach (%verb in Verbs)
     {
        RootUI.add(%verb);
@@ -888,6 +898,8 @@ function ResRoom::main(%this, %bootParam)
     %this.showCursor();
     %this.resetMouseWatch();
 
+    echo("Booting with param:" @ %bootParam);
+
     // Boot path
     switch (%bootParam)
     {
@@ -901,7 +913,31 @@ function ResRoom::main(%this, %bootParam)
             startRoom(OfficeRoom);
 
         default:
-            screenEffect(0x0005);
+            TitleScreen.setTransitionMode(2, 0, 1.0);
             startRoom(TitleScreen);
     }
+}
+
+
+function beginCutscene(%mode)
+{
+    echo("DBG: BEGIN CUTSCENE:" @ %mode);
+    pushFiberSuspendFlags(0x4);
+    cursorState(false);
+
+    if(%mode > 0) 
+    {
+        Verbs.showVerbs(0);
+        breakFiber();
+        Verbs.showVerbs(0);
+    }
+
+}
+
+function endCutscene()
+{
+    echo("DBG: END CUTSCENE");
+    popFiberSuspendFlags();
+    cursorState(true);
+    Verbs.showVerbs(1);
 }

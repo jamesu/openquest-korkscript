@@ -163,7 +163,7 @@ new Room(OfficeRoom)
 // =========================
 
 // Entry uses waits/cutscene -> script
-function OfficeRoom::entry(%this)
+function OfficeRoom::onEntry(%this)
 {
     %firstInit = !$OfficeRoom::initedGame;
     %quickInit = (%firstInit && $OfficeRoom::didOfficeIntro);
@@ -171,15 +171,17 @@ function OfficeRoom::entry(%this)
     if (!$OfficeRoom::initedGame)
     {
         $OfficeRoom::initedGame = 1;
-        Verbs::setupVerbs();
-        Actors::setupActors();
+        Verbs.setupVerbs();
+        Actors.setupActors();
     }
     else
     {
-        putActorAt($VAR_EGO, 296,110, OfficeRoom);
-        walkActorTo($VAR_EGO, 250,110);
+        $VAR_EGO.setPosition(296,110, OfficeRoom);
+        $VAR_EGO.walkTo(250,110);
         if (lightSwitch.state == 1)
+        {
             setRoomRGBIntensity(143,123,119,0,255);
+        }
         return;
     }
 
@@ -190,13 +192,13 @@ function OfficeRoom::entry(%this)
             $OfficeRoom::didOfficeIntro = 1;
 
             // try { ... }
-            delay(150);
+            delayFiber(150);
             putActorAt(ensignZob,   170,110, OfficeRoom);
             putActorAt(commanderZif,200,120, OfficeRoom);
             startSound(Office_beamedSnd);
             animateActor(commanderZif, zif_anim_beam);
             animateActor(ensignZob,   zob_anim_beam);
-            delay(150);
+            delayFiber(150);
 
             setCurrentActor(ensignZob);
             setActorStanding();
@@ -206,7 +208,7 @@ function OfficeRoom::entry(%this)
             Actors::setZifOnThePhone();
             startSound(Office_phoneSnd);
             animateActor(commanderZif, zif_anim_lookAround);
-            delay(30);
+            delayFiber(30);
             actorSay(commanderZif, "Commander's log, star date 432.1");
             waitForMessage();
             actorSay(commanderZif, "Arrival complete on the planet of mostly water.");
@@ -214,14 +216,14 @@ function OfficeRoom::entry(%this)
 
             setCurrentActor(carol);
             putActorAt(carol, 76,98, OfficeRoom);
-            delay(120);
+            delayFiber(120);
             setActorStanding();
             actorSay(carol, "Are you done in here?");
             waitForMessage();
 
             actorFace(commanderZif, carol);
             actorFace(ensignZob,   carol);
-            delay(50);
+            delayFiber(50);
             actorSay(commanderZif, "An indigenous lifeform...");
             waitForMessage();
 
@@ -277,7 +279,7 @@ function OfficeRoom::entry(%this)
     if (%firstInit)
     {
         Verbs::showVerbs(1);
-        delay(getRandomNumberRange(20,60));
+        delayFiber(getRandomNumberRange(20,60));
         Actors::startRoaming(commanderZif, 20,260, 105,130);
     }
 }
@@ -442,12 +444,12 @@ function plant::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(0);
                 //{
                     animateActor($VAR_EGO, zob_anim_raiseArm);
-                    delay(20);
+                    delayFiber(20);
                     actorSay(carol, "Hey, I haven't cleaned there yet.");
                     $OfficeRoom::hasTriedToMovePlant = 1;
                     waitForMessage();
                     animateActor($VAR_EGO, zob_anim_lowerArm);
-                    delay(30);
+                    delayFiber(30);
                 //}
                 endCutscene();
                 return;
@@ -459,11 +461,11 @@ function plant::onVerb(%this, %verb, %objA, %objB)
                 //{
                     animateActor($VAR_EGO, zob_anim_raiseArm);
                     startSound(Office_movePlantSnd);
-                    delay(20);
+                    delayFiber(20);
                     setObjectState(plant, 2);
-                    delay(30);
+                    delayFiber(30);
                     animateActor($VAR_EGO, zob_anim_lowerArm);
-                    delay(30);
+                    delayFiber(30);
                 //}
                 endCutscene();
 
@@ -503,15 +505,15 @@ function cabinetDrawer::onVerb(%this, %verb, %objA, %objB)
                 //{
                     egoSay("I'll look in here I think."); waitForMessage();
 
-                    animateActor($VAR_EGO, zob_anim_raiseArm); delay(20);
-                    animateActor($VAR_EGO, zob_anim_lowerArm); delay(20);
+                    animateActor($VAR_EGO, zob_anim_raiseArm); delayFiber(20);
+                    animateActor($VAR_EGO, zob_anim_lowerArm); delayFiber(20);
 
                     egoSay("There appears to be a small sidearm in this container.");
                     pickupObject(InventoryItems->gun, InventoryItems);
                     waitForMessage();
 
-                    animateActor($VAR_EGO, zob_anim_raiseArm); delay(20);
-                    animateActor($VAR_EGO, zob_anim_lowerArm); delay(20);
+                    animateActor($VAR_EGO, zob_anim_raiseArm); delayFiber(20);
+                    animateActor($VAR_EGO, zob_anim_lowerArm); delayFiber(20);
 
                     egoSay("And a plastic card containing some kind of circuitry.");
                     pickupObject(InventoryItems->card, InventoryItems);
@@ -598,22 +600,22 @@ function plate::onVerb(%this, %verb, %objA, %objB)
                     // try { ... }
                     walkActorTo(commanderZif, 267,116); waitForActor(commanderZif);
                     actorSay(commanderZif, "I'll operate the one over here."); waitForMessage();
-                    delay(20);
+                    delayFiber(20);
                     animateActor($VAR_EGO,     zob_anim_raiseArm);
                     animateActor(commanderZif, zif_anim_raiseArm);
-                    delay(30);
+                    delayFiber(30);
                     startSound(Office_openDoorSnd);
 
                     for (%i = 2; %i < 8; %i++)
                     {
-                        delay(10);
+                        delayFiber(10);
                         setObjectState(exitToSecretRoom, %i);
                     }
 
                     startSound(Office_openedDoorSnd);
                     animateActor($VAR_EGO,     zob_anim_lowerArm);
                     animateActor(commanderZif, zif_anim_lowerArm);
-                    delay(30);
+                    delayFiber(30);
 
                     actorSay(commanderZif, "Continue your investigation."); waitForMessage();
                     walkActorTo(commanderZif, 200,120);
@@ -637,8 +639,8 @@ function plate::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(2);
                 //{
                     $OfficeRoom::hasPressedPlate = 1;
-                    animateActor($VAR_EGO, zob_anim_raiseArm); delay(30);
-                    animateActor($VAR_EGO, zob_anim_lowerArm); delay(30);
+                    animateActor($VAR_EGO, zob_anim_raiseArm); delayFiber(30);
+                    animateActor($VAR_EGO, zob_anim_lowerArm); delayFiber(30);
                 //}
                 endCutscene();
                 egoSay("Nothing happened."); waitForMessage();
@@ -683,10 +685,10 @@ function lightSwitch::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(0);
                 //{
                     egoSay("I'll turn this off."); waitForMessage();
-                    animateActor($VAR_EGO, zob_anim_raiseArm); delay(20);
+                    animateActor($VAR_EGO, zob_anim_raiseArm); delayFiber(20);
                     startSound(Office_switchSnd);
                     setRoomRGBIntensity(143,123,119,0,255);
-                    animateActor($VAR_EGO, zob_anim_lowerArm); delay(20);
+                    animateActor($VAR_EGO, zob_anim_lowerArm); delayFiber(20);
                     setObjectState(lightSwitch, 1);
                 //}
                 endCutscene();
@@ -696,10 +698,10 @@ function lightSwitch::onVerb(%this, %verb, %objA, %objB)
                 beginCutscene(0);
                 //{
                     egoSay("I'll turn this back on."); waitForMessage();
-                    animateActor($VAR_EGO, zob_anim_raiseArm); delay(20);
+                    animateActor($VAR_EGO, zob_anim_raiseArm); delayFiber(20);
                     startSound(Office_switchSnd);
                     setRoomPalette(0);
-                    animateActor($VAR_EGO, zob_anim_lowerArm); delay(20);
+                    animateActor($VAR_EGO, zob_anim_lowerArm); delayFiber(20);
                     setObjectState(lightSwitch, 0);
                 //}
                 endCutscene();

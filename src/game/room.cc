@@ -63,17 +63,17 @@ RectI RoomRender::computeWipeRect(int W, int H, float t01, TransitionMode mode, 
 
 void RoomRender::updateTransition(float dt)
 {
-   transitionPos += dt * (1.0/transitionTime);
+   transitionPos += dt * (1.0/currentTransition.time);
    
    if (transitionPos > 1.0)
    {
-      transitionPos = 1.0;
+      transitionPos = 1.0f;
    }
    
    Point2F halfSize = Point2F(roomDisplaySize.x, roomDisplaySize.y) * 0.5f;
    Point2I fullSize = Point2I(roomDisplaySize.x, roomDisplaySize.y);
    
-   switch (currentTransition.mode)
+   switch (currentTransition.data.mode)
    {
       case TRANSITION_IRIS_IN:
          clipRect.point = (halfSize * transitionPos).asPoint2I();
@@ -90,8 +90,8 @@ void RoomRender::updateTransition(float dt)
          clipRect = computeWipeRect(roomDisplaySize.x,
                                     roomDisplaySize.y,
                                     transitionPos,
-                                    (TransitionMode)currentTransition.mode,
-                                    (TransitionWipeOrigin)currentTransition.params);
+                                    (TransitionMode)currentTransition.data.mode,
+                                    (TransitionWipeOrigin)currentTransition.data.params);
          break;
       default:
          clipRect = RectI(0,0,roomDisplaySize.x, roomDisplaySize.y);
@@ -106,6 +106,7 @@ Room::Room()
    mBoxFileName = "";
    mTransFlags = 0;
    mNSLinkMask = LinkClassName;
+   mRenderState.transitionEnded = false;
 
    for (U32 i=0; i<RoomRender::NumZPlanes; i++)
    {
@@ -117,7 +118,7 @@ bool Room::onAdd()
 {
    if (Parent::onAdd())
    {
-      registerTickable();
+      //registerTickable();
       
       mMinContentSize = Point2I(320, 200);
       
@@ -141,12 +142,17 @@ void Room::onRemove()
    unregisterTickable();
 }
 
-void Room::setTransitionMode(U8 mode, U8 param, F32 time)
+void Room::setTransitionMode(U8 mode, U8 param, F32 time, bool start)
 {
-   mRenderState.transitionPos = 0.0f;
-   mRenderState.transitionTime = time;
-   mRenderState.currentTransition.mode = mode;
-   mRenderState.currentTransition.params = param;
+   mRenderState.currentTransition.time = time;
+   mRenderState.currentTransition.data.mode = mode;
+   mRenderState.currentTransition.data.params = param;
+   
+   if (start)
+   {
+      mRenderState.transitionPos = 0.0f;
+      mRenderState.transitionEnded = false;
+   }
 }
 
 void Room::resize(const Point2I newPosition, const Point2I newExtent)
@@ -515,6 +521,16 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
 void Room::onFixedTick(F32 dt)
 {
    mRenderState.updateTransition(dt);
+   
+   if (mRenderState.transitionPos >= 1.0 &&
+       !mRenderState.transitionEnded)
+   {
+      mRenderState.transitionEnded = true;
+      if (isMethod("onEntry"))
+      {
+         Con::executef(this, "onEntry");
+      }
+   }
 }
 
 void Room::initPersistFields()
@@ -531,11 +547,32 @@ void Room::initPersistFields()
 void Room::onEnter()
 {
    RootUI::sMainInstance->addObject(this);
+   mRenderState.transitionPos = 0.0f;
+   mRenderState.transitionEnded = false;
+   
+   if (mRenderState.currentTransition.data.mode == RoomRender::TRANSITION_NONE)
+   {
+      // Immediately end it
+      mRenderState.transitionPos = 1.0f;
+   }
+   
+   if (isMethod("onPreEntry"))
+   {
+      Con::executef(this, "onPreEntry");
+   }
+   
+   registerTickable();
 }
 
 void Room::onLeave()
 {
    RootUI::sMainInstance->removeObject(this);
+   if (isMethod("onExit"))
+   {
+      Con::executef(this, "onExit");
+   }
+   
+   unregisterTickable();
 }
 
 
@@ -581,6 +618,12 @@ bool Room::processInput(DBIEvent& event)
 ConsoleMethodValue(Room, setTransitionMode, 5, 5, "mode, param, time")
 {
    object->setTransitionMode(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]), vmPtr->valueAsFloat(argv[4]));
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Room, forceTransitionMode, 5, 5, "mode, param, time")
+{
+   object->setTransitionMode(vmPtr->valueAsInt(argv[2]), vmPtr->valueAsInt(argv[3]), vmPtr->valueAsFloat(argv[4]), true);
    return KorkApi::ConsoleValue();
 }
 

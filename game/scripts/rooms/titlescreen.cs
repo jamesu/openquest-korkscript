@@ -24,10 +24,16 @@ new Room(TitleScreen)
     class = BaseRoom;
 };
 
+function TitleScreen::onEntry(%this)
+{
+    echo("DBG: transition done");
+    Verbs.showVerbs(0);
+}
+
 function TitleScreen::inputHandler(%this, %area, %cmd, %btn)
 {
     echo("TitleScreen inputHandler");
-    screenEffect(0x8787);
+    %this.setTransitionMode(2, 0, 0.25);
     startRoom(Skyline);
 }
 

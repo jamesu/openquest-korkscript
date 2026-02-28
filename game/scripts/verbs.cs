@@ -38,7 +38,7 @@ new Charset(verbChset)
 };
 
 // Track whether the verb UI is “on”
-$verbsOn = 0;
+$verbsOn = 3;
 
 // Verbs in this case are globals
 
@@ -273,13 +273,17 @@ function Verbs::setupVerbs(%this)
 // Toggles the verb UI on/off and restores/saves groups.
 function Verbs::showVerbs(%this, %show)
 {
+    echo("DBG: showVerbs=" @ %show);
     if (%show == $verbsOn) 
     {
-        return;
+        //return;
     }
+
+    echo("VERBS STILL HERE:" @ %this.getCount());
 
     foreach(%verb in %this)
     {
+        echo("TOGGLING VERB");
         %verb.setOn(%show);
     }
 

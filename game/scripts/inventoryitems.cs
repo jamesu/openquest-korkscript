@@ -313,9 +313,9 @@ function scanner::onVerb(%this, %verb, %objA, %objB)
             egoSay("I'll scan the area.");
             waitForMessage();
 
-            animateActor(VAR_EGO, zob_anim_scan); delay(30);
-            animateActor(VAR_EGO, zob_anim_scan); delay(30);
-            animateActor(VAR_EGO, zob_anim_scan); delay(30);
+            animateActor(VAR_EGO, zob_anim_scan); delayFiber(30);
+            animateActor(VAR_EGO, zob_anim_scan); delayFiber(30);
+            animateActor(VAR_EGO, zob_anim_scan); delayFiber(30);
 
             if (getActorRoom(VAR_EGO) == SecretRoom)
                 egoSay("The artifact is in this room.");
