@@ -87,7 +87,7 @@ function DisplayBase::isOpenable(%this)
 
 function DisplayBase::getPreposition(%this)
 {
-    return "To";
+    return "";
 }
 
 // Wait helpers - these replicate scumm-like waiting; 
@@ -215,12 +215,12 @@ function ResRoom::mouseWatch(%this)
 
     while (true)
     {
-        echo("mouseWatch tick CO=" @ $cursorOn);
+        //echo("mouseWatch tick CO=" @ $cursorOn);
         if (!$cursorOn)
         {
             if ($altVerb)
             {
-                $altVerb.setOn();
+                $altVerb.setOn(true);
                 $altVerb = 0;
             }
             do { breakFiber(); } while (!$cursorOn);
@@ -249,10 +249,17 @@ function ResRoom::mouseWatch(%this)
 
         if (!isObject(%obj))
         {
-            %obj = getVerbAt($VAR_MOUSE_X, $VAR_MOUSE_Y);
+            %obj = getVerbAt($VAR_VIRT_MOUSE_X, $VAR_VIRT_MOUSE_Y);
+            
+            /*if (isObject(%obj))
+            {
+                echo("VERB " @ %obj.internalName @ " INVSLOT=" @ %obj.inventorySlot);
+            }*/
+
             if (%obj.inventorySlot)
             {
-                %obj = $VAR_EGO.findInventory(%obj.inventorySlot + $invOffset);
+                %obj = $VAR_EGO.findInventory((%obj.inventorySlot - 1) + $invOffset);
+                //echo("INVSLOT OBJ=" @ %obj.internalName SPC %obj.name);
                 %vrb = (!$selVerb || $selVerb.getInternalName() $= PickUp) ? Verbs-->Use : $selVerb;
             }
             else 
@@ -261,16 +268,16 @@ function ResRoom::mouseWatch(%this)
             }
         }
 
-        echo("FOUND OBJ:" @ %obj SPC %obj.classname);
-        echo("MW SELVERB=" @ $selVerb SPC $selVerb.classname SPC "<<");
-        echo("MW VERB=" @ %vrb);
+        //echo("FOUND OBJ:" @ %obj SPC %obj.classname);
+        //echo("MW SELVERB=" @ $selVerb SPC $selVerb.classname SPC "<<");
+        //echo("MW VERB=" @ %vrb);
 
         if (!isObject(%vrb)) 
         {
             %vrb = isObject($selVerb) ? $selVerb : Verbs-->WalkTo;
         }
 
-        if ($sntcPrepo)
+        if ($sntcPrepo !$= "")
         {
             %target = $sntcObjB;
             if (%obj == $sntcObjA) 
@@ -283,17 +290,13 @@ function ResRoom::mouseWatch(%this)
             %target = $sntcObjA;
         }
 
-        if (%vrb != 0)
-        {
-            echo("VRB KLASS=" @ %vrb.classname);
-        }
-
         if (!(%vrb == $sntcVerb 
             && %obj == %target))
         {
             $sntcVerb = %vrb;
+            //echo("SETTING b/a object; b=" @ $sntcObjB SPC "a=" @ $sntcObjA);
 
-            if ($sntcPrepo)
+            if ($sntcPrepo !$= "")
             {
                 $sntcObjB     = %obj;
             }
@@ -302,8 +305,13 @@ function ResRoom::mouseWatch(%this)
                 $sntcObjA     = %obj;
             }
         }
+        else
+        {
+            //echo("NOT SETTING b/a object:" SPC %vrb SPC $sntcVerb SPC %target);
+            //echo(" b=" @ $sntcObjB SPC "a=" @ $sntcObjA);
+        }
 
-        if (%obj)
+        if (isObject(%obj))
         {
             if (%obj.isPerson())       
             {
@@ -327,11 +335,11 @@ function ResRoom::mouseWatch(%this)
         {
             if ($altVerb) 
             { 
-                $altVerb.setOn();  
+                $altVerb.setOn(true);  
             }
             if (%alt)    
             { 
-                %alt.setDim();  
+                %alt.setDim(true);  
             }
             $altVerb = %alt;
         }
@@ -763,7 +771,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
         if (%cmdName $= invUp || 
             %cmdName $= invDown)
         {
-            %invCount = getInventoryCount($VAR_EGO);
+            %invCount = $VAR_EGO.getInventoryCount();
             $invOffset += ((%cmd $= invUp) ? -1 : 1) * $INVENTORY_COL;
             $invOffsetMax = ((%invCount + $INVENTORY_COL - 1) / $INVENTORY_COL - $INVENTORY_LINE) * $INVENTORY_COL;
 
@@ -837,22 +845,25 @@ function BaseRoom::inventoryUpdate(%this)
 {
     %i = 0; 
     %count = $VAR_EGO.getInventoryCount();
-    echo(%count @ " obj in inv");
 
     for (%i = 0; %i < $INVENTORY_SLOTS; %i++)
     {
+        %verb = Verbs.findObjectByInternalName(inv @ %i);
         if (%i + $invOffset < %count)
         {
-            %obj = $VAR_EGO.findInventory(%i + 1 + $invOffset);
+            %obj = $VAR_EGO.findInventory(%i + $invOffset);
             if (isObject(%obj))
             {
-                %obj.setInventoryIcon(%obj, $invSlot0 + %i);
+                %verb.setDisplaysObject(%obj);
+            }
+            else
+            {
+                %verb.setDisabled();
             }
         }
         else
         {
-            %verb = $invSlot0 + %i;
-            %verb.setNameString("");
+            %verb.setDisabled();
         }
     }
 }
@@ -936,6 +947,7 @@ function ResRoom::main(%this, %bootParam)
     ResRoom.lock();
     echo("Loading rooms...");
     loadRoom(Actors);
+    loadRoom(InventoryItems);
     loadRoom(OfficeRoom);
     loadRoom(TitleScreen);
     loadRoom(Skyline);

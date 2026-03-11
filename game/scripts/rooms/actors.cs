@@ -270,10 +270,10 @@ function Actors::setupActors(%this)
     %actor.setWidth(0);
 
     // ---- Inventory ----
-    pickupObject( InventoryItems->scanner );
-    //pickupObject( InventoryItems->card );
-    //pickupObject( InventoryItems->gun );
-    //pickupObject( InventoryItems->bullets );
+    $VAR_EGO.pickupObject( InventoryItems->scanner );
+    //$VAR_EGO.pickupObject( InventoryItems->card );
+    //$VAR_EGO.pickupObject( InventoryItems->gun );
+    //$VAR_EGO.pickupObject( InventoryItems->bullets );
     $invOffset = 0;
 }
 

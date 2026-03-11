@@ -129,6 +129,9 @@ int main(int argc, char **argv)
       gGlobals.shaderMask = LoadShaderFromMemory(NULL, fsMaskCutout);
       gGlobals.screenSize = Point2I(screenWidth, screenHeight);
       
+      gGlobals.userPut = true;
+      gGlobals.cursorState = true;
+      
       gGlobals.roomRt = LoadRenderTexture(320, 200);
       for (U32 zPlane=0; zPlane<SimWorld::RoomRender::NumZPlanes; zPlane++)
       {
@@ -178,10 +181,14 @@ int main(int argc, char **argv)
          // Pre-frame layout update
          if (SimWorld::RootUI::sMainInstance)
          {
+            SimWorld::RootUI::sMainInstance->resize(Point2I(0,0), SimWorld::RootUI::sMainInstance->mMinContentSize);
             SimWorld::RootUI::sMainInstance->updateLayout(RectI(Point2I(0,0), SimWorld::RootUI::sMainInstance->mMinContentSize));
          }
 
-         gGlobals.inputHandler->update(cam);
+         if (gGlobals.userPut)
+         {
+            gGlobals.inputHandler->update(cam);
+         }
          
          // Run fixed sim steps as needed
          int steps = 0;

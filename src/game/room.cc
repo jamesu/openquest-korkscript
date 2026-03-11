@@ -652,6 +652,7 @@ RoomObject::RoomObject()
 {
    mState = 1;
    mTransFlags = 0;
+   mOwner = nullptr;
 }
 
 void RoomObject::updateResources()
@@ -696,6 +697,20 @@ void RoomObject::updateLayout(const RectI contentRect)
          resize(mAnchor, curState->mExtent);
       }
    }
+}
+
+void RoomObject::onPickedUpBy(Actor* act)
+{
+   mOwner = act;
+   mState = 1;
+   mInputEnabled = false;
+}
+
+void RoomObject::onDropped()
+{
+   mOwner = nullptr;
+   mState = 0;
+   mInputEnabled = true;
 }
 
 void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
@@ -763,6 +778,8 @@ void RoomObject::initPersistFields()
    addField("dir", TypeS32, Offset(mDirection, RoomObject));
    addField("trans", TypeS32, Offset(mTransFlags, RoomObject));
    addField("hotSpot", TypePoint2I, Offset(mHotspot, RoomObject));
+   
+   addField("owner", TypeSimObjectPtr, Offset(mOwner, RoomObject));
 }
 
 RoomObjectState::RoomObjectState()
@@ -1008,7 +1025,7 @@ ConsoleFunctionValue(getVerbAt, 3, 3, "(x,y)")
    {
       Point2I thePoint = Point2I(vmPtr->valueAsInt(argv[1]), vmPtr->valueAsInt(argv[2]));
       DisplayBase* foundObject = RootUI::sMainInstance->getChildAtPoint(thePoint, nullptr, [](void* userPtr, DisplayBase* obj){
-         return dynamic_cast<VerbDisplay*>(obj) != nullptr;
+         return dynamic_cast<VerbDisplay*>(obj) != nullptr && obj->mInputEnabled;
       });
       
       if (foundObject)

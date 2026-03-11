@@ -44,6 +44,7 @@ function evalInput()
 
 exec("scripts/costumes/costumes.cs");
 exec("scripts/common.cs");
+exec("scripts/inventoryitems.cs");
 exec("scripts/verbs.cs");
 
 

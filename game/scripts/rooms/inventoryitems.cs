@@ -24,16 +24,6 @@
 
 new Sound(loadingGunSnd) { path = "loading_gun.soun"; };
 
-new ImageSet(Inv_Axe)     { path = "graphics/inventory_items/inv_axe.bmp";          flags = TRANSPARENT; };
-new ImageSet(Inv_Gun)     { path = "graphics/inventory_items/gun_40.bmp";           flags = TRANSPARENT; };
-new ImageSet(Inv_Bullets) { path = "graphics/inventory_items/bullets.bmp";          flags = TRANSPARENT; };
-new ImageSet(Inv_Card)    { path = "graphics/inventory_items/card.bmp";             flags = TRANSPARENT; };
-new ImageSet(Inv_Batts)   { path = "graphics/inventory_items/batteries.bmp";        flags = TRANSPARENT; };
-
-// Scanner has two frames/states
-new ImageSet(Inv_Scanner_0) { path = "graphics/inventory_items/scanner_40.bmp";     flags = TRANSPARENT; };
-new ImageSet(Inv_Scanner_1) { path = "graphics/inventory_items/scanner_dead_40.bmp";flags = TRANSPARENT; };
-
 
 // =========================
 // Room: InventoryItems
@@ -41,49 +31,71 @@ new ImageSet(Inv_Scanner_1) { path = "graphics/inventory_items/scanner_dead_40.b
 // =========================
 new Room(InventoryItems)
 {
-    // Dimensions x/w/h present in SCUMMC source are kept where provided.
-
-    new RoomObject(axe)
+    new RoomObject([axe])
     {
-        position    = 0, 0;     // x given in source, y not specified
-        extent      = 40, 16;   // w,h from source
-        description = "the axe";
-        imageSet    = Inv_Axe;
-        state       = 1;        // matches SCUMMC 'state = 1;'
-    };
-
-    new RoomObject(gun)
-    {
-        description = "gun";
-        imageSet    = Inv_Gun;
+        displayText = "the axe";
         state       = 0;
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/inv_axe.bmp";
+         };
     };
 
-    new RoomObject(bullets)
+    new RoomObject([gun])
     {
-        description = "ammunition";
-        imageSet    = Inv_Bullets;
+        displayText = "gun";
+        state       = 0;
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/gun_40.bmp";
+         };
     };
 
-    new RoomObject(card)
+    new RoomObject([bullets])
     {
-        description = "card";
-        imageSet    = Inv_Card;
+        displayText = "ammunition";
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/bullets.bmp";
+         };
     };
 
-    new RoomObject(batteries)
+    new RoomObject([card])
     {
-        description = "batteries";
-        imageSet    = Inv_Batts;
+        displayText = "card";
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/card.bmp";
+         };
     };
 
-    new RoomObject(scanner)
+    new RoomObject([batteries])
     {
-        position    = 0, 0;     // x present in source; keep default
-        extent      = 40, 16;   // w,h from source
-        description = "scanner";
-        imageSet    = Inv_Scanner_0;  // start on state 1 in SCUMMC; engine will reflect actual state via drawObject()
-        state       = 1;
+        displayText = "batteries";
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/scanner_40.bmp";
+         };
+    };
+
+    new RoomObject([scanner])
+    {
+        displayText = "scanner";
+        state       = 0;
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/scanner_40.bmp";
+         };
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/scanner_dead_40.bmp";
+         };
     };
 };
 
@@ -150,7 +162,7 @@ function gun::onVerb(%this, %verb, %objA, %objB)
                     break;
 
                 default:
-                    ResRoom::defaultAction(%verb, %objA, %objB);
+                    ResRoom.defaultAction(%verb, %objA, %objB);
             }
             return;
 
@@ -198,7 +210,7 @@ function bullets::onVerb(%this, %verb, %objA, %objB)
                     break;
 
                 default:
-                    ResRoom::defaultAction(%verb, %objA, %objB);
+                    ResRoom.defaultAction(%verb, %objA, %objB);
             }
             return;
     }
@@ -229,7 +241,7 @@ function card::onVerb(%this, %verb, %objA, %objB)
                     break;
 
                 default:
-                    ResRoom::defaultAction(%verb, %objA, %objB);
+                    ResRoom.defaultAction(%verb, %objA, %objB);
                     break;
             }
             return;
@@ -254,7 +266,7 @@ function card::onVerb(%this, %verb, %objA, %objB)
                     break;
 
                 default:
-                    ResRoom::defaultAction(%verb, %objA, %objB);
+                    ResRoom.defaultAction(%verb, %objA, %objB);
                     break;
             }
             return;
@@ -285,7 +297,7 @@ function batteries::onVerb(%this, %verb, %objA, %objB)
                     break;
 
                 default:
-                    ResRoom::defaultAction(%verb, %objA, %objB);
+                    ResRoom.defaultAction(%verb, %objA, %objB);
                     break;
             }
             return;
@@ -313,9 +325,9 @@ function scanner::onVerb(%this, %verb, %objA, %objB)
             egoSay("I'll scan the area.");
             waitForMessage();
 
-            $VAR_EGO.animate(, zob_anim_scan); delayFiber(30);
-            $VAR_EGO.animate(, zob_anim_scan); delayFiber(30);
-            $VAR_EGO.animate(, zob_anim_scan); delayFiber(30);
+            $VAR_EGO.animate(zob_anim_scan); delayFiber(30);
+            $VAR_EGO.animate(zob_anim_scan); delayFiber(30);
+            $VAR_EGO.animate(zob_anim_scan); delayFiber(30);
 
             if (getActorRoom(VAR_EGO) == SecretRoom)
                 egoSay("The artifact is in this room.");
@@ -339,7 +351,7 @@ function scanner::onVerb(%this, %verb, %objA, %objB)
                     break;
 
                 default:
-                    ResRoom::defaultAction(%verb, %objA, %objB);
+                    ResRoom.defaultAction(%verb, %objA, %objB);
             }
             return;
 

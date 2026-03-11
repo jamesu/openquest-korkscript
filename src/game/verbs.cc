@@ -19,6 +19,7 @@ VerbDisplay::VerbDisplay()
    mVerbName = StringTable->EmptyString;
    mRoomObject = nullptr;
    mDisplayState = DEFAULT;
+   mDim = false;
 }
 
 bool VerbDisplay::onAdd()
@@ -112,23 +113,33 @@ void VerbDisplay::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamer
    {
       return;
    }
+   Point2I actualStart = (offset - mAnchor) + mBounds.point;
+   
+   Color actualColor = mColor;
+   if (mDim)
+   {
+      actualColor = mDimColor;
+   }
+   else if (mDisplayState == HIGHLIGHTED)
+   {
+      actualColor = mHiColor;
+   }
    
    if (mRoomObject)
    {
-      mRoomObject->onRender(offset, drawRect, globalCamera);
+      mRoomObject->onRender(actualStart, drawRect, globalCamera);
    }
    else if (mDisplayText && mDisplayText[0] != '\0')
    {
       if (mBackColor.a > 0)
       {
-         DrawRectangle(offset.x, offset.y, mBounds.extent.x, mBounds.extent.y, mBackColor);
+         DrawRectangle(actualStart.x, actualStart.y, mBounds.extent.x, mBounds.extent.y, mBackColor);
       }
       int textWidth = MeasureText(mDisplayText, mFontSize);
-      int extra = mCentered ? (textWidth / 2) : 0;
-      DrawText(mDisplayText, offset.x - extra, offset.y, mFontSize, mColor);
+      DrawText(mDisplayText, actualStart.x, actualStart.y, mFontSize, actualColor);
    }
    
-   DrawRectangleLines(drawRect.point.x, drawRect.point.y, drawRect.extent.x, drawRect.extent.y, mDisplayState == HIGHLIGHTED ? GREEN : RED);
+   DrawRectangleLines(actualStart.x, actualStart.y, mBounds.extent.x, mBounds.extent.y, mDisplayState == HIGHLIGHTED ? GREEN : RED);
 }
 
 void VerbDisplay::updateLayout(const RectI contentRect)
@@ -168,6 +179,46 @@ void VerbDisplay::initPersistFields()
 ConsoleMethodValue(VerbDisplay, setOn, 3, 3, "(enabled)")
 {
    object->mEnabled = vmPtr->valueAsBool(argv[2]);
+   object->mDim = false;
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(VerbDisplay, setDim, 3, 3, "(enabled)")
+{
+   object->mDim = vmPtr->valueAsBool(argv[2]);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(VerbDisplay, setDisplaysText, 3, 3, "(text)")
+{
+   object->mDisplayText = StringTable->insert(vmPtr->valueAsString(argv[2]));
+   object->mRoomObject = nullptr;
+   object->mEnabled = true;
+   object->mInputEnabled = true;
+   object->updateLayout(RootUI::sMainInstance->getContentRect());
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(VerbDisplay, setDisplaysObject, 3, 3, "(object)")
+{
+   RoomObject* roomObject = nullptr;
+   Sim::findObject(argv[2], roomObject);
+   object->mDisplayText = StringTable->EmptyString;
+   object->mRoomObject = roomObject;
+   object->mEnabled = true;
+   object->mInputEnabled = true;
+   object->updateLayout(RootUI::sMainInstance->mBounds);
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(VerbDisplay, setDisabled, 2, 2, "")
+{
+   RoomObject* roomObject = nullptr;
+   object->mDisplayText = StringTable->EmptyString;
+   object->mRoomObject = nullptr;
+   object->mEnabled = false;
+   object->mInputEnabled = false;
+   object->updateLayout(RootUI::sMainInstance->mBounds);
    return KorkApi::ConsoleValue();
 }
 

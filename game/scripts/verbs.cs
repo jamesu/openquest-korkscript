@@ -65,15 +65,12 @@ function Verbs::onAdd(%this)
 {
     // Add inventory verbs
     %ic = 0;
-    echo("Making", $INVENTORY_LINE SPC $INVENTORY_COL, "-verbs");
     for(%l = 0; %l < $INVENTORY_LINE ; %l++)
     {
         for(%c = 0 ; %c < $INVENTORY_COL ; %c++) {
 
             %px = 216 + %c*48;
             %py = 162 + %l*18;
-            echo("MAKE: " @ inv @ %ic SPC %px SPC %py);
-            echo($VCOL);
 
             nop();
 
@@ -84,14 +81,10 @@ function Verbs::onAdd(%this)
                color = $VCOL;
                hiColor = $VHI;
                dimColor = $VDIM;
-               center = true;
+               center = false;
                enabled = 1;
+               inventorySlot = %ic + 1;
             };
-
-            echo("POINT=" @ %verb.anchorPoint);
-
-            echo(%verb.getInternalName());
-            echo(%verb.getId());
 
             %this.add(%verb);
 
@@ -263,34 +256,25 @@ function Verbs::setupVerbs(%this)
     // Main verbs
     $sntcVerb = %this-->WalkTo;
     $sntcLine = %this-->SntcLine;
-
-    for (%i=0; %i<8; %i++)
-    {
-        %this.invObj[%i] = 0;
-    }
 }
 
 
 // Toggles the verb UI on/off and restores/saves groups.
 function Verbs::showVerbs(%this, %show)
 {
-    echo("DBG: showVerbs=" @ %show);
     if (%show == $verbsOn) 
     {
         //return;
     }
 
-    echo("VERBS STILL HERE:" @ %this.getCount());
-
     foreach(%verb in %this)
     {
-        echo("TOGGLING VERB");
         %verb.setOn(%show);
     }
 
     if (%show)
     {
-        ResRoom.inventoryHandler(0);            // recalc inventory display
+        ResRoom.inventoryUpdate();            // recalc inventory display
     }
 
     $verbsOn = %show;

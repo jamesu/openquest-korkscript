@@ -215,11 +215,13 @@ ConsoleFunctionValue(startCutscene, 2, 2, "")
 
 ConsoleFunctionValue(cursorState, 2, 2, "(value)")
 {
+   gGlobals.cursorState = vmPtr->valueAsBool(argv[1]);
    return KorkApi::ConsoleValue();
 }
 
 ConsoleFunctionValue(userPutState, 2, 2, "(value)")
 {
+   gGlobals.userPut = vmPtr->valueAsBool(argv[1]);
    return KorkApi::ConsoleValue();
 }
 

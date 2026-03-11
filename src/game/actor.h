@@ -159,6 +159,8 @@ public:
    StringTableEntry mStopTalkAnim;
    
    StringTableEntry mDescName;
+   
+   std::vector<SimObjectId> mInventory;
 
    Actor();
    
@@ -169,6 +171,7 @@ public:
    
    void setPosition(Point2I pos);
    void setStanding();
+   void setFrozen();
 
    inline Point2I getTalkPos() const { return mTalkParams.messageOffset; }
    

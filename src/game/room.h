@@ -148,6 +148,7 @@ public:
    DECLARE_CONOBJECT(Room);
 };
 
+class Actor;
 
 class RoomObject : public DisplayBase
 {
@@ -165,11 +166,15 @@ public:
    // Parent dependency
    StringTableEntry mParentName;
    U32 mParentState;
+   
+   SimObjectPtr<Actor> mOwner;
 
    RoomObject();
 
    void updateResources();
    void updateLayout(const RectI contentRect);
+   void onPickedUpBy(Actor* act);
+   void onDropped();
 
    bool onAdd();
    

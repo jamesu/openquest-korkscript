@@ -21,6 +21,8 @@ public:
    
    RoomObject* mRoomObject; // room object to draw
    
+   bool mDim;
+   
    VerbDisplay();
    
    bool onAdd();

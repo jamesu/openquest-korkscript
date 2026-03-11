@@ -314,6 +314,12 @@ void Actor::setStanding()
    startAnim(mStandAnim);
 }
 
+void Actor::setFrozen()
+{
+   mWalkState.mAction = ActorWalkState::ACTION_FROZEN;
+   mWalkState.mWalkTarget = mWalkState.mRealWalkTarget = mAnchor;
+   startAnim(mStandAnim);
+}
 
 void Actor::walkTo(Point2I pos)
 {
@@ -659,7 +665,7 @@ ConsoleMethodValue(Actor, isMoving, 2, 2, "")
 
 ConsoleMethodValue(Actor, getLayer, 2, 2, "")
 {
-   return KorkApi::ConsoleValue();
+   return KorkApi::ConsoleValue::makeUnsigned(object->mLayer);
 }
 
 ConsoleMethodValue(Actor, getFrame, 2, 2, "")
@@ -674,11 +680,12 @@ ConsoleMethodValue(Actor, getAnimVar, 2, 2, "")
 
 ConsoleMethodValue(Actor, getAnimCounter, 2, 2, "")
 {
-   return KorkApi::ConsoleValue();
+   return KorkApi::ConsoleValue::makeUnsigned(object->mLiveCostume.curCount);
 }
 
 ConsoleMethodValue(Actor, setFrozen, 3, 3, "")
 {
+   object->setFrozen();
    return KorkApi::ConsoleValue();
 }
 
@@ -701,11 +708,6 @@ ConsoleMethodValue(Actor, setElevation, 3, 3, "")
 ConsoleMethodValue(Actor, setTalkColor, 6, 6, "")
 {
    object->mTalkParams.displayColor = (Color){(U8)vmPtr->valueAsInt(argv[2]), (U8)vmPtr->valueAsInt(argv[3]), (U8)vmPtr->valueAsInt(argv[4]), (U8)vmPtr->valueAsInt(argv[5])};
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, setDescriptiveName, 3, 3, "")
-{
    return KorkApi::ConsoleValue();
 }
 
@@ -736,6 +738,7 @@ ConsoleMethodValue(Actor, setIgnoreBoxes, 3, 3, "")
 
 ConsoleMethodValue(Actor, setAnimSpeed, 3, 3, "")
 {
+   object->mTickSpeed = vmPtr->valueAsInt(argv[2]);
    return KorkApi::ConsoleValue();
 }
 
@@ -753,6 +756,52 @@ ConsoleMethodValue(Actor, setAnimVar, 4, 4, "")
 ConsoleMethodValue(Actor, setLayer, 3, 3, "")
 {
    object->mLayer = vmPtr->valueAsInt(argv[2]);
+   return KorkApi::ConsoleValue();
+}
+
+
+ConsoleMethodValue(Actor, getInventoryCount, 2, 2, "")
+{
+   return KorkApi::ConsoleValue::makeUnsigned(object->mInventory.size());
+}
+
+ConsoleMethodValue(Actor, findInventory, 3, 3, "")
+{
+   U32 idx = vmPtr->valueAsInt(argv[2]);
+   if (idx >= object->mInventory.size())
+   {
+      return KorkApi::ConsoleValue::makeUnsigned(0);
+   }
+   else
+   {
+      return KorkApi::ConsoleValue::makeUnsigned(object->mInventory[idx]);
+   }
+}
+
+ConsoleMethodValue(Actor, pickupObject, 3, 3, "")
+{
+   RoomObject* pickedObject = nullptr;
+   if (Sim::findObject(argv[2], pickedObject))
+   {
+      auto itr = std::find(object->mInventory.begin(), object->mInventory.end(), pickedObject->getId());
+      if (itr == object->mInventory.end())
+      {
+         object->mInventory.push_back(pickedObject->getId());
+         pickedObject->onPickedUpBy(object);
+         
+         // Run inventory handler
+         if (gGlobals.currentRoom)
+         {
+            SimFiberManager::ScheduleInfo initialInfo = {};
+            initialInfo.waitMode = SimFiberManager::WAIT_REMOVE;
+            initialInfo.param.flagMask = SCHEDULE_FLAG_IS_ROOM_CALLBACK;
+            KorkApi::ConsoleValue cv[2];
+            cv[0] = KorkApi::ConsoleValue::makeString("inventoryUpdate");
+            KorkApi::FiberId fiberId = gFiberManager->spawnFiber(gGlobals.currentRoom, 2, cv, initialInfo);
+         }
+      }
+   }
+   
    return KorkApi::ConsoleValue();
 }
 
