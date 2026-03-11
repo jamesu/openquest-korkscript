@@ -140,22 +140,20 @@ new Costume(ZifCostume)
     new CostumeAnim([raiseArm])
     {
         id = 24;
-        E[body] = zif_ImageSets->raiseArmE.pick(1,2);
-        W[body] = zif_ImageSets->raiseArmE.pick(1,2);
-        N[body] = zif_ImageSets->raiseArmE.pick(1,2);
-        S[body] = zif_ImageSets->raiseArmE.pick(1,2);
-        flags   = $NO_LOOP;
+        E[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        W[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        N[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        S[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
     };
 
     // --- Anim: lowerArm (@28, one-shot) ---
     new CostumeAnim([lowerArm])
     {
         id = 28;
-        E[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standE.pick(0);
-        W[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standW.pick(0);
-        N[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standN.pick(0);
-        S[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standS.pick(0);
-        flags   = $NO_LOOP;
+        E[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standE.pick(0), $NO_LOOP;
+        W[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standW.pick(0), $NO_LOOP;
+        N[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standN.pick(0), $NO_LOOP;
+        S[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standS.pick(0), $NO_LOOP;
     };
 
     // --- Anim: standWithPhone (@32) ---
@@ -192,33 +190,30 @@ new Costume(ZifCostume)
     new CostumeAnim([beam])
     {
         id = 44;
-        E[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standE.pick(0);
-        W[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standW.pick(0);
-        S[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standS.pick(0);
-        N[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standN.pick(0);
-        flags   = $NO_LOOP;
+        E[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standE.pick(0), $NO_LOOP;
+        W[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standW.pick(0), $NO_LOOP;
+        S[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standS.pick(0), $NO_LOOP;
+        N[body] = zif_ImageSets->beamFx.pick(1,11), zif_ImageSets->standN.pick(0), $NO_LOOP;
     };
 
     // --- Anim: fireup (@48, one-shot) ---
     new CostumeAnim([fireup])
     {
         id = 48;
-        E[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        W[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        S[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        N[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        flags   = $NO_LOOP;
+        E[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
+        W[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
+        S[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
+        N[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimUpE.pick(1), zif_ImageSets->fireUpE.pick(0), zif_ImageSets->aimUpE.pick(0), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
     };
 
     // --- Anim: firestraight (@52, one-shot) ---
     new CostumeAnim([firestraight])
     {
         id = 52;
-        E[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        W[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        S[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        N[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1);
-        flags   = $NO_LOOP;
+        E[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
+        W[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
+        S[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
+        N[body] =  zif_ImageSets->aimE.pick(1), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(3), zif_ImageSets->fireStraightE.pick(0), zif_ImageSets->aimE.pick(3), zif_ImageSets->aimE.pick(2), zif_ImageSets->aimE.pick(1), $NO_LOOP;
     };
 };
 

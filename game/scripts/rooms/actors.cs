@@ -218,7 +218,7 @@ function Actors::setupActors(%this)
     // ---- ensign Zob ----
     %actor = ensignZob;
     %actor.setCostume(%ensignZobCost);
-    %actor.descName = ("Ensign Zob");
+    %actor.displayText = ("Ensign Zob");
     %actor.setWalkSpeed(2,1);
     %actor.setTalkColor($ZOB_COLOR);
     %actor.setWidth(20);
@@ -232,7 +232,7 @@ function Actors::setupActors(%this)
     // ---- Commander Zif ----
     %actor = commanderZif;
     %actor.setCostume(%commanderZifCost);
-    %actor.descName = ("Commander Zif");
+    %actor.displayText = ("Commander Zif");
     %actor.setWalkSpeed(2,1);
     %actor.setTalkColor(ZIF_COLOR);
     %actor.setWidth(20);
@@ -243,7 +243,7 @@ function Actors::setupActors(%this)
     // ---- Carol ----
     %actor = carol;
     %actor.setCostume(%carolCost);
-    %actor.descName = ("indigenous lifeform");
+    %actor.displayText = ("indigenous lifeform");
     %actor.setWidth(20);
     %actor.setIgnoreBoxes(true);
     %actor.setAnimSpeed(7);
@@ -253,7 +253,7 @@ function Actors::setupActors(%this)
     // ---- Blue cup (as actor) ----
     %actor = bluecupActor;
     %actor.setCostume(%bluecupCost);
-    %actor.descName = ("blue cup");
+    %actor.displayText = ("blue cup");
     %actor.setAnimSpeed(2);
     %actor.putActorAt(159,97,SecretRoom);
     %actor.setElevation(55);
@@ -262,7 +262,7 @@ function Actors::setupActors(%this)
     // ---- Cube (as actor) ----
     %actor = cubeActor;
     %actor.setCostume(%cubeCost);
-    %actor.descName = ("cube");
+    %actor.displayText = ("cube");
     %actor.setAnimSpeed(2);
     // TOFIX %actor.setObjectClass([ 0x80 + ClassUntouchable ]);
     %actor.putActorAt(cubeActor,160,98,SecretRoom);

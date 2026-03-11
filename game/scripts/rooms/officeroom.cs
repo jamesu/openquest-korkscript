@@ -202,57 +202,58 @@ function OfficeRoom::onEntry(%this)
             delayFiber(150);
 
             setCurrentActor(ensignZob);
-            setActorStanding();
+            ensignZob.setStanding();
 
-            actorSay(commanderZif, "Hmmm...");
+            commanderZif.say("Hmmm...");
             waitForMessage();
-            Actors::setZifOnThePhone();
+            Actors.setZifOnThePhone();
             Office_phoneSnd.play();
             commanderZif.animate(lookAround);
             delayFiber(30);
-            actorSay(commanderZif, "Commander's log, star date 432.1");
+            commanderZif.say("Commander's log, star date 432.1");
             waitForMessage();
-            actorSay(commanderZif, "Arrival complete on the planet of mostly water.");
+            commanderZif.say("Arrival complete on the planet of mostly water.");
             waitForMessage();
 
+            // NOTE: "init" contains the walk-in anim here.
             setCurrentActor(carol);
             carol.putAt( 76,98, OfficeRoom);
             delayFiber(120);
             setActorStanding();
-            actorSay(carol, "Are you done in here?");
+            carol.say("Are you done in here?");
             waitForMessage();
 
             actorFace(commanderZif, carol);
             actorFace(ensignZob,   carol);
             delayFiber(50);
-            actorSay(commanderZif, "An indigenous lifeform...");
+            commanderZif.say("An indigenous lifeform...");
             waitForMessage();
 
             ensignZob.walkTo( 105,105); waitForActor(ensignZob);
-            actorSay(commanderZif, "Ensign Zob and I shall proceed to locate the artifact.");
+            commanderZif.say("Ensign Zob and I shall proceed to locate the artifact.");
             waitForMessage();
-            actorSay(commanderZif, "We shall eliminate any resistance we encounter.");
+            commanderZif.say("We shall eliminate any resistance we encounter.");
             waitForMessage();
 
             commanderZif.walkTo( 160,120); waitForActor(commanderZif);
-            actorSay(commanderZif, "This appears to be a crude society.");
+            commanderZif.say("This appears to be a crude society.");
             waitForMessage();
-            actorSay(commanderZif, "The defenses of the compound were negligible.");
+            commanderZif.say("The defenses of the compound were negligible.");
             waitForMessage();
-            actorSay(commanderZif, "I expect the relic to be in our possession shortly.");
+            commanderZif.say("I expect the relic to be in our possession shortly.");
             waitForMessage();
 
-            Actors::setZifOffThePhone();
-            actorSay(ensignZob, "What of this lifeform, Sir?");
+            Actors.setZifOffThePhone();
+            ensignZob.say("What of this lifeform, Sir?");
             waitForMessage();
-            actorSay(commanderZif, "Proceed with caution.");
+            commanderZif.say("Proceed with caution.");
             waitForMessage();
-            actorSay(commanderZif, "That may be some kind of weapon.");
+            commanderZif.say("That may be some kind of weapon.");
             waitForMessage();
 
             ensignZob.walkTo( 115,120); waitForActor(ensignZob);
-            actorSay(ensignZob, "I'll begin my search."); waitForMessage();
-            actorSay(commanderZif, "Keep me updated, ensign."); waitForMessage();
+            ensignZob.say("I'll begin my search."); waitForMessage();
+            commanderZif.say("Keep me updated, ensign."); waitForMessage();
 
             // override { ... }
             if ($VAR_OVERRIDE)
@@ -300,12 +301,12 @@ function OfficeRoom::zobTalkToCarol(%this)
         {
             egoSay("Speak, lifeform!"); waitForMessage();
             egoSay("Is this translation matrix working?"); waitForMessage();
-            actorSay(carol, "You're that guy from accounts, right?"); waitForMessage();
+            carol.say("You're that guy from accounts, right?"); waitForMessage();
         }
         else
         {
             egoSay("Greetings, Carol."); waitForMessage();
-            actorSay(carol, "You again?"); waitForMessage();
+            carol.say("You again?"); waitForMessage();
         }
     //}
     endCutscene();
@@ -446,7 +447,7 @@ function plant::onVerb(%this, %verb, %objA, %objB)
                 //{
                     $VAR_EGO.animate(raiseArm);
                     delayFiber(20);
-                    actorSay(carol, "Hey, I haven't cleaned there yet.");
+                    carol.say("Hey, I haven't cleaned there yet.");
                     $OfficeRoom::hasTriedToMovePlant = 1;
                     waitForMessage();
                     $VAR_EGO.animate(lowerArm);
@@ -600,7 +601,7 @@ function plate::onVerb(%this, %verb, %objA, %objB)
                 //{
                     // try { ... }
                     commanderZif.walkTo( 267,116); waitForActor(commanderZif);
-                    actorSay(commanderZif, "I'll operate the one over here."); waitForMessage();
+                    commanderZif.say("I'll operate the one over here."); waitForMessage();
                     delayFiber(20);
                     $VAR_EGO.animate(    raiseArm);
                     commanderZif.animate(raiseArm);
@@ -618,7 +619,7 @@ function plate::onVerb(%this, %verb, %objA, %objB)
                     commanderZif.animate(lowerArm);
                     delayFiber(30);
 
-                    actorSay(commanderZif, "Continue your investigation."); waitForMessage();
+                    commanderZif.say("Continue your investigation."); waitForMessage();
                     commanderZif.walkTo( 200,120);
 
                     // override { ... }

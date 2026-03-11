@@ -608,6 +608,16 @@ void Room::leaveCurrentRoom()
 
 bool Room::processInput(DBIEvent& event)
 {
+   if (!mEnabled || !mInputEnabled)
+   {
+      if (event.capturedControl == this)
+      {
+         event.capturedControl->onLostCapture(event);
+      }
+      
+      return false;
+   }
+   
    // NOTE: we should already be in the correct space
    //forwardEvent(event);
    
@@ -958,16 +968,55 @@ ConsoleFunctionValue(loadRoom, 2, 3, "(room, force)")
 
 ConsoleFunctionValue(getObjectAt, 3, 3, "(x,y)")
 {
+   if (gGlobals.currentRoom)
+   {
+      Point2I thePoint = Point2I(vmPtr->valueAsInt(argv[1]), vmPtr->valueAsInt(argv[2]));
+      DisplayBase* foundObject = gGlobals.currentRoom->getChildAtPoint(thePoint, nullptr, [](void* userPtr, DisplayBase* obj){
+         return dynamic_cast<RoomObject*>(obj) != nullptr;
+      });
+      
+      if (foundObject)
+      {
+         return KorkApi::ConsoleValue::makeUnsigned(foundObject->getId());
+      }
+   }
+   
    return KorkApi::ConsoleValue();
 }
 
 ConsoleFunctionValue(getActorAt, 3, 3, "(x,y)")
 {
+   if (gGlobals.currentRoom)
+   {
+      Point2I thePoint = Point2I(vmPtr->valueAsInt(argv[1]), vmPtr->valueAsInt(argv[2]));
+      DisplayBase* foundObject = gGlobals.currentRoom->getChildAtPoint(thePoint, nullptr, [](void* userPtr, DisplayBase* obj){
+         return dynamic_cast<Actor*>(obj) != nullptr;
+      });
+      
+      if (foundObject)
+      {
+         return KorkApi::ConsoleValue::makeUnsigned(foundObject->getId());
+      }
+   }
+   
    return KorkApi::ConsoleValue();
 }
 
 ConsoleFunctionValue(getVerbAt, 3, 3, "(x,y)")
 {
+   if (RootUI::sMainInstance)
+   {
+      Point2I thePoint = Point2I(vmPtr->valueAsInt(argv[1]), vmPtr->valueAsInt(argv[2]));
+      DisplayBase* foundObject = RootUI::sMainInstance->getChildAtPoint(thePoint, nullptr, [](void* userPtr, DisplayBase* obj){
+         return dynamic_cast<VerbDisplay*>(obj) != nullptr;
+      });
+      
+      if (foundObject)
+      {
+         return KorkApi::ConsoleValue::makeUnsigned(foundObject->getId());
+      }
+   }
+   
    return KorkApi::ConsoleValue();
 }
 

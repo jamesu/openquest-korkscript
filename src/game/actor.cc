@@ -352,6 +352,12 @@ void Actor::walkTo(Point2I pos)
 
 void Actor::onFixedTick(F32 dt)
 {
+  // Don't update if not in current room
+  if (getGroup() != gGlobals.currentRoom)
+  {
+      return;
+  }
+
   if (mTickCounter == 0)
   {
      if (mCostume)
@@ -494,10 +500,13 @@ void Actor::setCostume(SimWorld::Costume* costume)
   {
      mLiveCostume.init(costume->mState);
      mCostume = costume;
-     mLiveCostume.setAnim(costume->mState, StringTable->insert("stand"), 1);
+     mLiveCostume.setAnim(costume->mState, mStandAnim, 1);
      mTickCounter = 0;
      mTalkParams.messageOffset = costume->mBaseTalkPos;
   }
+  
+  // Reset anim to init to be consistent
+  mLiveCostume.setAnim(costume->mState, StringTable->insert("init"), SOUTH);
 }
 
 void Actor::startTalk()
@@ -588,6 +597,7 @@ ConsoleMethodValue(Actor, putAt, 4, 5, "")
    }
    
    object->setPosition(destPoint);
+   object->setDirection(CostumeRenderer::SOUTH);
    
    return KorkApi::ConsoleValue();
 }

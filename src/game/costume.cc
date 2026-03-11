@@ -78,7 +78,6 @@ bool CostumeAnim::shouldWriteLimb(void* obj, StringTableEntry pFieldName)
 CostumeAnim::CostumeAnim()
 {
    memset(mRootLookups, 0, sizeof(mRootLookups));
-   mAnimFlags = 0;
 }
 
 bool CostumeAnim::onAdd()
@@ -98,8 +97,6 @@ void CostumeAnim::initPersistFields()
    addProtectedField("S", TypeLimbControlVector, Offset(mRootLookups[1], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
    addProtectedField("E", TypeLimbControlVector, Offset(mRootLookups[2], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
    addProtectedField("W", TypeLimbControlVector, Offset(mRootLookups[3], CostumeAnim), nullptr, getLimbStorage, enumerateLimbStorage, shouldWriteLimb);
-   
-   addField("flags", TypeS32, Offset(mAnimFlags, CostumeAnim));
 }
 
 Costume::Costume()
@@ -156,7 +153,6 @@ bool Costume::compileCostume()
          {
             CostumeRenderer::AnimDirection animDir = {};
             animDir.startLimbMap = (U32)mState.mLimbMap.size();
-            animDir.flags = anim->mAnimFlags;
             
             for (CostumeAnim::LimbRoot* rootLimb = anim->mRootLookups[i];
                  rootLimb;
@@ -176,6 +172,7 @@ bool Costume::compileCostume()
                CostumeRenderer::AnimLimbMap limbRoot = {};
                limbRoot.targetLimb = localIndex;
                limbRoot.track.startCmd = mState.mCommands.size();
+               limbRoot.track.flags = 0;
                animDir.numLimbs++;
                
                // NOTE: flags are merged into the limb track
@@ -385,7 +382,6 @@ void CostumeRenderer::LiveState::setAnim(StaticState& state, StringTableEntry an
    for (U32 i=0; i<state.mAnims.size(); i++)
    {
       AnimInfo& animInfo = state.mAnims[i];
-      animFlags = animInfo.flags;
       
       if (animInfo.name == animName)
       {
@@ -396,12 +392,17 @@ void CostumeRenderer::LiveState::setAnim(StaticState& state, StringTableEntry an
          {
             AnimLimbMap& limbTrack = state.mLimbMap[dirInfo.startLimbMap + k];
             LimbState& liveLimb = mLimbState[limbTrack.targetLimb];
+            //U32 oldFlags = liveLimb.track.flags;
             liveLimb.track = limbTrack.track;
+            //liveLimb.track.flags = oldFlags;
             liveLimb.nextCmd = 0;
          }
          
          // Track current leading anim
          curAnim = i;
+         
+         // Update initial tick
+         advanceTick(state);
          
          return;
       }

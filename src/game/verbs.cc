@@ -56,7 +56,7 @@ void VerbDisplay::onLostCapture(DBIEvent& event)
 
 bool VerbDisplay::processInput(DBIEvent& event)
 {
-   if (!mEnabled)
+   if (!mEnabled || !mInputEnabled)
    {
       if (event.capturedControl == this)
       {
@@ -72,7 +72,7 @@ bool VerbDisplay::processInput(DBIEvent& event)
          
          if (event.capturedControl == this)
          {
-            Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(4), Con::getIntArg(getId()), Con::getIntArg(0));
+            Con::executef(gGlobals.currentRoom, "inputHandler", Con::getIntArg(3), Con::getIntArg(getId()), Con::getIntArg(0));
          }
          
          break;
@@ -162,6 +162,7 @@ void VerbDisplay::initPersistFields()
    addField("roomObject", TypeSimObjectPtr, Offset(mRoomObject, VerbDisplay));
    addField("displayText", TypeString, Offset(mDisplayText, VerbDisplay));
    addField("enabled", TypeBool, Offset(mEnabled, VerbDisplay));
+   addField("inputEnabled", TypeBool, Offset(mInputEnabled, VerbDisplay));
 }
 
 ConsoleMethodValue(VerbDisplay, setOn, 3, 3, "(enabled)")

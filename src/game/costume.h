@@ -17,8 +17,8 @@ struct CostumeRenderer
     enum AnimFlags
     {
         LOOP=0,
-        NO_LOOP=BIT(1),
-        HIDE=BIT(3)
+        NO_LOOP=BIT(0),
+        HIDE=BIT(2)
     };
    
     enum GlobalFlags
@@ -72,14 +72,12 @@ struct CostumeRenderer
     {
         U32 startLimbMap; // index into AnimLimbMap
         U32 numLimbs;     // x NumDirections
-        U32 flags;        // global anim flags; loop, etc
     };
 
     struct AnimInfo
     {
         AnimDirection directionTracks[NumDirections]; // tracks for each dir
         StringTableEntry name;
-        U32 flags; // loop, etc
     };
    
    struct LimbTrack
@@ -191,7 +189,6 @@ public:
    };
    
    LimbRoot* mRootLookups[CostumeRenderer::NumDirections];
-   U32 mAnimFlags;
    
    static bool getLimbStorage(KorkApi::Vm* vmPtr, void* obj, const KorkApi::FieldInfo* field, KorkApi::ConsoleValue arrayValue, KorkApi::TypeStorageInterface* outStorage, bool writeMode);
    

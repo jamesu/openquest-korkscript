@@ -30,6 +30,8 @@ public:
       HIGHLIGHTED,
       DISABLED
    };
+   
+   using QueryCallback = bool (*)(void* userPtr, DisplayBase* foundObjectPtr);
 
    RectI mBounds;   // Current control pos + extent
    Point2I mAnchor; // 
@@ -47,6 +49,7 @@ public:
    
    bool mCentered;
    bool mEnabled;
+   bool mInputEnabled;
    DisplayState mDisplayState;
    U32 mHotKey;
 
@@ -78,6 +81,8 @@ public:
    void renderChildren(Point2I offset, RectI drawRect, Camera2D& globalCamera);
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera);
+   
+   DisplayBase* getChildAtPoint(Point2I offset, void* userPtr, QueryCallback callback = nullptr);
    
    
 public:

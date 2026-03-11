@@ -55,7 +55,7 @@ new RootUI(RootUI)
 
 //TestActor.setCostume(ZifCostume);
 
-ResRoom.main();
+ResRoom.main(1);
 
 
 RootUI.bringToFront(RootUI->backgroundVerb);

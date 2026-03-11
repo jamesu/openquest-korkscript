@@ -263,8 +263,9 @@ void SentenceQueueManager::execItem()
          KorkApi::ConsoleValue rv = Con::executef(objA, 
                        "spawnFiber", 
                        KorkApi::ConsoleValue::makeUnsigned(SCHEDULE_FLAG_IS_SENTENCE_HANDLER),
-                       KorkApi::ConsoleValue::makeString(verbFunc), 
-                       KorkApi::ConsoleValue::makeUnsigned(lastItem.objA), 
+                       KorkApi::ConsoleValue::makeString(verbFunc),
+                       KorkApi::ConsoleValue::makeUnsigned(lastItem.verb),
+                       KorkApi::ConsoleValue::makeUnsigned(lastItem.objA),
                        KorkApi::ConsoleValue::makeUnsigned(lastItem.objB));
 
          mLastFiber = (KorkApi::FiberId)getVM()->valueAsInt(rv);

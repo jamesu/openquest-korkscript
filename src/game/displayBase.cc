@@ -45,6 +45,7 @@ DisplayBase::DisplayBase()
    mHotSpot = Point2I(0,0);
    mCentered = false;
    mEnabled = true;
+   mInputEnabled = true;
    mHotKey = 0;
    mDisplayState = DEFAULT;
    mFontSize = 10;
@@ -68,6 +69,23 @@ void DisplayBase::onGainedCapture(DBIEvent& event)
 void DisplayBase::onLostCapture(DBIEvent& event)
 {
 
+}
+
+DisplayBase* DisplayBase::getChildAtPoint(Point2I offset, void* userPtr, QueryCallback callback)
+{
+   for (SimObject* obj : objectList)
+   {
+      DisplayBase* displayObj = dynamic_cast<DisplayBase*>(obj);
+      if (displayObj)
+      {
+         if (displayObj->mBounds.pointInRect(offset) && (callback == nullptr || callback(userPtr, displayObj)))
+         {
+            return displayObj;
+         }
+      }
+   }
+   
+   return nullptr;
 }
 
 void DisplayBase::updateLayout(const RectI contentRect)

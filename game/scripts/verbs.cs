@@ -107,6 +107,7 @@ new SimSet(Verbs)
     {
        roomObject = VerbRootBg;
        anchorPoint = 0, 144;
+       inputEnabled = false; 
     };
 
     new VerbDisplay([SntcLine]) {

@@ -59,6 +59,21 @@ new Room(ResRoom)
     };
 };
 
+function EnsignZobClass::isPerson(%this)
+{
+    return true;
+}
+
+function CommanderZifClass::isPerson(%this)
+{
+    return true;
+}
+
+function CarolClass::isPerson(%this)
+{
+    return true;
+}
+
 
 function DisplayBase::isPerson(%this)
 {
@@ -134,13 +149,18 @@ function waitForTurn(%actor)
     }
 }
 
-// Common globals
-$selVerb   = 0;
-$altVerb   = 0;
-$tryPick   = 0;
+// Verb state
+$selVerb   = 0; // (set by mouseWatch and also inputHandler when clicking objects)
+$altVerb   = 0; // suggested default verb (set by mouseWatch)
+$tryPick   = 0; // object we are picking up (set by sentence handler)
+$sntcVerb  = 0; // verb displayed in sentence handler (set by resetSntc and mouse watch)
+$sntcObjA = 0;  // primary object
+$sntcObjB = 0;  // secondary object
 
+// Cursor state
 $cursorOn      = 0;
 $cursorLoaded  = 0;
+
 
 function ResRoom::resetMouseWatch(%this)
 {
@@ -195,6 +215,7 @@ function ResRoom::mouseWatch(%this)
 
     while (true)
     {
+        echo("mouseWatch tick CO=" @ $cursorOn);
         if (!$cursorOn)
         {
             if ($altVerb)
@@ -240,6 +261,10 @@ function ResRoom::mouseWatch(%this)
             }
         }
 
+        echo("FOUND OBJ:" @ %obj SPC %obj.classname);
+        echo("MW SELVERB=" @ $selVerb SPC $selVerb.classname SPC "<<");
+        echo("MW VERB=" @ %vrb);
+
         if (!isObject(%vrb)) 
         {
             %vrb = isObject($selVerb) ? $selVerb : Verbs-->WalkTo;
@@ -258,7 +283,12 @@ function ResRoom::mouseWatch(%this)
             %target = $sntcObjA;
         }
 
-        if (!(%vrb = $sntcVerb 
+        if (%vrb != 0)
+        {
+            echo("VRB KLASS=" @ %vrb.classname);
+        }
+
+        if (!(%vrb == $sntcVerb 
             && %obj == %target))
         {
             $sntcVerb = %vrb;
@@ -366,8 +396,9 @@ function BaseRoom::cutsceneEnd(%type)
 // =========================
 // Sentence helpers
 // =========================
-function BaseRoom::resetSntc(%vrb)
+function BaseRoom::resetSntc(%this, %vrb)
 {
+    echo("RESETSNTNC CALLED");
     $sntcObjA = 0;
 
     if ($sntcPrepo !$= "")
@@ -377,7 +408,15 @@ function BaseRoom::resetSntc(%vrb)
     }
 
     $selVerb = %vrb;
-    
+    //$sntcVerb = %vrb;
+}
+
+function egoSay(%msg)
+{
+    if (isObject($VAR_EGO))
+    {
+        $VAR_EGO.say(%msg);
+    }
 }
 
 // Default verb handlers
@@ -653,7 +692,7 @@ function BaseRoom::keyboardHandler(%this, %key)
             egoSay("Hooo");
             break;
 
-        case %KEY_R:
+        case $KEY_R:
             egoSay("Let's restart."); 
             waitForMessage();
             restartGame();
@@ -679,6 +718,13 @@ function BaseRoom::keyboardHandler(%this, %key)
 function BaseRoom::inputHandler(%this, %area, %cmd, %btn)
 {
     echo("BASE Area=" @ %area @ " cmd=" @ %cmd @ " button=" @ %btn);
+
+    if (cmd == 77)
+    {
+        echo("TEST CMD");
+        return;
+    }
+
     ResRoom.inputDelegate.call(ResRoom.realInputHandler, %area, %cmd, %btn);
     ResRoom.updateSentence(); // in case its updated
 }
@@ -703,10 +749,12 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
 
     if (%area == 3)
     {
+        %verb = %cmd;
+
         // NOTE: cmd is verb object so we can query metadata about it here
         if (%verb.isPreposition)
         {
-            %this.resetSntc();
+            %this.resetSntc(%verb);
             return;
         }
 
@@ -736,6 +784,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     %this.resetMouseWatch();
 
     %prepoSet = $sntcPrepo !$= "";
+    echo("cmd=" @ %cmd @ " PS=" @ %prepoSet SPC "OBJA=" @ $sntcObjA SPC "OBJB=" @ $sntcObjB SPC "VERB=" @ $sntcVerb);
 
     // RMB with no selection cancels walk
     if (%btn == 2 && !(%prepoSet ? $sntcObjB : $sntcObjA))
@@ -749,8 +798,11 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     }
 
     // Clicked an object (room or inventory)
-    if (%prepoSet ? $sntcObjB : $sntcObjA)
+    %clickedObject = %prepoSet ? $sntcObjB : $sntcObjA;
+    if (isObject(%clickedObject))
     {
+        echo("CLICKED OBJECT SNTCVERB=" @ $sntcVerb SPC "KLASS=" @ $sntcVerb.classname);
+
         if (%cmd) 
         {
             $selVerb = $sntcVerb;               // keep displayed verb
@@ -770,7 +822,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     if (%area != 2) return;
 
     // Clicked on empty room space: walk there
-    if ($selVerb) 
+    if ($selVerb != 0) 
     {
         %this.resetSntc(0);
     }
@@ -905,6 +957,11 @@ function ResRoom::main(%this, %bootParam)
     // Boot path
     switch (%bootParam)
     {
+
+        case 3:
+            $OfficeRoom::didOfficeIntro = 0;
+            startRoom(OfficeRoom);
+
         case 2:
             OfficeRoom->exitToSecretRoom.setState(7);
             $OfficeRoom::didOfficeIntro = 1;

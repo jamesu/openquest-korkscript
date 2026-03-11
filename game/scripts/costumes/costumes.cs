@@ -2,8 +2,8 @@
 $LOOP = "FLAG:0";
 $NO_LOOP = "FLAG:1";
 $PING_PONG = "FLAG:2";
-$HIDE = "FLAG:4";
-$FLAG_SHOW= "FLAG:16";
+$HIDE = "HIDE:1";
+$FLAG_SHOW= "SHOW:1";
 
 // imageset flags
 $TRANSPARENT = 1;

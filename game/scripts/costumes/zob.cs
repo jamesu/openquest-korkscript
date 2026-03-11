@@ -80,7 +80,7 @@ new SimSet(zob_ImageSets)
 new Costume(ZobCostume)
 {
     palette = zobPalette;
-    flags   = FLIP;             // costume-wide
+    flags   = $FLIP;             // costume-wide
     limbs   = body, talk_body;  // two limbs
     baseTalkPos = 0, -48;
 
@@ -105,10 +105,10 @@ new Costume(ZobCostume)
         W[body] = zob_ImageSets->standW.pick(0);
         N[body] = zob_ImageSets->standN.pick(0);
         S[body] = zob_ImageSets->standS.pick(0);
-        E[talk_body] = $FLAG_SHOW;
-        W[talk_body] = $FLAG_SHOW;
-        S[talk_body] = $FLAG_SHOW;
-        N[talk_body] = $FLAG_SHOW;
+        E[talk_body] = $HIDE;
+        W[talk_body] = $HIDE;
+        S[talk_body] = $HIDE;
+        N[talk_body] = $HIDE;
     };
 
     // --- Anim: init (same as stand) ---
@@ -123,10 +123,10 @@ new Costume(ZobCostume)
     // --- Anim: talkStart ---
     new CostumeAnim([talkStart])
     {
-        E[talk_body] = zob_ImageSets->talkingE.pick(1,3);   // 0000..0002
-        W[talk_body] = zob_ImageSets->talkingW.pick(1,3);
-        S[talk_body] = zob_ImageSets->talkingS.pick(1,3);
-        N[talk_body] = zob_ImageSets->standN.pick(0), zob_ImageSets->talkingN.pick(2), zob_ImageSets->standN.pick(0);
+        E[talk_body] = $FLAG_SHOW, zob_ImageSets->talkingE.pick(1,3);   // 0000..0002
+        W[talk_body] = $FLAG_SHOW, zob_ImageSets->talkingW.pick(1,3);
+        S[talk_body] = $FLAG_SHOW, zob_ImageSets->talkingS.pick(1,3);
+        N[talk_body] = $FLAG_SHOW, zob_ImageSets->standN.pick(0), zob_ImageSets->talkingN.pick(2), zob_ImageSets->standN.pick(0);
     };
 
     // --- Anim: talkStop ---
@@ -142,22 +142,20 @@ new Costume(ZobCostume)
     new CostumeAnim([raiseArm])
     {
         id = 24;
-        E[body] = zob_ImageSets->raiseArmE.pick(1,2);
-        W[body] = zob_ImageSets->raiseArmE.pick(1,2);
-        N[body] = zob_ImageSets->raiseArmE.pick(1,2);
-        N[body] = zob_ImageSets->standN.pick(0), zob_ImageSets->talkingN.pick(2), zob_ImageSets->standN.pick(0);
-        flags   = $NO_LOOP;
+        E[body] = zob_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        W[body] = zob_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        N[body] = zob_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        N[body] = zob_ImageSets->standN.pick(0), zob_ImageSets->talkingN.pick(2), zob_ImageSets->standN.pick(0), $NO_LOOP;
     };
 
     // --- Anim: lowerArm (@28, one-shot) ---
     new CostumeAnim([lowerArm])
     {
         id = 28;
-        E[body] = zob_ImageSets->raiseArmE.pick(0), zob_ImageSets->standE.pick(0);
-        W[body] = zob_ImageSets->raiseArmE.pick(0), zob_ImageSets->standW.pick(0);
-        N[body] = zob_ImageSets->raiseArmE.pick(0), zob_ImageSets->standN.pick(0);
-        N[body] = zob_ImageSets->standN.pick(0), zob_ImageSets->talkingN.pick(2), zob_ImageSets->standN.pick(0);
-        flags   = $NO_LOOP;
+        E[body] = zob_ImageSets->raiseArmE.pick(0), zob_ImageSets->standE.pick(0), $NO_LOOP;
+        W[body] = zob_ImageSets->raiseArmE.pick(0), zob_ImageSets->standW.pick(0), $NO_LOOP;
+        N[body] = zob_ImageSets->raiseArmE.pick(0), zob_ImageSets->standN.pick(0), $NO_LOOP;
+        N[body] = zob_ImageSets->standN.pick(0), zob_ImageSets->talkingN.pick(2), zob_ImageSets->standN.pick(0), $NO_LOOP;
     };
 
     // --- Anim: scan (@32) ---
@@ -174,22 +172,20 @@ new Costume(ZobCostume)
     new CostumeAnim([fireup])
     {
         // id = 40;
-        E[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1);
-        W[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1);
-        S[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1);
-        N[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1);
-        flags   = $NO_LOOP;
+        E[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1), $NO_LOOP;
+        W[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1), $NO_LOOP;
+        S[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1), $NO_LOOP;
+        N[body] =  zob_ImageSets->aimE.pick(1,2), zob_ImageSets->fireUpE.pick(1), $NO_LOOP;
     };
 
     // --- Anim: beam (@44, one-shot) ---
     new CostumeAnim([beam])
     {
         id = 44;
-        E[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standE.pick(0);
-        W[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standW.pick(0);
-        S[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standS.pick(0);
-        N[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standN.pick(0);
-        flags   = $NO_LOOP;
+        E[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standE.pick(0), $NO_LOOP;
+        W[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standW.pick(0), $NO_LOOP;
+        S[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standS.pick(0), $NO_LOOP;
+        N[body] = zob_ImageSets->beamFx.pick(1,9), zob_ImageSets->standN.pick(0), $NO_LOOP;
     };
 
     // --- Anim: firestraight (@52, one-shot) ---
@@ -200,7 +196,6 @@ new Costume(ZobCostume)
         W[body] =  zob_ImageSets->die.pick(1,8), $NO_LOOP;
         S[body] =  zob_ImageSets->die.pick(1,8), $NO_LOOP;
         N[body] =  zob_ImageSets->die.pick(1,8), $NO_LOOP;
-        flags   = $NO_LOOP;
     };
 };
 
