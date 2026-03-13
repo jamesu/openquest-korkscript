@@ -85,7 +85,7 @@ function DisplayBase::isOpenable(%this)
     return false;
 }
 
-function DisplayBase::getPreposition(%this)
+function DisplayBase::getPreposition(%this, %verb)
 {
     return "";
 }
@@ -538,11 +538,13 @@ function DisplayBase::onOpen(%this, %vrb, %objA, %objB)
     { 
         egoSay("They don't seem to open."); 
         waitForMessage();
+        return;
     }
     if (!%objA.isOpenable()) 
     { 
         egoSay("That doesn't seem to open."); 
         waitForMessage();
+        return;
     }
 
     %objA.setState(%objA, !%objA.getState());
@@ -597,7 +599,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
         %objB = $sntcObjB;
     }
 
-    %owner = %objA.getGroup();
+    %owner = %objA.owner;
 
     // Use/Give must own first
     while (%verb.getInternalName() $= Use || 
@@ -670,6 +672,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
 
     // Dispatch to object verb or fallback
     %handler = on @ %verb.getInternalName();
+    echo("CHECK DOES OBJA HAVE:" @ %handler);
     if (%objA.isMethod(%handler))
     {
         %objA.spawnFiber(0, %handler, %verb, %objA, %objB);
@@ -679,6 +682,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
     }
     else
     {
+        echo("USING DEFAULT");
         %this.defaultAction(%verb, (%act ? %act : %objA), %objB);
     }
 
@@ -698,17 +702,14 @@ function BaseRoom::keyboardHandler(%this, %key)
     {
         case $KEY_O:
             egoSay("Hooo");
-            break;
 
         case $KEY_R:
             egoSay("Let's restart."); 
             waitForMessage();
             restartGame();
-            break;
 
         case $KEY_Q:
             shutdown();
-            break;
     }
 }
 
@@ -726,12 +727,6 @@ function BaseRoom::keyboardHandler(%this, %key)
 function BaseRoom::inputHandler(%this, %area, %cmd, %btn)
 {
     echo("BASE Area=" @ %area @ " cmd=" @ %cmd @ " button=" @ %btn);
-
-    if (cmd == 77)
-    {
-        echo("TEST CMD");
-        return;
-    }
 
     ResRoom.inputDelegate.call(ResRoom.realInputHandler, %area, %cmd, %btn);
     ResRoom.updateSentence(); // in case its updated
@@ -809,7 +804,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     %clickedObject = %prepoSet ? $sntcObjB : $sntcObjA;
     if (isObject(%clickedObject))
     {
-        echo("CLICKED OBJECT SNTCVERB=" @ $sntcVerb SPC "KLASS=" @ $sntcVerb.classname);
+        echo("CLICKED OBJECT SNTCVERB=" @ $sntcVerb SPC "KLASS=" @ $sntcVerb.getClassName() SPC "OBJCLASS=" @ $sntcObjA.getClassName());
 
         if (%cmd) 
         {
@@ -854,7 +849,10 @@ function BaseRoom::inventoryUpdate(%this)
             %obj = $VAR_EGO.findInventory(%i + $invOffset);
             if (isObject(%obj))
             {
-                %verb.setDisplaysObject(%obj);
+                if (%obj.displayIcon !$= "")
+                    %verb.setDisplaysObject(%obj.displayIcon);
+                else
+                    %verb.setDisplaysObject(%obj);
             }
             else
             {
@@ -883,10 +881,15 @@ function ResRoom::quit(%this)
 
 function ResRoom::setupUI(%this)
 {
-    echo("Setup verbs:" SPC Verbs.getCount());
+    Dialog.setupVerbs();
+
     foreach (%verb in Verbs)
     {
        RootUI.add(%verb);
+    }
+    foreach (%verb in DialogVerbs)
+    {
+        RootUI.add(%verb);
     }
 }
 
@@ -952,6 +955,7 @@ function ResRoom::main(%this, %bootParam)
     loadRoom(TitleScreen);
     loadRoom(Skyline);
     loadRoom(SecretRoom);
+    loadRoom(Dialog);
     OfficeRoom.lock();
 
     // Screen height must match room

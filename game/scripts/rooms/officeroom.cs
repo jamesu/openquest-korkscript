@@ -57,14 +57,14 @@ new Room(OfficeRoom)
     boxFile = "graphics/rooms/back01.box";
     zPlane[0] = "graphics/rooms/back01_mask1.bmp";
     zPlane[1] = "graphics/rooms/back01_mask2.bmp";
-    zPlane[2] = "graphics/rooms/back01_mask2.bmp";
+    zPlane[2] = "graphics/rooms/back01_mask3.bmp";
 
     // ---------- Objects ----------
     // Order matters: bullets before plant to draw above it.
-    new RoomObject(bullets)
+    new RoomObject(ObjBullets)
     {
-        basePosition = 112, 80;dir = EAST;
-        descName = "ammunition";
+        anchorPoint = 112, 80;dir = EAST;
+        displayText = "ammunition";
         className = Pickable;  // mirrors { Pickable }
         stateOffset[0] = -8, 16;
         stateBitmap[0] = "graphics/background_items/bullets.bmp";
@@ -74,85 +74,134 @@ new Room(OfficeRoom)
         // Parent gating (exists only when plant is state 2)
         parent       = plant;
         parent_state = 2;
+
+        new RoomObjectState()
+        {
+           hotSpot = -8, 16;
+           image = "graphics/background_items/bullets.bmp";
+        };
     };
 
-    new RoomObject(plant)
+    new RoomObject(ObjPlant)
     {
-        basePosition = 104, 48;dir = EAST;
-        descName = "plant";
-        stateOffset[0] = 0, 48;
-        stateBitmap[0] = "graphics/background_items/plant_unmoved.bmp";
-        stateZPlanes[0] = "", "graphics/background_items/plant_mask2.bmp", "graphics/background_items/plant_unmoved_mask3.bmp";
-
-        stateOffset[1] = 0, 48;
-        stateBitmap[1] = "graphics/background_items/plant_moved.bmp";
-        stateZPlanes[1] = "", "graphics/background_items/plant_mask2.bmp", "graphics/background_items/plant_moved_mask3.bmp";
-        
+        anchorPoint = 104, 48;dir = EAST;
+        displayText = "plant";
         state = 1;
+        
+        new RoomObjectState()
+        {
+           hotSpot = 0, 48;
+           image = "graphics/background_items/plant_unmoved.bmp";
+
+           zPlane[0] = "";
+           zPlane[1] = "graphics/background_items/plant_mask2.bmp";
+           zPlane[2] = "graphics/background_items/plant_unmoved_mask3.bmp";
+         };
+
+
+        new RoomObjectState()
+        {
+           hotSpot = 0, 48;
+           image = "graphics/background_items/plant_moved.bmp";
+
+           zPlane[0] = "";
+           zPlane[1] = "graphics/background_items/plant_mask2.bmp";
+           zPlane[2] = "graphics/background_items/plant_moved_mask3.bmp";
+        };
     };
 
-    new RoomObject(cabinetDrawer)
+    new RoomObject(ObjCabinetDrawer)
     {
-        basePosition = 128, 72;dir = NORTH;
-        descName = "cabinet";
+        anchorPoint = 128, 72;dir = NORTH;
+        displayText = "cabinet";
         className = Openable;
-        stateOffset[0] = 30, 16;
-        stateBitmap[0] = "graphics/background_items/drawer_open.bmp";
-        state = 0;
+        state = 1;
+
+        new RoomObjectState()
+        {
+           hotSpot = 30, 16;
+           image = "graphics/background_items/drawer_open.bmp";
+         };
     };
 
-    new RoomObject(carolObj)
+    new RoomObject(ObjPlate)
     {
-        descName = "Indigenous lifeform";
-    };
-
-    new RoomObject(plate)
-    {
-        basePosition = 248, 64;dir = EAST;
-        extent = 8, 16; hs_x = -14; hs_y = 30;
-        descName = "plate";
+        anchorPoint = 248, 64;dir = EAST;
+        contentSize = 8, 16; hotSpot = -14, 30;
+        displayText = "plate";
     };
 
     new RoomObject(exitToSecretRoom)
     {
-        basePosition = 248, 32;dir = EAST;
-        descName = "secret room";
-        stateOffset[0] = 8, 78;
-        stateBitmap[0] = "graphics/door/door_closed.bmp";
-        stateOffset[1] = 8, 78;
-        stateBitmap[1] = "graphics/door/door_opening_01.bmp";
-        stateOffset[2] = 8, 78;
-        stateBitmap[2] = "graphics/door/door_opening_02.bmp";
-        stateOffset[3] = 8, 78;
-        stateBitmap[3] = "graphics/door/door_opening_03.bmp";
-        stateOffset[4] = 8, 78;
-        stateBitmap[4] = "graphics/door/door_opening_04.bmp";
-        stateOffset[5] = 8, 78;
-        stateBitmap[5] = "graphics/door/door_opening_05.bmp";
-        stateOffset[6] = 8, 78;
-        stateBitmap[6] = "graphics/door/door_open.bmp";
-
+        anchorPoint = 248, 32;dir = EAST;
+        displayText = "secret room";
         state = 1;
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_closed.bmp";
+         };
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_opening_01.bmp";
+         };
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_opening_02.bmp";
+         };
+
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_opening_03.bmp";
+         };
+
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_opening_04.bmp";
+         };
+
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_opening_05.bmp";
+         };
+
+
+        new RoomObjectState()
+        {
+           hotSpot = 8, 78;
+           image = "graphics/door/door_open.bmp";
+         };
     };
 
     new RoomObject(lightSwitch)
     {
-        basePosition = 34, 71;extent = 7, 9;
-        descName = "light switch"; dir = WEST;
+        anchorPoint = 34, 71;contentSize = 7, 9;
+        displayText = "light switch"; dir = WEST;
         hotspot = 20, 40;
     };
 
     new RoomObject(powerSocket)
     {
-        basePosition = 220, 84;extent = 11, 6;
-        descName = "power socket"; dir = NORTH;
+        anchorPoint = 220, 84;contentSize = 11, 6;
+        displayText = "power socket"; dir = NORTH;
         hotspot = 5, 20;
     };
 
     new RoomObject(bulletinBoard)
     {
-        basePosition = 65, 39;extent = 14, 24;
-        descName = "bulletin board"; dir = WEST;
+        anchorPoint = 65, 39;contentSize = 14, 24;
+        displayText = "bulletin board"; dir = WEST;
         hotspot = 20, 46;
     };
 };
@@ -314,27 +363,43 @@ function OfficeRoom::zobTalkToCarol(%this)
     while (true)
     {
         
-        if (!$OfficeRoom::knowsCarol) %sentence = "What is your designation?";
-        Dialog::dialogAdd(%sentence);
-
+        if (!$OfficeRoom::knowsCarol)
+        {
+            Dialog.dialogAdd("What is your designation?");
+        }
+        else
+        {
+            Dialog.dialogAdd("");
+        }
         
-        if (!$OfficeRoom::askedPassageway) %sentence = "What is located through that passageway?";
-        Dialog::dialogAdd(%sentence);
+        if (!$OfficeRoom::askedPassageway) 
+        {
+            Dialog.dialogAdd("What is located through that passageway?");
+        }
+        else
+        {
+            Dialog.dialogAdd("");
+        }
 
-         %sentence = "Stand aside, I need to pass!"; Dialog::dialogAdd(%sentence);
-         %sentence = "Look out behind you, a three-headed monkey!"; Dialog::dialogAdd(%sentence);
+        Dialog.dialogAdd("Stand aside, I need to pass!");
+        Dialog.dialogAdd("Look out behind you, a three-headed monkey!");
 
         
         if ($OfficeRoom::hasTriedToMovePlant && !$OfficeRoom::hasTalkedAboutPlant)
-            %sentence = "May I move this plant?";
-        Dialog::dialogAdd(%sentence);
+        {
+            Dialog.dialogAdd("May I move this plant?");
+        }
+        else
+        {
+            Dialog.dialogAdd("");
+        }
 
-         %sentence = "As you were."; Dialog::dialogAdd(%sentence);
+        Dialog.dialogAdd("As you were.");
         
 
-        Dialog::dialogStart(ZOB_DIM_COLOR, ZOB_COLOR);
+        Dialog.dialogStart($ZOB_DIM_COLOR, $ZOB_COLOR);
         do { breakFiber(); } while ($selectedSentence < 0);
-        Dialog::dialogHide();
+        Dialog.dialogHide();
 
         beginCutscene();
         //{
@@ -344,55 +409,52 @@ function OfficeRoom::zobTalkToCarol(%this)
             switch ($selectedSentence)
             {
                 case 0:
-                    actorSay(carol,"What you on about?"); waitForMessage();
+                    carol.say("What you on about?"); waitForMessage();
                     egoSay("How are you addressed by a superior officer?"); waitForMessage();
-                    actorSay(carol,"Carol."); waitForMessage();
+                    carol.say("Carol."); waitForMessage();
                     egoSay("Greetings, Carol."); waitForMessage();
-                    setObjectName($actorObject[carol], "Carol");
+                    carol.displayText = "Carol";
                     $OfficeRoom::knowsCarol = 1;
                     setCurrentActor($VAR_EGO);
-                    break;
 
                 case 1:
-                    actorSay(carol,"Err, reception, canteen..."); waitForMessage();
+                    carol.say("Err, reception, canteen..."); waitForMessage();
                     egoSay("Any stolen relics within those realms?"); waitForMessage();
-                    actorSay(carol,"Do you mean that new tea maker they installed?"); waitForMessage();
+                    carol.say("Do you mean that new tea maker they installed?"); waitForMessage();
                     egoSay("No."); waitForMessage();
-                    actorSay(carol,"Dunno then."); waitForMessage();
+                    carol.say("Dunno then."); waitForMessage();
                     $OfficeRoom::askedPassageway = 1;
-                    break;
 
                 case 2:
-                    actorSay(carol,"I just cleaned down there, you'll get the floor dirty."); waitForMessage();
+                    carol.say("I just cleaned down there, you'll get the floor dirty."); waitForMessage();
                     egoSay("In which case I shall remain here."); waitForMessage();
-                    break;
 
                 case 3:
-                    actorSay(carol,"Yeah, that's Terry."); waitForMessage();
-                    actorSay(carol,"He works in HR.");   waitForMessage();
-                    break;
+                    carol.say("Yeah, that's Terry."); waitForMessage();
+                    carol.say("He works in HR.");   waitForMessage();
 
                 case 5:
                     // "As you were." -> exit loop after wait below
-                    break;
 
                 case 4:
-                    actorSay(carol,"I haven't cleaned down there yet."); waitForMessage();
+                    carol.say("I haven't cleaned down there yet."); waitForMessage();
                     egoSay("Then by moving the plant I am providing assistance."); waitForMessage();
-                    actorSay(carol,"Oh yeah, go on then."); waitForMessage();
+                    carol.say("Oh yeah, go on then."); waitForMessage();
                     $OfficeRoom::hasTalkedAboutPlant = 1;
-                    break;
             }
 
             waitForMessage();
         //}
         endCutscene();
 
-        Dialog::dialogClear(1);
-        if ($selectedSentence == 5) break;
+        Dialog.dialogClear(1);
+        if ($selectedSentence == 5) 
+        {   
+            break;
+        }
     }
 
-    Dialog::dialogEnd();
+    Dialog.dialogEnd();
 }
 
 
@@ -401,337 +463,314 @@ function OfficeRoom::zobTalkToCarol(%this)
 // =========================
 
 // bullets: simple handlers (no waits) -> function
-function bullets::onVerb(%this, %verb, %objA, %objB)
+function ObjBullets::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
-    {
-        case "LookAt":
-            egoSay("A small box of projectiles.");
-            return;
+    egoSay("A small box of projectiles.");
+}
 
-        case "Preposition":
-            if (%verb $= "Give") $sntcPrepo[0] = "to";
-            else                 $sntcPrepo[0] = "with";
-            return;
+function ObjBullets::getPreposition(%this, %verb)
+{
+    if (%verb.internalName $= "Give") return "to";
+    else                 return "with";
+}
 
-        case "InventoryObject":
-            return InventoryItems->bullets;
-    }
+function ObjBullets::getInventoryObject(%this, %verb, %objA, %objB)
+{
+    return InvBullets;
 }
 
 // plant: uses cutscenes/waits -> script
-function plant::onVerb(%this, %verb, %objA, %objB)
+function ObjPlant::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    if (!$OfficeRoom::hasSeenBullets)
     {
-        case "LookAt":
-            if (!$OfficeRoom::hasSeenBullets)
-            {
-                $OfficeRoom::hasSeenBullets = 1;
-                egoSay("There is a small object behind this plant beyond reach.");
-            }
-            else
-                egoSay("This plant appears to be undergoing photosynthesis.");
-            return;
-
-        case "Move":
-            if (!$OfficeRoom::hasSeenBullets)
-            {
-                egoSay("Moving this would accomplish nothing.");
-                return;
-            }
-
-            if (!$OfficeRoom::hasTalkedAboutPlant)
-            {
-                beginCutscene(0);
-                //{
-                    $VAR_EGO.animate(raiseArm);
-                    delayFiber(20);
-                    carol.say("Hey, I haven't cleaned there yet.");
-                    $OfficeRoom::hasTriedToMovePlant = 1;
-                    waitForMessage();
-                    $VAR_EGO.animate(lowerArm);
-                    delayFiber(30);
-                //}
-                endCutscene();
-                return;
-            }
-
-            if (getObjectState(plant) == 1)
-            {
-                beginCutscene(0);
-                //{
-                    $VAR_EGO.animate(raiseArm);
-                    Office_movePlantSnd.play();
-                    delayFiber(20);
-                    setObjectState(plant, 2);
-                    delayFiber(30);
-                    $VAR_EGO.animate(lowerArm);
-                    delayFiber(30);
-                //}
-                endCutscene();
-
-                egoSay("There is a small box down here.");
-            }
-            else
-            {
-                egoSay("It's fine over there.");
-            }
-            return;
+        $OfficeRoom::hasSeenBullets = 1;
+        egoSay("There is a small object behind this plant beyond reach.");
+    }
+    else
+    {
+        egoSay("This plant appears to be undergoing photosynthesis.");
     }
 }
 
-// cabinetDrawer: uses waits -> script
-function cabinetDrawer::onVerb(%this, %verb, %objA, %objB)
+function ObjPlant::onMove(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    if (!$OfficeRoom::hasSeenBullets)
     {
-        case "LookAt":
-            if (!getObjectState(cabinetDrawer))
-            {
-                egoSay("Some kind of containing vessel for multiple instances of parchment.");
-                return;
-            }
-            // fallthrough to PickUp when open
-
-        case "PickUp":
-            if (!getObjectState(cabinetDrawer))
-            {
-                ResRoom::defaultAction(%verb,%objA,%objB);
-                return;
-            }
-
-            if (getObjectOwner(InventoryItems->gun) == 0xF)
-            {
-                beginCutscene(0);
-                //{
-                    egoSay("I'll look in here I think."); waitForMessage();
-
-                    $VAR_EGO.animate(raiseArm); delayFiber(20);
-                    $VAR_EGO.animate(lowerArm); delayFiber(20);
-
-                    egoSay("There appears to be a small sidearm in this container.");
-                    pickupObject(InventoryItems->gun, InventoryItems);
-                    waitForMessage();
-
-                    $VAR_EGO.animate(raiseArm); delayFiber(20);
-                    $VAR_EGO.animate(lowerArm); delayFiber(20);
-
-                    egoSay("And a plastic card containing some kind of circuitry.");
-                    pickupObject(InventoryItems->card, InventoryItems);
-                //}
-                endCutscene();
-            }
-            else
-            {
-                egoSay("Nothing else in here.");
-            }
-            return;
-
-        case "Open":
-            if (!getObjectState(cabinetDrawer))
-                Office_openCabinetSnd.play();
-            else
-                Office_closeCabinetSnd.play();
-
-            ResRoom::defaultAction(%verb,%objA,%objB);
-            return;
+        egoSay("Moving this would accomplish nothing.");
+        return;
     }
-}
 
-// carolObj: uses waits -> script
-function carolObj::onVerb(%this, %verb, %objA, %objB)
-{
-    switch$ (%verb)
+    if (!$OfficeRoom::hasTalkedAboutPlant)
     {
-        case "TalkTo":
-            OfficeRoom::zobTalkToCarol();
-            return;
-
-        case "LookAt":
-            if (!$OfficeRoom::knowsCarol)
-            {
-                egoSay("A large carbon based mammal, it seems."); waitForMessage();
-            }
-            else
-            {
-                egoSay("It is Carol, one of the local lifeforms.");  waitForMessage();
-            }
-            return;
-
-        case "Smell":
-            egoSay("This creature has an overwhelming pungent smell.");
-            return;
-
-        case "Move":
-            egoSay("The lifeform is surprisingly sturdy, I don't believe I can use force.");
-            return;
-    }
-}
-
-// plate: uses waits/cutscenes -> script
-function plate::onVerb(%this, %verb, %objA, %objB)
-{
-    %i = 0;
-
-    switch$ (%verb)
-    {
-        case "LookAt":
-            egoSay("It appears to be connected to the door mechanism.");
-            return;
-
-        case "Smell":
-            $OfficeRoom::hasSmelledPlate = 1;
-            egoSay("I can smell the residue left by the indigenous lifeforms.");
+        beginCutscene(0);
+        //{
+            $VAR_EGO.animate(raiseArm);
+            delayFiber(20);
+            carol.say("Hey, I haven't cleaned there yet.");
+            $OfficeRoom::hasTriedToMovePlant = 1;
             waitForMessage();
-            egoSay("It must be some kind of pressure plate.");
-            return;
-
-        case "Move" or "Use":
-            if (getObjectState(exitToSecretRoom) == 7)
-            {
-                egoSay("The door is already open.");
-                return;
-            }
-
-            if ($OfficeRoom::hasTalkedAboutPlate)
-            {
-                Actors::pauseRoaming(commanderZif);
-                beginCutscene();
-                //{
-                    // try { ... }
-                    commanderZif.walkTo( 267,116); waitForActor(commanderZif);
-                    commanderZif.say("I'll operate the one over here."); waitForMessage();
-                    delayFiber(20);
-                    $VAR_EGO.animate(    raiseArm);
-                    commanderZif.animate(raiseArm);
-                    delayFiber(30);
-                    Office_openDoorSnd.play();
-
-                    for (%i = 2; %i < 8; %i++)
-                    {
-                        delayFiber(10);
-                        setObjectState(exitToSecretRoom, %i);
-                    }
-
-                    Office_openedDoorSnd.play();
-                    $VAR_EGO.animate(    lowerArm);
-                    commanderZif.animate(lowerArm);
-                    delayFiber(30);
-
-                    commanderZif.say("Continue your investigation."); waitForMessage();
-                    commanderZif.walkTo( 200,120);
-
-                    // override { ... }
-                    if ($VAR_OVERRIDE)
-                    {
-                        stopTalking();
-                        commanderZif.putAt( 200,120, OfficeRoom);
-                        setObjectState(exitToSecretRoom, 7);
-                    }
-                //}
-                endCutscene();
-
-                Actors::resumeRoaming(commanderZif);
-                return;
-            }
-
-            if ($OfficeRoom::hasSmelledPlate)
-            {
-                beginCutscene(2);
-                //{
-                    $OfficeRoom::hasPressedPlate = 1;
-                    $VAR_EGO.animate(raiseArm); delayFiber(30);
-                    $VAR_EGO.animate(lowerArm); delayFiber(30);
-                //}
-                endCutscene();
-                egoSay("Nothing happened."); waitForMessage();
-                egoSay("The two plates appear to be connected.");
-                return;
-            }
-
-            egoSay("I don't know how to use that device.");
-            return;
+            $VAR_EGO.animate(lowerArm);
+            delayFiber(30);
+        //}
+        endCutscene();
+        return;
     }
+
+    if (getObjectState(plant) == 1)
+    {
+        beginCutscene(0);
+        //{
+            $VAR_EGO.animate(raiseArm);
+            Office_movePlantSnd.play();
+            delayFiber(20);
+            setObjectState(plant, 2);
+            delayFiber(30);
+            $VAR_EGO.animate(lowerArm);
+            delayFiber(30);
+        //}
+        endCutscene();
+
+        egoSay("There is a small box down here.");
+    }
+    else
+    {
+        egoSay("It's fine over there.");
+    }
+    return;
+}
+
+function ObjCabinetDrawer::onLookAt(%this, %verb, %objA, %objB)
+{
+    if (!getObjectState(cabinetDrawer))
+    {
+        egoSay("Some kind of containing vessel for multiple instances of parchment.");
+        return;
+    }
+}
+
+function ObjCabinetDrawer::onPickUp(%this, %verb, %objA, %objB)
+{
+    if (!getObjectState(cabinetDrawer))
+    {
+        ResRoom::defaultAction(%verb,%objA,%objB);
+        return;
+    }
+
+    if (getObjectOwner(InventoryItems->gun) == 0xF)
+    {
+        beginCutscene(0);
+        //{
+            egoSay("I'll look in here I think."); waitForMessage();
+
+            $VAR_EGO.animate(raiseArm); delayFiber(20);
+            $VAR_EGO.animate(lowerArm); delayFiber(20);
+
+            egoSay("There appears to be a small sidearm in this container.");
+            pickupObject(InvGun);
+            waitForMessage();
+
+            $VAR_EGO.animate(raiseArm); delayFiber(20);
+            $VAR_EGO.animate(lowerArm); delayFiber(20);
+
+            egoSay("And a plastic card containing some kind of circuitry.");
+            pickupObject(InvCard, InventoryItems);
+        //}
+        endCutscene();
+    }
+    else
+    {
+        egoSay("Nothing else in here.");
+    }
+    return;
+}
+
+function ObjCabinetDrawer::onOpen(%this, %verb, %objA, %objB)
+{
+    if (!getObjectState(cabinetDrawer))
+        Office_openCabinetSnd.play();
+    else
+        Office_closeCabinetSnd.play();
+
+    ResRoom.defaultAction(%verb,%objA,%objB);
+}
+
+function CarolClass::onTalkTo(%this, %verb, %objA, %objB)
+{
+    OfficeRoom.zobTalkToCarol();
+}
+
+function CarolClass::onLookAt(%this, %verb, %objA, %objB)
+{
+    if (!$OfficeRoom::knowsCarol)
+    {
+        egoSay("A large carbon based mammal, it seems."); waitForMessage();
+    }
+    else
+    {
+        egoSay("It is Carol, one of the local lifeforms.");  waitForMessage();
+    }
+}
+
+function CarolClass::onSmell(%this, %verb, %objA, %objB)
+{
+    egoSay("This creature has an overwhelming pungent smell.");
+}
+
+function CarolClass::onMove(%this, %verb, %objA, %objB)
+{
+    egoSay("The lifeform is surprisingly sturdy, I don't believe I can use force.");
+}
+
+function ObjPlate::onLookAt(%this, %verb, %objA, %objB)
+{
+    egoSay("It appears to be connected to the door mechanism.");
+}
+
+function ObjPlate::onSmell(%this)
+{
+    $OfficeRoom::hasSmelledPlate = 1;
+    egoSay("I can smell the residue left by the indigenous lifeforms.");
+    waitForMessage();
+    egoSay("It must be some kind of pressure plate.");
+}
+
+function ObjPlate::onMove(%this)
+{
+    if (getObjectState(exitToSecretRoom) == 7)
+    {
+        egoSay("The door is already open.");
+        return;
+    }
+
+    if ($OfficeRoom::hasTalkedAboutPlate)
+    {
+        Actors::pauseRoaming(commanderZif);
+        beginCutscene();
+        //{
+            // try { ... }
+            commanderZif.walkTo( 267,116); waitForActor(commanderZif);
+            commanderZif.say("I'll operate the one over here."); waitForMessage();
+            delayFiber(20);
+            $VAR_EGO.animate(    raiseArm);
+            commanderZif.animate(raiseArm);
+            delayFiber(30);
+            Office_openDoorSnd.play();
+
+            for (%i = 2; %i < 8; %i++)
+            {
+                delayFiber(10);
+                setObjectState(exitToSecretRoom, %i);
+            }
+
+            Office_openedDoorSnd.play();
+            $VAR_EGO.animate(    lowerArm);
+            commanderZif.animate(lowerArm);
+            delayFiber(30);
+
+            commanderZif.say("Continue your investigation."); waitForMessage();
+            commanderZif.walkTo( 200,120);
+
+            // override { ... }
+            if ($VAR_OVERRIDE)
+            {
+                stopTalking();
+                commanderZif.putAt( 200,120, OfficeRoom);
+                setObjectState(exitToSecretRoom, 7);
+            }
+        //}
+        endCutscene();
+
+        Actors::resumeRoaming(commanderZif);
+        return;
+    }
+
+    if ($OfficeRoom::hasSmelledPlate)
+    {
+        beginCutscene(2);
+        //{
+            $OfficeRoom::hasPressedPlate = 1;
+            $VAR_EGO.animate(raiseArm); delayFiber(30);
+            $VAR_EGO.animate(lowerArm); delayFiber(30);
+        //}
+        endCutscene();
+        egoSay("Nothing happened."); waitForMessage();
+        egoSay("The two plates appear to be connected.");
+        return;
+    }
+
+    egoSay("I don't know how to use that device.");
+}
+
+function ObjPlate::onUse(%this)
+{
+    %this.onMove(%verb, %objA, %objB);
 }
 
 // exitToSecretRoom: uses waitForActor -> script
-function exitToSecretRoom::onVerb(%this, %verb, %objA, %objB)
+function exitToSecretRoom::onWalkTo(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    if (getObjectState(exitToSecretRoom) == 1)
     {
-        case "WalkTo":
-            if (getObjectState(exitToSecretRoom) == 1)
-            {
-                egoSay("It's closed.");
-                return;
-            }
-            walkActorTo($VAR_EGO, 290,110); waitForActor($VAR_EGO);
-            screenEffect(0x0083);
-            startRoom(SecretRoom);
-            return;
+        egoSay("It's closed.");
+        return;
     }
+    walkActorTo($VAR_EGO, 290,110); waitForActor($VAR_EGO);
+    screenEffect(0x0083);
+    startRoom(SecretRoom);
+    return;
 }
 
-// lightSwitch: uses cutscene/waits -> script
-function lightSwitch::onVerb(%this, %verb, %objA, %objB)
+function lightSwitch::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
-    {
-        case "LookAt":
-            egoSay("Some kind of power distribution grid.");
+    egoSay("Some kind of power distribution grid.");
+}
 
-        case "Use":// TOFIX: though this worked?, "Move":
-            if (!getObjectState(lightSwitch))
-            {
-                beginCutscene(0);
-                //{
-                    egoSay("I'll turn this off."); waitForMessage();
-                    $VAR_EGO.animate(raiseArm); delayFiber(20);
-                    Office_switchSnd.play();
-                    setRoomRGBIntensity(143,123,119,0,255);
-                    $VAR_EGO.animate(lowerArm); delayFiber(20);
-                    setObjectState(lightSwitch, 1);
-                //}
-                endCutscene();
-            }
-            else
-            {
-                beginCutscene(0);
-                //{
-                    egoSay("I'll turn this back on."); waitForMessage();
-                    $VAR_EGO.animate(raiseArm); delayFiber(20);
-                    Office_switchSnd.play();
-                    setRoomPalette(0);
-                    $VAR_EGO.animate(lowerArm); delayFiber(20);
-                    setObjectState(lightSwitch, 0);
-                //}
-                endCutscene();
-            }
+function lightSwitch::onUse(%this, %verb, %objA, %objB)
+{
+    if (!getObjectState(lightSwitch))
+    {
+        beginCutscene(0);
+        //{
+            egoSay("I'll turn this off."); waitForMessage();
+            $VAR_EGO.animate(raiseArm); delayFiber(20);
+            Office_switchSnd.play();
+            setRoomRGBIntensity(143,123,119,0,255);
+            $VAR_EGO.animate(lowerArm); delayFiber(20);
+            setObjectState(lightSwitch, 1);
+        //}
+        endCutscene();
+    }
+    else
+    {
+        beginCutscene(0);
+        //{
+            egoSay("I'll turn this back on."); waitForMessage();
+            $VAR_EGO.animate(raiseArm); delayFiber(20);
+            Office_switchSnd.play();
+            setRoomPalette(0);
+            $VAR_EGO.animate(lowerArm); delayFiber(20);
+            setObjectState(lightSwitch, 0);
+        //}
+        endCutscene();
     }
 }
 
 // powerSocket: simple -> function
-function powerSocket::onVerb(%this, %verb, %objA, %objB)
+function powerSocket::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
-    {
-        case "LookAt":
-            egoSay("Some kind of power distribution grid.");
-    }
+    egoSay("Some kind of power distribution grid.");
 }
 
 // bulletinBoard: simple -> function
-function bulletinBoard::onVerb(%this, %verb, %objA, %objB)
+function bulletinBoard::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
-    {
-        case "LookAt":
-            egoSay("This parchment appears to contain some kind of glyphs.\w" @
-                   "Most are directed to an individual called Memorandum.");
+    egoSay("This parchment appears to contain some kind of glyphs.\w" @
+           "Most are directed to an individual called Memorandum.");
+}
 
-        case "Smell":
-            egoSay("The substance fused to this parchment possesses " @
-                   "an interesting aroma.");
-    }
+function bulletinBoard::onSmell(%this, %verb, %objA, %objB)
+{
+    egoSay("The substance fused to this parchment possesses " @
+           "an interesting aroma.");
 }

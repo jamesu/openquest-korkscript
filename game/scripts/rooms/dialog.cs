@@ -26,9 +26,45 @@ $MAX_DIALOG_LINES = 4;
 // =========================
 new Room(Dialog) {};
 
+
+new SimSet(DialogVerbs)
+{
+
+};
+
 // =========================
 // Dialog namespace functions
 // =========================
+
+function Dialog::setupVerbs(%this)
+{
+    %verb = new VerbDisplay([upArrow]) {
+        anchorPoint = 2, 145;
+        displayText = "\x03";
+    };
+    %verb.setOn(false);
+    DialogVerbs.add(%verb);
+
+    %verb = new VerbDisplay([downArrow]) {
+        anchorPoint = 145 + 4 * 11;
+        displayText = "\x02";
+    };
+    %verb.setOn(false);
+    DialogVerbs.add(%verb);
+    
+    for (%i=0; %i<$MAX_DIALOG_LINES; %i++)
+    {
+        %verb = new VerbDisplay([line @ %i]) {
+            anchorPoint = 12, 145 + 11 * %i;
+            line = %i;
+            isLine = true;
+        };
+        %verb.setOn(false);
+        DialogVerbs.add(%verb);
+    }
+
+    %this.numDialog = 0;
+}
 
 // Reset the dialog list
 function Dialog::dialogClear(%this, %kill)
@@ -45,6 +81,7 @@ function Dialog::dialogClear(%this, %kill)
             }
         }
     }
+
     %this.numDialog = 0;
     %this.numActiveDialog = 0;
 }
@@ -52,12 +89,6 @@ function Dialog::dialogClear(%this, %kill)
 // Add an entry to the dialog list
 function Dialog::dialogAdd(%this, %str)
 {
-    if (%this.numDialog >= $MAX_DIALOG_SENTENCE)
-    {
-        echo("Too many sentences, can't add another one.");
-        return;
-    }
-
     %this.dialogList[%this.numDialog] = %str;
     %this.numDialog++;
 
@@ -70,12 +101,6 @@ function Dialog::dialogAdd(%this, %str)
 // Remove an entry; if kill != 0, undim the string too
 function Dialog::dialogRemove(%this, %idx)
 {
-    if (%idx < 0 || %idx >= %this.numDialog)
-    {
-        echo("Dialog index out of range: " @ %idx @ ", can't remove.");
-        return;
-    }
-
     if (%this.dialogList[%idx] !$= "")
     {
         %this.numActiveDialog--;
@@ -98,8 +123,8 @@ function Dialog::showDialog(%this)
     %first = -1; %last = -1;
     %firstSentence = -1; %lastSentence = -1;
 
-    // switch the charset
-    initCharset(ResRoom.dialogCharset);
+    echo("DIALOG STATE IS:");
+    %this.dump();
 
     // Create lines
     %v = 0; %d = 0;
@@ -110,7 +135,10 @@ function Dialog::showDialog(%this)
             continue;
         }
 
-        if (%firstSentence < 0) %firstSentence = %i;
+        if (%firstSentence < 0) 
+        {
+            %firstSentence = %i;
+        }
         %lastSentence = %i;
 
         if (%v < %this.dialogOffset || %v >= %this.dialogOffset + $MAX_DIALOG_LINES)
@@ -119,85 +147,67 @@ function Dialog::showDialog(%this)
             continue;
         }
 
-        if (%first < 0) %first = %i;
+        if (%first < 0) 
+        {
+            %first = %i;
+        }
         %last = %i;
 
+        echo("GETTING VERB OBJECT:" @ %d+2 SPC "FOR INDEX:" @ %i);
+        %verb = DialogVerbs.getObject(%d + 2);
+        echo("TEXT SHOULD BE:" @ %this.dialogList[%i]);
+        %verb.displayText = %this.dialogList[%i];
+        %verb.setOn(true);
 
-        setCurrentVerb($dialogVerb0 + %d);
-        initVerb();
-        setVerbNameString(%this.dialogList[%i]);
-        setVerbXY(12, 145 + 11 * %d);
-        setVerbColor($dialogColor);
-        setVerbHiColor($dialogHiColor);
-        setVerbOn();
-        
+        %verb.color = $dialogColor;
+        %verb.hiColor = $dialogHiColor;
+        %verb.line = %i;
 
-        %v++; %d++;
+        %v++; 
+        %d++;
     }
 
     // Turn off unused lines
     for ( ; %d < $MAX_DIALOG_LINES; %d++)
     {
-        setCurrentVerb($dialogVerb0 + %d);
-        setVerbOff();
-        
+        DialogVerbs.getObject(%d + 2).setOn(false);
     }
 
     echo("Sentence: " @ %firstSentence @ " " @ %lastSentence @ "}");
     echo("Shown: " @ %first @ " " @ %last @ "");
 
     // Up arrow
-    setCurrentVerb(dialogUp);
+    %verb = DialogVerbs->upArrow;
     if (%first > %firstSentence)
     {
-        initVerb();
-        setVerbName("\x03");
-        setVerbXY(2, 145);
-        setVerbColor($dialogColor);
-        setVerbHiColor($dialogHiColor);
-        setVerbOn();
-        
+        %verb.setOn(true);
+        %verb.color = $dialogColor;
+        %verb.hiColor = $dialogHiColor;
     }
     else
     {
-        setVerbOff();
-        
+        %verb.setOn(false);
     }
 
     // Down arrow
-    setCurrentVerb(dialogDown);
+    %verb = DialogVerbs->downArrow;
     if (%last < %lastSentence)
     {
-        initVerb();
-        setVerbName("\x02");
-        setVerbXY(2, 145 + 4 * 11);
-        setVerbColor($dialogColor);
-        setVerbHiColor($dialogHiColor);
-        setVerbOn();
-        
+        %verb.setOn(true);
+        %verb.color = $dialogColor;
+        %verb.hiColor = $dialogHiColor;
     }
     else
     {
-        setVerbOff();
-        
+        %verb.setOn(false);
     }
-
-    // restore default charset
-    initCharset(ResRoom.chtest);
 }
 
 // Handles mouse/keyboard over the dialog UI
 function Dialog::dialogInputHandler(%this, %area, %cmd, %btn)
 {
-    %i = 0; %v = 0; %d = 0;
-
-    echoBegin();
     echo("Area=" @ %area @ " cmd=" @ %cmd @ " button=" @ %btn @ "");
-    echoEnd();
-
-    egoPrintBegin();
-    egoPrintOverhead();
-    actorPrintEnd();
+    $selectedSentence = -1;
 
     // Area 4 is the keyboard
     if (%area == 4)
@@ -207,9 +217,10 @@ function Dialog::dialogInputHandler(%this, %area, %cmd, %btn)
     }
 
     // Scroll arrows
-    if (%cmd == dialogUp || %cmd == dialogDown)
+    if (%cmd.getId() == DialogVerbs->upArrow.getId() || 
+        %cmd.getId() == DialobVerbs->downArrow.getId())
     {
-        %this.dialogOffset += ((%cmd == dialogUp) ? -1 : 1) * ($MAX_DIALOG_LINES / 2);
+        %this.dialogOffset += ((%cmd.getId() == dialogUp.getId()) ? -1 : 1) * ($MAX_DIALOG_LINES / 2);
 
         if (%this.dialogOffset > %this.numActiveDialog - $MAX_DIALOG_LINES)
             %this.dialogOffset = %this.numActiveDialog - $MAX_DIALOG_LINES;
@@ -218,46 +229,30 @@ function Dialog::dialogInputHandler(%this, %area, %cmd, %btn)
             %this.dialogOffset = 0;
 
         echo("Dialog offset: %i{" @ %this.dialogOffset @ "}");
-        Dialog.showDialog();
+        %this.showDialog();
         return;
     }
 
-    if (%cmd < $dialogVerb0 || %cmd > dialogVerb4)
-        return;
-
-    // Find which sentence was clicked
-    %v = 0; %d = 0;
-    for (%i = 0; %i < %this.numDialog; %i++)
+    if (!%cmd.isLine)
     {
-        if (%this.dialogList[%i] $= "") 
-        {
-            continue;
-        }
-
-        if (%v < %this.dialogOffset || %v >= %this.dialogOffset + $MAX_DIALOG_LINES)
-        {
-            %v++;
-            continue;
-        }
-
-        if (%d == (%cmd - $dialogVerb0)) break;
-
-        %v++; %d++;
+        return;
     }
 
-    %this.selectedSentence = %i;
+    echo("SELECTED SENTENCE IS NOW:" @ $selectedSentence);
+    $selectedSentence = %cmd.line;
 }
 
 // Begin a dialog UI session
 function Dialog::dialogStart(%this, %color, %hiColor)
 {
-    %this.selectedSentence = -1;
+    echo("DIALOG START COLORS:" @ %color SPC "HI:" @ %hiColor);
+    $selectedSentence = -1;
     %this.dialogOffset = 0;
 
     if (%this.numDialog < 1)
     {
         echo("No dialog was setup, nothing to show.");
-        %this.selectedSentence = -2;
+        $selectedSentence = -2;
         return;
     }
 
@@ -265,43 +260,41 @@ function Dialog::dialogStart(%this, %color, %hiColor)
     Verbs.showVerbs(0);
 
     // Configure dialog colors and draw UI
-    $dialogColor   = (%color   ? %color   : $VERB_COLOR);
-    $dialogHiColor = (%hiColor ? %hiColor : $VERB_HI_COLOR);
+    $dialogColor   = %color;
+    $dialogHiColor = %hiColor;
     %this.showDialog();
 
     // Stop mouseWatch while dialog is active
-    if (isScriptRunning(ResRoom.mouseWatch))
-        stopScript(ResRoom.mouseWatch);
+    ResRoom.stopMouseWatch();
 
     // Route input to our handler
-    ResRoom.inputDelegate = ResRoom;
-    ResRoom.inputHandler = dialogInputHandler;
+    ResRoom.inputDelegate = Dialog;
+    ResRoom.realInputHandler = dialogInputHandler;
 }
 
 // Hide dialog UI (but do not restore verb bar)
 function Dialog::dialogHide(%this)
 {
-    %i = 0;
-
     for (%i = 0; %i < $MAX_DIALOG_LINES; %i++)
     {
-        setCurrentVerb($dialogVerb0 + %i);
-        setVerbOff();
-        
+        %verb = DialogVerbs.getObject(%i + 2);
+        %verb.setOn(false);
     }
 
-    setCurrentVerb(dialogUp);   setVerbOff(); 
-    setCurrentVerb(dialogDown); setVerbOff(); 
+    DialogVerbs->upArrow.setOn(false);
+    DialogVerbs->downArrow.setOn(false);
 }
 
 // End dialog, restore verb bar + input, restart mouse watch
 function Dialog::dialogEnd(%this)
 {
+    echo("DIALOG ENDED");
     %this.dialogHide();
     Verbs.showVerbs(1);
+
     ResRoom.inputDelegate = ResRoom;
-    ResRoom.inputHandler = defaultInputHandler;
+    ResRoom.realInputHandler = defaultInputHandler;
 
     // Restart the mouse watching thread
-    startRoomScript(ResRoom, mouseWatch);
+    ResRoom.resetMouseWatch();
 }

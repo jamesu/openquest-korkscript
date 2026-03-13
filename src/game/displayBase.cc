@@ -31,6 +31,7 @@ void DisplayBase::initDisplayFields()
    addField("color", TypeColor, Offset(mColor, DisplayBase));
    addField("hiColor", TypeColor, Offset(mHiColor, DisplayBase));
    addField("dimColor", TypeColor, Offset(mDimColor, DisplayBase));
+   addField("contentSize", TypePoint2I, Offset(mMinContentSize, DisplayBase));
 }
 
 DisplayBase::DisplayBase()

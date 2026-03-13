@@ -36,6 +36,14 @@ $RM_PAUSED  = 1;
 $RM_RUNNING = 2;
 
 
+$ZOB_COLOR = "255 64 64 255";
+$ZOB_DIM_COLOR = "255 64 64 255";
+$ZIF_COLOR = "64 64 255 255";
+$ZIF_DIM_COLOR = "64 64 255 255";
+$CAROL_COLOR = "0 255 255 255";
+$CAROL_DIM_COLOR = "0 255 255 255";
+
+
 // =========================
 // Room: Actors
 // =========================
@@ -129,7 +137,6 @@ function Actors::roam(%this, %a)
 
                 echo("" @ %a @ " roam to " @ %dstX @ "x" @ %dstY @ "");
                 %a.walkTo(%dstX, %dstY);
-                break;
         }
 
         delayFiber( getRandom(50,200) );
@@ -223,7 +230,6 @@ function Actors::setupActors(%this)
     %actor.setTalkColor($ZOB_COLOR);
     %actor.setWidth(20);
     %actor.setAnimSpeed(4);
-    // TOFIX %actor.setObjectClass([ 0x80 + Person ]);
     %actor.setPalette(29, 122); // scummvm fix
 
     // Ego
@@ -234,10 +240,9 @@ function Actors::setupActors(%this)
     %actor.setCostume(%commanderZifCost);
     %actor.displayText = ("Commander Zif");
     %actor.setWalkSpeed(2,1);
-    %actor.setTalkColor(ZIF_COLOR);
+    %actor.setTalkColor($ZIF_COLOR);
     %actor.setWidth(20);
     %actor.setAnimSpeed(4);
-    // TOFIX %actor(commanderZif, [ 0x80 + Person ]);
     %actor.setPalette(29, 122); // scummvm fix
 
     // ---- Carol ----
@@ -247,8 +252,7 @@ function Actors::setupActors(%this)
     %actor.setWidth(20);
     %actor.setIgnoreBoxes(true);
     %actor.setAnimSpeed(7);
-    %actor.setTalkColor(CAROL_COLOR);
-    // TOFIX %actor.setObjectClass([ 0x80 + Person ]);
+    %actor.setTalkColor($CAROL_COLOR);
 
     // ---- Blue cup (as actor) ----
     %actor = bluecupActor;
@@ -264,16 +268,15 @@ function Actors::setupActors(%this)
     %actor.setCostume(%cubeCost);
     %actor.displayText = ("cube");
     %actor.setAnimSpeed(2);
-    // TOFIX %actor.setObjectClass([ 0x80 + ClassUntouchable ]);
     %actor.putActorAt(cubeActor,160,98,SecretRoom);
     %actor.setElevation(55);
     %actor.setWidth(0);
 
     // ---- Inventory ----
-    $VAR_EGO.pickupObject( InventoryItems->scanner );
-    //$VAR_EGO.pickupObject( InventoryItems->card );
-    //$VAR_EGO.pickupObject( InventoryItems->gun );
-    //$VAR_EGO.pickupObject( InventoryItems->bullets );
+    $VAR_EGO.pickupObject( InvScanner );
+    //$VAR_EGO.pickupObject( InvCard );
+    //$VAR_EGO.pickupObject( InvGun );
+    //$VAR_EGO.pickupObject( InvBullets );
     $invOffset = 0;
 }
 
@@ -302,15 +305,18 @@ function Actors::zobTalkToZif(%this)
     while (true)
     {
     	%commanderZif = commanderZif;
-        %sentence = "What are your orders?";
         Dialog.dialogAdd("What are your orders?");
 
-        if (OfficeRoom.hasPressedPlate && !OfficeRoom.hasTalkedAboutPlate)
-            %sentence = "I require your assistance with this opening mechanism.";
-        Dialog.dialogAdd(%sentence);
+        if ($OfficeRoom::hasPressedPlate && !$OfficeRoom::hasTalkedAboutPlate)
+        {
+            Dialog.dialogAdd("I require your assistance with this opening mechanism.");
+        }
+        else
+        {
+            Dialog.dialogAdd("");
+        }
 
-        %sentence = "I'll continue my search.";
-        Dialog.dialogAdd(%sentence);
+        Dialog.dialogAdd("I'll continue my search.");
 
         Dialog.dialogStart($ZOB_DIM_COLOR, $ZOB_COLOR);
         do 
@@ -327,13 +333,13 @@ function Actors::zobTalkToZif(%this)
             beginCutscene();
         
             %chosen = Dialog.dialogList[$selectedSentence];
-            egoSay("%s{" @ %chosen @ "");
+            egoSay(%chosen);
             waitForMessage();
+            echo("WE CHOSE: " @ $selectedSentence);
 
             switch ($selectedSentence)
             {
                 case 0:
-                    // try/override pattern preserved
                     if (true)
                     {
                         %commanderZif.say("Locate the stolen artifact.");
@@ -352,11 +358,9 @@ function Actors::zobTalkToZif(%this)
                         waitForMessage();
                     }
                     %forceStopTalking = true;
-                    break;
 
                 case 2:
                     %commanderZif.say("Very good.");
-                    break;
 
                 case 1:
                     %commanderZif.say("Have you deciphered its secrets?");
@@ -365,7 +369,6 @@ function Actors::zobTalkToZif(%this)
                     waitForMessage();
                     %commanderZif.say("In which case I shall follow you, ensign.");
                     OfficeRoom.hasTalkedAboutPlate = 1;
-                    break;
             }
 
             waitForMessage();
@@ -381,7 +384,10 @@ function Actors::zobTalkToZif(%this)
         }
 
         Dialog.dialogClear(1);
-        if ($selectedSentence == 2) break;
+        if ($selectedSentence == 2)
+        {
+            break;
+        }
     }
 
     Dialog.dialogEnd();
@@ -402,11 +408,8 @@ function Actors::zobTalkToZifInSecretRoom(%this)
 
     while (true)
     {
-        %sentence = "What now, Sir?";
-        Dialog.dialogAdd(%sentence);
-
-        %sentence = "I'll continue my search.";
-        Dialog.dialogAdd(%sentence);
+        Dialog.dialogAdd("What now, Sir?");
+        Dialog.dialogAdd("I'll continue my search.");
 
         Dialog.dialogStart($ZOB_DIM_COLOR, $ZOB_COLOR);
         do {
@@ -421,7 +424,7 @@ function Actors::zobTalkToZifInSecretRoom(%this)
             beginCutscene();
 
             %chosen = Dialog.dialogList[$selectedSentence];
-            egoSay("%s{" @ %chosen @ "");
+            egoSay(%chosen);
             waitForMessage();
         	%commanderZif = commanderZif;
 
@@ -439,11 +442,9 @@ function Actors::zobTalkToZifInSecretRoom(%this)
                     }
                     
                     %forceStopTalking = true;
-                    break;
 
                 case 1:
                     %commanderZif.say("Very good.");
-                    break;
             }
 
             waitForMessage();
@@ -459,7 +460,10 @@ function Actors::zobTalkToZifInSecretRoom(%this)
         }
 
         Dialog.dialogClear(1);
-        if ($selectedSentence == 1) break;
+        if ($selectedSentence == 1) 
+        {
+            break;
+        }
     }
 
     Dialog.dialogEnd();
@@ -469,47 +473,43 @@ function Actors::zobTalkToZifInSecretRoom(%this)
 // Verb handlers (RoomObjects)
 // =========================
 
-function CommanderZifClass::onVerb(%this, %verb, %objA, %objB)
+function CommanderZifClass::onTalkTo(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    Actors.pauseRoaming(%this);
+    if ($SecretRoom::cubeDisappeared)
     {
-        case "TalkTo":
-            Actors.pauseRoaming(%this);
-            if ($SecretRoom::cubeDisappeared)
-            {
-            	Actors.handle_zobTalkToZifInSecretRoom = runRoomScript(Actors, zobTalkToZifInSecretRoom);
-                while (isFiberRunning(Actors.handle_zobTalkToZifInSecretRoom))
-                {
-                	breakFiber();
-                }
-                Actors.handle_zobTalkToZifInSecretRoom = 0;
-            }
-            else
-            {
-            	Actors.inst_zobTalkToZif = runRoomScript(Actors, zobTalkToZif);
-                while (isFiberRunning(Actors.inst_zobTalkToZif.isRunning()))
-                {
-                	breakFiber();
-                }
-                Actors.inst_zobTalkToZif = 0;
-            }
-            Actors.resumeRoaming(%this);
-
-        case "LookAt":
-            egoSay("My commanding officer, Commander Zif.");
-
-        case "Smell":
-            Actors.pauseRoaming(%this);
-            egoSay("Is that a new cologne, Sir?");
-            waitForMessage();
-            %this.say("I thought we got past these... feelings.");
-            waitForMessage();
-            egoSay("Sorry, Sir.");
-            Actors.resumeRoaming(%this);
+        Actors.handle_zobTalkToZifInSecretRoom = Actors.spawnFiber(0, zobTalkToZifInSecretRoom);
+        while (isFiberRunning(Actors.handle_zobTalkToZifInSecretRoom))
+        {
+            breakFiber();
+        }
+        Actors.handle_zobTalkToZifInSecretRoom = 0;
     }
+    else
+    {
+        Actors.inst_zobTalkToZif = Actors.spawnFiber(0, zobTalkToZif);
+        while (isFiberRunning(Actors.inst_zobTalkToZif))
+        {
+            breakFiber();
+        }
+        Actors.inst_zobTalkToZif = 0;
+    }
+    Actors.resumeRoaming(%this);
 }
 
-function EnsignZobClass::onVerb(%this, %verb, %objA, %objB)
+function CommanderZifClass::onLookAt(%this, %verb, %objA, %objB)
 {
-    // (empty in original)
+    egoSay("My commanding officer, Commander Zif.");
 }
+
+function CommanderZifClass::onSmell(%this, %verb, %objA, %objB)
+{
+    Actors.pauseRoaming(%this);
+    egoSay("Is that a new cologne, Sir?");
+    waitForMessage();
+    %this.say("I thought we got past these... feelings.");
+    waitForMessage();
+    egoSay("Sorry, Sir.");
+    Actors.resumeRoaming(%this);
+}
+

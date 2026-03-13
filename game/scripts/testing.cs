@@ -70,7 +70,7 @@ new Room(TestRoom)
     {
         anchorPoint = 104, 48;
         dir = $EAST;
-        descName = "plant";
+        displayText = "plant";
         state = 2;
         
         new RoomObjectState()

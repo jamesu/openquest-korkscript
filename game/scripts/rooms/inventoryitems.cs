@@ -31,7 +31,7 @@ new Sound(loadingGunSnd) { path = "loading_gun.soun"; };
 // =========================
 new Room(InventoryItems)
 {
-    new RoomObject([axe])
+    new RoomObject(InvAxe)
     {
         displayText = "the axe";
         state       = 0;
@@ -42,10 +42,10 @@ new Room(InventoryItems)
          };
     };
 
-    new RoomObject([gun])
+    new RoomObject(InvGun)
     {
         displayText = "gun";
-        state       = 0;
+        state       = 1;
         
         new RoomObjectState()
         {
@@ -53,9 +53,10 @@ new Room(InventoryItems)
          };
     };
 
-    new RoomObject([bullets])
+    new RoomObject(InvBullets)
     {
         displayText = "ammunition";
+        state       = 1;
         
         new RoomObjectState()
         {
@@ -63,9 +64,10 @@ new Room(InventoryItems)
          };
     };
 
-    new RoomObject([card])
+    new RoomObject(InvCard)
     {
         displayText = "card";
+        state       = 1;
         
         new RoomObjectState()
         {
@@ -73,9 +75,10 @@ new Room(InventoryItems)
          };
     };
 
-    new RoomObject([batteries])
+    new RoomObject(InvBatteries)
     {
         displayText = "batteries";
+        state       = 1;
         
         new RoomObjectState()
         {
@@ -83,10 +86,10 @@ new Room(InventoryItems)
          };
     };
 
-    new RoomObject([scanner])
+    new RoomObject(InvScanner)
     {
         displayText = "scanner";
-        state       = 0;
+        state       = 1;
         
         new RoomObjectState()
         {
@@ -114,262 +117,248 @@ function InventoryItems::loadGun()
     egoSay("The weapon has been loaded.");
 }
 
-
-// =========================
-// Verb handlers (namespace-bound to object names)
-// Use `script` if any branch may call wait/delay.
-// =========================
-
-// -------- axe --------
-function axe::onVerb(%this, %verb, %objA, %objB)
-{
-    switch$ (%verb)
-    {
-        case "Icon":
-            // Start an object-specific script; preserve SCUMM call shape.
-            //startScript2(%verb, [ InventoryItems::axe, %objA, %objB ]); // TOFIX
-            return;
-    }
-}
+// Verb handlers for items
 
 // -------- gun --------
 // Some branches may call waitForMessage -> script.
-function gun::onVerb(%this, %verb, %objA, %objB)
+function InvGun::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    egoSay("A crude ballistic firearm fashioned from a primitive alloy.");
+}
+
+function InvGun::getPreposition(%this, %verb)
+{
+    if (%verb.internalName $= "Give")
+        $sntcPrepo[0] = "to";
+    else
+        $sntcPrepo[0] = "on";
+}
+
+function InvGun::onUse(%this, %verb, %objA, %objB)
+{
+    switch$ (%objB.getName())
     {
-        case "LookAt":
-            egoSay("A crude ballistic firearm fashioned from a primitive alloy.");
-            return;
-
-        case "Preposition":
-            if (%verb $= "Give")
-                $sntcPrepo[0] = "to";
-            else
-                $sntcPrepo[0] = "on";
-            return;
-
-        case "Use":
-            switch$ (%objB)
+        case "carol":
+            egoSay("Terminating this lifeform could attract unwarranted attention.");
+            if (getObjectState(gun) < 2)
             {
-                case "carol":
-                    egoSay("Terminating this lifeform could attract unwarranted attention.");
-                    if (getObjectState(gun) < 2)
-                    {
-                        waitForMessage();
-                        egoSay("And the weapon is not loaded anyway.");
-                    }
-                    break;
-
-                default:
-                    ResRoom.defaultAction(%verb, %objA, %objB);
+                waitForMessage();
+                egoSay("And the weapon is not loaded anyway.");
             }
-            return;
+            break;
 
-        case "Give":
-            switch$ (%objB)
-            {
-                case "commanderZif":
-                    if (!SecretRoom.hasShotAtNode)
-                    {
-                        egoSay("And lose my advantage?");
-                        return;
-                    }
-                    SecretRoom.outro();
-                    break;
-
-                default:
-                    egoSay("I might need this.");
-            }
-            return;
+        default:
+            ResRoom.defaultAction(%verb, %objA, %objB);
     }
 }
 
-// -------- bullets --------
-function bullets::onVerb(%this, %verb, %objA, %objB)
+function InvGun::onGive(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    switch$ (%objB)
     {
-        case "LookAt":
-            egoSay("This ammunition may be compatible with a projectile weapon.");
-            return;
-
-        case "Preposition":
-            if (%verb $= "Give")
-                $sntcPrepo[0] = "to";
-            else
-                $sntcPrepo[0] = "with";
-            return;
-
-        case "UsedWith":
-        case "Use":
-            switch$ (%objB)
+        case "commanderZif":
+            if (!SecretRoom.hasShotAtNode)
             {
-                case "gun":
-                    %this.loadGun();
-                    break;
-
-                default:
-                    ResRoom.defaultAction(%verb, %objA, %objB);
+                egoSay("And lose my advantage?");
+                return;
             }
-            return;
+            SecretRoom.outro();
+            break;
+
+        default:
+            egoSay("I might need this.");
+    }
+    return;
+}
+
+// -------- bullets --------
+function InvBullets::onLookAt(%this, %verb, %objA, %objB)
+{
+    egoSay("This ammunition may be compatible with a projectile weapon.");
+}
+
+function InvBullets::getPreposition(%this, %verb, %objA, %objB)
+{
+    if (%verb.internalName $= "Give")
+        $sntcPrepo[0] = "to";
+    else
+        $sntcPrepo[0] = "with";
+}
+
+function InvBullets::onUsedWith(%this, %verb, %objA, %objB)
+{
+    %this.onUse(%verb, %objA, %objB);
+}
+
+function InvBullets::onUse(%this, %verb, %objA, %objB)
+{    
+    switch$ (%objB.name)
+    {
+        case "InvGun":
+            %this.loadGun();
+            break;
+
+        default:
+            ResRoom.defaultAction(%verb, %objA, %objB);
     }
 }
 
 // -------- card --------
-// Give->commanderZif branch uses wait -> script.
-function card::onVerb(%this, %verb, %objA, %objB)
+function InvCard::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    egoSay("This device could be used to interact with some form of hardware.");
+}
+
+function InvCard::getPreposition(%this, %verb)
+{
+    if (%verb.internalName $= "Give")
+        $sntcPrepo[0] = "to";
+    else
+        $sntcPrepo[0] = "on";
+}
+
+function InvCard::onUse(%this, %verb, %objA, %objB)
+{
+    switch$ (%objB.getName())
     {
-        case "LookAt":
-            egoSay("This device could be used to interact with some form of hardware.");
-            return;
+        case "InvScanner":
+            egoSay("The key isn't compatible with this model.");
+            break;
 
-        case "Preposition":
-            if (%verb $= "Give")
-                $sntcPrepo[0] = "to";
-            else
-                $sntcPrepo[0] = "on";
-            return;
+        default:
+            ResRoom.defaultAction(%verb, %objA, %objB);
+            break;
+    }
+}
 
-        case "Use":
-            switch$ (%objB)
-            {
-                case "scanner":
-                    egoSay("The key isn't compatible with this model.");
-                    break;
+function InvCard::onGive(%this, %verb, %objA, %objB)
+{
+    switch$ (%objB.getName())
+    {
+        case "carol":
+            carol.say(
+                "I see you've got mainframe clearance.\w" @
+                "I'm gonna be dusting in there soon.\w" @
+                "Try and keep it tidy.");
+            break;
 
-                default:
-                    ResRoom.defaultAction(%verb, %objA, %objB);
-                    break;
-            }
-            return;
+        case "commanderZif":
+            Actors.pauseRoaming(commanderZif);
+            commanderZif.say(
+                "Excellent work Zob, a key.\w" @
+                "Keep this, use it to infiltrate the mainframe.");
+            waitForMessage();
+            Actors.resumeRoaming(commanderZif);
+            break;
 
-        case "Give":
-            switch$ (%objB)
-            {
-                case "carol":
-                    actorSay(carol,
-                        "I see you've got mainframe clearance.\w" @
-                        "I'm gonna be dusting in there soon.\w" @
-                        "Try and keep it tidy.");
-                    break;
-
-                case "commanderZif":
-                    Actors::pauseRoaming(commanderZif);
-                    actorSay(commanderZif,
-                        "Excellent work Zob, a key.\w" @
-                        "Keep this, use it to infiltrate the mainframe.");
-                    waitForMessage();
-                    Actors::resumeRoaming(commanderZif);
-                    break;
-
-                default:
-                    ResRoom.defaultAction(%verb, %objA, %objB);
-                    break;
-            }
-            return;
+        default:
+            ResRoom.defaultAction(%verb, %objA, %objB);
+            break;
     }
 }
 
 // -------- batteries --------
-function batteries::onVerb(%this, %verb, %objA, %objB)
+function InvBatteries::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    egoSay("They used to power the hand scanner.");
+}
+
+function InvBatteries::getPreposition(%this, %verb)
+{
+    if (%verb.internalName $= "Give")
+        $sntcPrepo[0] = "to";
+    else
+        $sntcPrepo[0] = "with";
+}
+
+function InvBatteries::onUse(%this, %verb, %objA, %objB)
+{
+    switch$ (%objB.getName())
     {
-        case "LookAt":
-            egoSay("They used to power the hand scanner.");
-            return;
+        case "InvScanner":
+            egoSay("They won't go back in.");
+            break;
 
-        case "Preposition":
-            if (%verb $= "Give")
-                $sntcPrepo[0] = "to";
-            else
-                $sntcPrepo[0] = "with";
-            return;
-
-        case "Use":
-            switch$ (%objB)
-            {
-                case "scanner":
-                    egoSay("They won't go back in.");
-                    break;
-
-                default:
-                    ResRoom.defaultAction(%verb, %objA, %objB);
-                    break;
-            }
-            return;
+        default:
+            ResRoom.defaultAction(%verb, %objA, %objB);
+            break;
     }
 }
 
 // -------- scanner --------
-// Multiple waits/delays -> script.
-function scanner::onVerb(%this, %verb, %objA, %objB)
+function InvScanner::onLookAt(%this, %verb, %objA, %objB)
 {
-    switch$ (%verb)
+    egoSay("Standard issue hand scanner.");
+    waitForMessage();
+    egoSay("Detects most of the EM spectrum.");
+}
+
+function InvScanner::onUse(%this, %verb, %objA, %objB)
+{
+    if (getObjectState(scanner) == 2)
     {
-        case "LookAt":
-            egoSay("Standard issue hand scanner.");
-            waitForMessage();
-            egoSay("Detects most of the EM spectrum.");
-            return;
+        egoSay("The scanner no longer functions.");
+        return;
+    }
+    egoSay("I'll scan the area.");
+    waitForMessage();
 
-        case "Use":
-            if (getObjectState(scanner) == 2)
-            {
-                egoSay("The scanner no longer functions.");
-                return;
-            }
-            egoSay("I'll scan the area.");
-            waitForMessage();
+    $VAR_EGO.animate(scan); delayFiber(30);
+    $VAR_EGO.animate(scan); delayFiber(30);
+    $VAR_EGO.animate(scan); delayFiber(30);
 
-            $VAR_EGO.animate(zob_anim_scan); delayFiber(30);
-            $VAR_EGO.animate(zob_anim_scan); delayFiber(30);
-            $VAR_EGO.animate(zob_anim_scan); delayFiber(30);
+    if (getActorRoom(VAR_EGO) == SecretRoom)
+        egoSay("The artifact is in this room.");
+    else
+        egoSay("I am detecting the artifact near this location.");
+    return;
+}
 
-            if (getActorRoom(VAR_EGO) == SecretRoom)
-                egoSay("The artifact is in this room.");
-            else
-                egoSay("I am detecting the artifact near this location.");
-            return;
-
-        case "Preposition":
-            if (%verb $= "Give")
-                $sntcPrepo[0] = "to";
-            return;
-
-        case "Give":
-            switch$ (%objB)
-            {
-                case "commanderZif":
-                    Actors::pauseRoaming(commanderZif);
-                    actorSay(commanderZif,"You're the scientist on this team, you use it.");
-                    waitForMessage();
-                    Actors::resumeRoaming(commanderZif);
-                    break;
-
-                default:
-                    ResRoom.defaultAction(%verb, %objA, %objB);
-            }
-            return;
-
-        case "Open":
-            if (getObjectState(scanner) == 2)
-            {
-                egoSay("The casing appears to be broken.");
-                return;
-            }
-            egoSay("I'll open up the housing.");
-            waitForMessage();
-
-            // Drop batteries into inventory
-            pickupObject(batteries, InventoryItems);
-
-            setObjectState(%objA, 2);
-            drawObject(%objA, 2);
-            egoSay("The batteries have fallen out.");
-            return;
+function InvScanner::getPreposition(%this, %verb)
+{
+    if (%verb.internalName $= "Give")
+    {
+        return "to";
+    }
+    else
+    {
+        return "";
     }
 }
+
+function InvScanner::onGive(%this, %verb, %objA, %objB)
+{
+    switch$ (%objB)
+    {
+        case "commanderZif":
+            Actors.pauseRoaming(commanderZif);
+            actorSay(commanderZif,"You're the scientist on this team, you use it.");
+            waitForMessage();
+            Actors.resumeRoaming(commanderZif);
+            break;
+
+        default:
+            ResRoom.defaultAction(%verb, %objA, %objB);
+    }
+    return;
+}
+
+function InvScanner::onOpen(%this, %verb, %objA, %objB)
+{
+    if (getObjectState(scanner) == 2)
+    {
+        egoSay("The casing appears to be broken.");
+        return;
+    }
+    egoSay("I'll open up the housing.");
+    waitForMessage();
+
+    // Drop batteries into inventory
+    $VAR_EGO.pickupObject(InvBatteries);
+
+    setObjectState(%objA, 2);
+    drawObject(%objA, 2);
+    egoSay("The batteries have fallen out.");
+    return;
+}
+

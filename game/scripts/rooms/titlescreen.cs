@@ -26,15 +26,12 @@ new Room(TitleScreen)
 
 function TitleScreen::onEntry(%this)
 {
-    echo("DBG: transition done");
     Verbs.showVerbs(0);
 }
 
 function TitleScreen::inputHandler(%this, %area, %cmd, %btn)
 {
-    echo("TitleScreen inputHandler");
     %this.setTransitionMode(2, 0, 0.25);
     startRoom(Skyline);
 }
 
-echo("LOADED TITLE");

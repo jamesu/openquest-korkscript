@@ -720,7 +720,7 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       return;
    }
    
-   bool debug = false;
+   bool debug = true;
 
    U32 curStateIndex = mState-1;
    if (curStateIndex < objectList.size())
@@ -742,8 +742,9 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    // debug
    if (debug)
    {
-      DrawCircle(mAnchor.x, mAnchor.y, 2, GREEN);
-      DrawRectangleLines(offset.x, offset.y, mBounds.extent.x, mBounds.extent.y, GREEN);
+      Point2I actualStart = (offset - mAnchor) + mBounds.point;
+      DrawCircle(mAnchor.x, mAnchor.y, 2, RED);
+      DrawRectangleLines(actualStart.x, actualStart.y, mBounds.extent.x, mBounds.extent.y, GREEN);
    }
 }
 

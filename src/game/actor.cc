@@ -221,14 +221,16 @@ void ActorWalkState::adjustWalkTarget(Actor& actor)
 void Actor::initPersistFields()
 {
    Parent::initPersistFields();
+   registerClassNameFields(true);
 
-   addField("descName", TypeString, Offset(mDescName, Actor));
+   addField("displayText", TypeString, Offset(mDisplayText, Actor));
 
    initDisplayFields();
 }
 
 Actor::Actor()
 {
+   mNSLinkMask = LinkClassName;
   mCostume = nullptr;
   mTickCounter = 0;
   mTickSpeed = 4;
@@ -705,9 +707,11 @@ ConsoleMethodValue(Actor, setElevation, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, setTalkColor, 6, 6, "")
+ConsoleMethodValue(Actor, setTalkColor, 3, 3, "")
 {
-   object->mTalkParams.displayColor = (Color){(U8)vmPtr->valueAsInt(argv[2]), (U8)vmPtr->valueAsInt(argv[3]), (U8)vmPtr->valueAsInt(argv[4]), (U8)vmPtr->valueAsInt(argv[5])};
+   Color outColor = {};
+   vmPtr->castToField(1, &argv[2], &outColor, argv[2].typeId, TypeColor);
+   object->mTalkParams.displayColor = outColor;
    return KorkApi::ConsoleValue();
 }
 

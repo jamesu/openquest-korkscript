@@ -158,7 +158,7 @@ public:
    StringTableEntry mStartTalkAnim;
    StringTableEntry mStopTalkAnim;
    
-   StringTableEntry mDescName;
+   StringTableEntry mDisplayText;
    
    std::vector<SimObjectId> mInventory;
 
