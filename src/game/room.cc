@@ -681,6 +681,47 @@ void RoomObject::onRemove()
    Parent::onRemove();
 }
 
+bool RoomObject::setState(void* userPtr,
+                               KorkApi::Vm* vmPtr,
+                               KorkApi::TypeStorageInterface* inputStorage,
+                               KorkApi::TypeStorageInterface* outputStorage,
+                               void* fieldUserPtr,
+                               BitSet32 flag,
+                               U32 requestedType)
+{
+   SimGroup *parent = nullptr;
+   
+   if (inputStorage->isField)
+   {
+      // Get
+      RoomObject *inObject = static_cast<RoomObject*>(inputStorage->fieldObject);
+      if (inObject == nullptr)
+      {
+         return false;
+      }
+      *outputStorage->data.storageRegister = KorkApi::ConsoleValue::makeUnsigned(inObject->mState);
+   }
+   else if (outputStorage->isField)
+   {
+      // Set
+      RoomObject *outObject = static_cast<RoomObject*>(outputStorage->fieldObject);
+      if (outObject == nullptr || inputStorage->data.argc != 1)
+      {
+         return false;
+      }
+      
+      U32 state = vmPtr->valueAsInt(*inputStorage->data.storageRegister);
+      outObject->mState = state;
+      outObject->updateLayout(RectI(0,0,0,0));
+   }
+   else
+   {
+      return false;
+   }
+   
+   return true;
+}
+
 void RoomObject::updateLayout(const RectI contentRect)
 {
    if (mState == 0)
@@ -704,6 +745,11 @@ void RoomObject::onPickedUpBy(Actor* act)
    mOwner = act;
    mState = 1;
    mInputEnabled = false;
+}
+
+void RoomObject::onDroppedBy(Actor* act)
+{
+   mOwner = nullptr;
 }
 
 void RoomObject::onDropped()
@@ -775,7 +821,7 @@ void RoomObject::initPersistFields()
    registerClassNameFields(false);
    
    addField("descName", TypeString, Offset(mDescription, RoomObject));
-   addField("state", TypeS32, Offset(mState, RoomObject));
+   addProtectedField("state", TypeS32, Offset(mState, RoomObject), setState, nullptr, "");
    addField("dir", TypeS32, Offset(mDirection, RoomObject));
    addField("trans", TypeS32, Offset(mTransFlags, RoomObject));
    addField("hotSpot", TypePoint2I, Offset(mHotspot, RoomObject));

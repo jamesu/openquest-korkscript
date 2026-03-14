@@ -42,6 +42,11 @@ $SCHEDULE_SENTENCE_BUSY = 0x40;
 // Exception flags
 $CUTSCENE_OVERRIDE = 0x1;
 
+$NORTH = 0;
+$SOUTH = 1;
+$EAST = 2;
+$WEST = 3;
+
 new ImageSet(CursorImg)   { path = "graphics/cursor/cursor.bmp"; flags = TRANSPARENT; };
 
 // Cursor sprite shown as a room object (for hit/mask parity with SCUMMC)
@@ -436,21 +441,15 @@ function DisplayBase::onWalkTo(%this)
 {
 }
 
-function DisplayBase::onPickUp(%this, %vrb, %objA, %objB)
+function DisplayBase::doPickUp(%this, %invObject)
 {
-    if (%objA.isMethod(onPickup))
-    {
-        %returnValue = %objA.onPickup();
+    $VAR_EGO.pickupObject(%invObject);
+    %this.setState(0);
+}
 
-        if (%returnValue !$= "")
-        {
-            $VAR_EGO.pickupObject(%returnValue);
-            %objA.setState(0);
-            return;
-        }
-    }
-
-    if (%objA.isPerson())
+function DisplayBase::onInvalidPickup(%this)
+{
+    if (%this.isPerson())
     {
         egoSay("I don't need them.");
     }
@@ -547,11 +546,10 @@ function DisplayBase::onOpen(%this, %vrb, %objA, %objB)
         return;
     }
 
-    %objA.setState(%objA, !%objA.getState());
-    if (isMethod(%objA, SetBoxes))
-    {
-        // TOFIX startObject2(%objA, SetBoxes, [ %vrb, %objA ]);
-    }
+    nop();
+    //echo("SET OBJ:" @ %objA.getName() SPC "STATE -> " @ %objA.state);
+    %objA.state = %objA.state == 1 ? 2 : 1;
+    echo("STATE NOW:" @ %objA.state);
 }
 
 function DisplayBase::onSmell(%this, %vrb, %objA, %objB)
@@ -582,12 +580,20 @@ function DisplayBase::onTalkTo(%this, %vrb, %objA, %objB)
 
 function DisplayBase::onDefaultAction(%this, %vrb, %objA, %objB)
 {
-    egoSay("Hmm. No.");
-    waitForMessage();
+    if (%vrb.internalName $= PickUp)
+    {
+        %this.onInvalidPickup();
+        return;
+    }
+    else
+    {
+        egoSay("Hmm. No.");
+        waitForMessage();
+    }
 }
 
 // sentenceHandler uses waits -> script
-function ResRoom::sentenceHandler(%verb, %objA, %objB)
+function BaseRoom::onSentence(%this, %verb, %objA, %objB)
 {
     %owner = 0; 
     %act = 0;
@@ -600,6 +606,8 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
     }
 
     %owner = %objA.owner;
+    echo("ONSENTENCE A=" @ %objA SPC "b=" @ %objB);
+    echo("OWNER IS:" @ %owner SPC "EGO IS:" @ $VAR_EGO);
 
     // Use/Give must own first
     while (%verb.getInternalName() $= Use || 
@@ -610,6 +618,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
             // NOTE: this is a script in SCUMM, instead we use a method.
             if (%objA.isMethod(getPreposition))
             {
+                echo("TRY SET sntcPrepo");
                 $sntcPrepo = %objA.getPreposition(%verb);
                 if ($sntcPrepo !$= "") 
                 { 
@@ -627,7 +636,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
                 return;
             }
 
-            if (isMethod(%objA, onPickup))
+            if (%objA.isMethod(onPickup))
             {
                 $tryPick = %objA.onPickup(%objA);
             }
@@ -637,6 +646,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
             }
 
             // Try alternate sentences
+            echo("TRYING ALTERNATE SENTENCES");
             SentenceQueue.push(%verb, $tryPick, %objB);
             SentenceQueue.push(Verbs-->PickUp, %objA, 0);
             return;
@@ -659,7 +669,8 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
         %targetObject = %objB;
     }
 
-    if (isObject(%targetObject))
+    if (isObject(%targetObject) && 
+        %targetObject.owner == 0)
     {
         $VAR_EGO.walkToObject(%targetObject);
         waitForActor($VAR_EGO);
@@ -673,6 +684,7 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
     // Dispatch to object verb or fallback
     %handler = on @ %verb.getInternalName();
     echo("CHECK DOES OBJA HAVE:" @ %handler);
+    echo("OBJB IS:" @ %objB);
     if (%objA.isMethod(%handler))
     {
         %objA.spawnFiber(0, %handler, %verb, %objA, %objB);
@@ -683,7 +695,8 @@ function ResRoom::sentenceHandler(%verb, %objA, %objB)
     else
     {
         echo("USING DEFAULT");
-        %this.defaultAction(%verb, (%act ? %act : %objA), %objB);
+        %defaultObj = (%act ? %act : %objA);
+        %defaultObj.onDefaultAction(%verb, %defaultObj, %objB);
     }
 
     // If verb needs objB, stop now
@@ -804,7 +817,7 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
     %clickedObject = %prepoSet ? $sntcObjB : $sntcObjA;
     if (isObject(%clickedObject))
     {
-        echo("CLICKED OBJECT SNTCVERB=" @ $sntcVerb SPC "KLASS=" @ $sntcVerb.getClassName() SPC "OBJCLASS=" @ $sntcObjA.getClassName());
+        //echo("CLICKED OBJECT SNTCVERB=" @ $sntcVerb SPC "KLASS=" @ $sntcVerb.getClassName() SPC "OBJCLASS=" @ $sntcObjA.getClassName());
 
         if (%cmd) 
         {

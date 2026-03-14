@@ -174,11 +174,20 @@ public:
    void updateResources();
    void updateLayout(const RectI contentRect);
    void onPickedUpBy(Actor* act);
+   void onDroppedBy(Actor* act);
    void onDropped();
 
    bool onAdd();
    
    void onRemove();
+
+   static bool setState(void* userPtr,
+                               KorkApi::Vm* vmPtr,
+                               KorkApi::TypeStorageInterface* inputStorage,
+                               KorkApi::TypeStorageInterface* outputStorage,
+                               void* fieldUserPtr,
+                               BitSet32 flag,
+                        U32 requestedType);
 
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCam);
 

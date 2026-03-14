@@ -809,4 +809,31 @@ ConsoleMethodValue(Actor, pickupObject, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
+ConsoleMethodValue(Actor, removeInventory, 3, 3, "")
+{
+   RoomObject* pickedObject = nullptr;
+   if (Sim::findObject(argv[2], pickedObject))
+   {
+      auto itr = std::find(object->mInventory.begin(), object->mInventory.end(), pickedObject->getId());
+      if (itr != object->mInventory.end())
+      {
+         object->mInventory.erase(itr);
+         pickedObject->onDroppedBy(object);
+         
+         // Run inventory handler
+         if (gGlobals.currentRoom)
+         {
+            SimFiberManager::ScheduleInfo initialInfo = {};
+            initialInfo.waitMode = SimFiberManager::WAIT_REMOVE;
+            initialInfo.param.flagMask = SCHEDULE_FLAG_IS_ROOM_CALLBACK;
+            KorkApi::ConsoleValue cv[2];
+            cv[0] = KorkApi::ConsoleValue::makeString("inventoryUpdate");
+            KorkApi::FiberId fiberId = gFiberManager->spawnFiber(gGlobals.currentRoom, 2, cv, initialInfo);
+         }
+      }
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
 END_SW_NS

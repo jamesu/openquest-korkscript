@@ -204,7 +204,7 @@ int main(int argc, char **argv)
          
          BeginDrawing();
          
-         ClearBackground(RAYWHITE);
+         ClearBackground(BLACK);
          BeginMode2D(cam);
          
          if (SimWorld::RootUI::sMainInstance)

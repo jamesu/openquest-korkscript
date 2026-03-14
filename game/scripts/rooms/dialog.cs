@@ -123,8 +123,8 @@ function Dialog::showDialog(%this)
     %first = -1; %last = -1;
     %firstSentence = -1; %lastSentence = -1;
 
-    echo("DIALOG STATE IS:");
-    %this.dump();
+    //echo("DIALOG STATE IS:");
+    //%this.dump();
 
     // Create lines
     %v = 0; %d = 0;
@@ -173,9 +173,6 @@ function Dialog::showDialog(%this)
         DialogVerbs.getObject(%d + 2).setOn(false);
     }
 
-    echo("Sentence: " @ %firstSentence @ " " @ %lastSentence @ "}");
-    echo("Shown: " @ %first @ " " @ %last @ "");
-
     // Up arrow
     %verb = DialogVerbs->upArrow;
     if (%first > %firstSentence)
@@ -207,6 +204,12 @@ function Dialog::showDialog(%this)
 function Dialog::dialogInputHandler(%this, %area, %cmd, %btn)
 {
     echo("Area=" @ %area @ " cmd=" @ %cmd @ " button=" @ %btn @ "");
+
+    if (!isObject(%cmd))
+    {
+        return;
+    }
+    
     $selectedSentence = -1;
 
     // Area 4 is the keyboard
@@ -228,7 +231,6 @@ function Dialog::dialogInputHandler(%this, %area, %cmd, %btn)
         if (%this.dialogOffset < 0)
             %this.dialogOffset = 0;
 
-        echo("Dialog offset: %i{" @ %this.dialogOffset @ "}");
         %this.showDialog();
         return;
     }
@@ -238,14 +240,12 @@ function Dialog::dialogInputHandler(%this, %area, %cmd, %btn)
         return;
     }
 
-    echo("SELECTED SENTENCE IS NOW:" @ $selectedSentence);
     $selectedSentence = %cmd.line;
 }
 
 // Begin a dialog UI session
 function Dialog::dialogStart(%this, %color, %hiColor)
 {
-    echo("DIALOG START COLORS:" @ %color SPC "HI:" @ %hiColor);
     $selectedSentence = -1;
     %this.dialogOffset = 0;
 

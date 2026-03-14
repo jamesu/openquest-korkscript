@@ -120,6 +120,12 @@ new Room(OfficeRoom)
         new RoomObjectState()
         {
            hotSpot = 30, 16;
+           image = "graphics/background_items/drawer_closed.bmp";
+         };
+
+        new RoomObjectState()
+        {
+           hotSpot = 30, 16;
            image = "graphics/background_items/drawer_open.bmp";
          };
     };
@@ -313,7 +319,7 @@ function OfficeRoom::onEntry(%this)
                 ensignZob.putAt(   115,120, OfficeRoom);
                 setActorStanding();
                 carol.animate(stand);
-                Actors::setZifOffThePhone();
+                Actors.setZifOffThePhone();
             }
         //}
         endCutscene();
@@ -329,9 +335,9 @@ function OfficeRoom::onEntry(%this)
 
     if (%firstInit)
     {
-        Verbs::showVerbs(1);
+        Verbs.showVerbs(1);
         delayFiber(getRandomNumberRange(20,60));
-        Actors::startRoaming(commanderZif, 20,260, 105,130);
+        Actors.startRoaming(commanderZif, 20,260, 105,130);
     }
 }
 
@@ -404,7 +410,7 @@ function OfficeRoom::zobTalkToCarol(%this)
         beginCutscene();
         //{
             %chosen = Dialog.dialogList[$selectedSentence];
-            egoSay("%s{" @ %chosen @ "}"); waitForMessage();
+            egoSay(%chosen); waitForMessage();
 
             switch ($selectedSentence)
             {
@@ -474,9 +480,9 @@ function ObjBullets::getPreposition(%this, %verb)
     else                 return "with";
 }
 
-function ObjBullets::getInventoryObject(%this, %verb, %objA, %objB)
+function ObjBullets::onPickUp(%this, %verb, %objA, %objB)
 {
-    return InvBullets;
+    %this.doPickup(InvBullets);
 }
 
 // plant: uses cutscenes/waits -> script
@@ -517,14 +523,14 @@ function ObjPlant::onMove(%this, %verb, %objA, %objB)
         return;
     }
 
-    if (getObjectState(plant) == 1)
+    if (%this.state == 1)
     {
         beginCutscene(0);
         //{
             $VAR_EGO.animate(raiseArm);
             Office_movePlantSnd.play();
             delayFiber(20);
-            setObjectState(plant, 2);
+            %this.state = 2;
             delayFiber(30);
             $VAR_EGO.animate(lowerArm);
             delayFiber(30);
@@ -542,22 +548,27 @@ function ObjPlant::onMove(%this, %verb, %objA, %objB)
 
 function ObjCabinetDrawer::onLookAt(%this, %verb, %objA, %objB)
 {
-    if (!getObjectState(cabinetDrawer))
+    if (%this.state < 2)
     {
         egoSay("Some kind of containing vessel for multiple instances of parchment.");
         return;
+    }
+    else
+    {
+        // Fallback to pickup
+        %this.onPickUp(%this, %verb, %objA, %objB);
     }
 }
 
 function ObjCabinetDrawer::onPickUp(%this, %verb, %objA, %objB)
 {
-    if (!getObjectState(cabinetDrawer))
+    if (%this.state < 2)
     {
-        ResRoom::defaultAction(%verb,%objA,%objB);
+        %this.onDefaultAction(%verb,%objA,%objB);
         return;
     }
 
-    if (getObjectOwner(InventoryItems->gun) == 0xF)
+    if (InventoryItems->gun.owner == 0)
     {
         beginCutscene(0);
         //{
@@ -567,14 +578,14 @@ function ObjCabinetDrawer::onPickUp(%this, %verb, %objA, %objB)
             $VAR_EGO.animate(lowerArm); delayFiber(20);
 
             egoSay("There appears to be a small sidearm in this container.");
-            pickupObject(InvGun);
+            $VAR_EGO.pickupObject(InvGun);
             waitForMessage();
 
             $VAR_EGO.animate(raiseArm); delayFiber(20);
             $VAR_EGO.animate(lowerArm); delayFiber(20);
 
             egoSay("And a plastic card containing some kind of circuitry.");
-            pickupObject(InvCard, InventoryItems);
+            $VAR_EGO.pickupObject(InvCard);
         //}
         endCutscene();
     }
@@ -587,12 +598,17 @@ function ObjCabinetDrawer::onPickUp(%this, %verb, %objA, %objB)
 
 function ObjCabinetDrawer::onOpen(%this, %verb, %objA, %objB)
 {
-    if (!getObjectState(cabinetDrawer))
+    if (!cabinetDrawer.state)
         Office_openCabinetSnd.play();
     else
         Office_closeCabinetSnd.play();
 
-    ResRoom.defaultAction(%verb,%objA,%objB);
+    Parent::onOpen(%this,%verb,%objA,%objB);
+}
+
+function ObjCabinetDrawer::isOpenable(%this)
+{
+    return true;
 }
 
 function CarolClass::onTalkTo(%this, %verb, %objA, %objB)
@@ -637,7 +653,7 @@ function ObjPlate::onSmell(%this)
 
 function ObjPlate::onMove(%this)
 {
-    if (getObjectState(exitToSecretRoom) == 7)
+    if (exitToSecretRoom.state == 7)
     {
         egoSay("The door is already open.");
         return;
@@ -660,7 +676,7 @@ function ObjPlate::onMove(%this)
             for (%i = 2; %i < 8; %i++)
             {
                 delayFiber(10);
-                setObjectState(exitToSecretRoom, %i);
+                exitToSecretRoom.state = %i;
             }
 
             Office_openedDoorSnd.play();
@@ -676,7 +692,7 @@ function ObjPlate::onMove(%this)
             {
                 stopTalking();
                 commanderZif.putAt( 200,120, OfficeRoom);
-                setObjectState(exitToSecretRoom, 7);
+                exitToSecretRoom.state = 7;
             }
         //}
         endCutscene();
@@ -710,7 +726,7 @@ function ObjPlate::onUse(%this)
 // exitToSecretRoom: uses waitForActor -> script
 function exitToSecretRoom::onWalkTo(%this, %verb, %objA, %objB)
 {
-    if (getObjectState(exitToSecretRoom) == 1)
+    if (exitToSecretRoom.state == 1)
     {
         egoSay("It's closed.");
         return;
@@ -728,7 +744,7 @@ function lightSwitch::onLookAt(%this, %verb, %objA, %objB)
 
 function lightSwitch::onUse(%this, %verb, %objA, %objB)
 {
-    if (!getObjectState(lightSwitch))
+    if (lightSwitch.state == 1)
     {
         beginCutscene(0);
         //{
@@ -737,7 +753,7 @@ function lightSwitch::onUse(%this, %verb, %objA, %objB)
             Office_switchSnd.play();
             setRoomRGBIntensity(143,123,119,0,255);
             $VAR_EGO.animate(lowerArm); delayFiber(20);
-            setObjectState(lightSwitch, 1);
+            lightSwitch.state = 2;
         //}
         endCutscene();
     }
@@ -750,7 +766,7 @@ function lightSwitch::onUse(%this, %verb, %objA, %objB)
             Office_switchSnd.play();
             setRoomPalette(0);
             $VAR_EGO.animate(lowerArm); delayFiber(20);
-            setObjectState(lightSwitch, 0);
+            lightSwitch.state = 1;
         //}
         endCutscene();
     }

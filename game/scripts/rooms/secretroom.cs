@@ -94,8 +94,8 @@ new Room(SecretRoom)
 // No waits used -> function
 function SecretRoom::onEntry(%this)
 {
-    putActorAt($VAR_EGO, 40,100, SecretRoom);
-    walkActorTo($VAR_EGO, 92,100);
+    $VAR_EGO.putAt(40,100, SecretRoom);
+    $VAR_EGO.walkTo(92,100);
 }
 
 // Uses waits/cutscene -> script
@@ -103,7 +103,7 @@ function SecretRoom::outro(%this)
 {
     %i = 0;
 
-    Actors::stopRoaming(commanderZif);
+    Actors.stopRoaming(commanderZif);
 
     beginCutscene(1);
     //{
@@ -131,7 +131,7 @@ function SecretRoom::outro(%this)
         commanderZif.say("I shall disable the suspension field thusly."); waitForMessage();
 
         delayFiber(100);
-        startSound(Secret_shootCageSnd);
+        Secret_shootCageSnd.play();
         commanderZif.animate(fireup);
         delayFiber(30);
 
@@ -144,7 +144,7 @@ function SecretRoom::outro(%this)
         delayFiber(100);
         walkActorToObj(commanderZif, bluecupActor, 0); waitForActor(commanderZif);
         setCurrentActor(commanderZif);
-        setActorDirection(180);
+        commanderZif.setDirection($NORTH);
         delayFiber(100);
 
         // Move relic to inventory “room”
@@ -165,11 +165,11 @@ function SecretRoom::outro(%this)
         commanderZif.say("Error, number one."); waitForMessage();
         commanderZif.say("Never give up the gun."); waitForMessage();
 
-        startSound(Secret_shootDeadSnd);
+        Secret_shootDeadSnd.play();
         commanderZif.animate(firestraight);
         delayFiber(50);
 
-        startSound(Secret_fallDeadSnd);
+        Secret_fallDeadSnd.play();
         ensignZob.animate(die);
         delayFiber(150);
 
@@ -179,14 +179,14 @@ function SecretRoom::outro(%this)
 
         setCurrentActor(commanderZif);
         setActorDirection(180);
-        Actors::setZifOnThePhone();
+        Actors.setZifOnThePhone();
         commanderZif.animate(lookAround); delayFiber(30);
 
         commanderZif.say("Commander's log, star date 432.2"); waitForMessage();
         commanderZif.say("I have obtained the stolen artifact."); waitForMessage();
         commanderZif.say("In a slight contradiction to my orders, I have decided to enslave this planet."); waitForMessage();
         commanderZif.say("%V{Secret_mwwwahSnd}Mwaaah huh huh huh huh huh huh..."); waitForMessage();
-        Actors::setZifOffThePhone();
+        Actors.setZifOffThePhone();
 
         // override { ... }
         if ($VAR_OVERRIDE)
@@ -237,6 +237,7 @@ function blueCup::onPickUp(%this, %verb, %objA, %objB)
         egoSay("The artifact is still being held in place.");
     else
         egoSay("The artifact is protected by some kind of forcefield container.");
+    return 0;
 }
 
 // computerTerminal (uses waits/cutscene)
@@ -354,7 +355,7 @@ function node::onUsedWith(%this, %verb, %objA, %objB)
         //{
             $SecretRoom::hasShotAtNode = 1;
             $VAR_EGO.animate(fireup);
-            startSound(Secret_shootCageSnd);
+            Secret_shootCageSnd.play();
             delayFiber(120);
             egoSay("Missed!"); waitForMessage();
         //}

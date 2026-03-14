@@ -257,13 +257,10 @@ void SentenceQueueManager::execItem()
 
       if (lastItem.verb && lastItem.objA)
       {
-         char verbFunc[64];
-         snprintf(verbFunc, 64, "on%s", verbObject->getInternalName());
-
-         KorkApi::ConsoleValue rv = Con::executef(objA, 
+         KorkApi::ConsoleValue rv = Con::executef(gGlobals.currentRoom, 
                        "spawnFiber", 
                        KorkApi::ConsoleValue::makeUnsigned(SCHEDULE_FLAG_IS_SENTENCE_HANDLER),
-                       KorkApi::ConsoleValue::makeString(verbFunc),
+                       KorkApi::ConsoleValue::makeString("onSentence"),
                        KorkApi::ConsoleValue::makeUnsigned(lastItem.verb),
                        KorkApi::ConsoleValue::makeUnsigned(lastItem.objA),
                        KorkApi::ConsoleValue::makeUnsigned(lastItem.objB));

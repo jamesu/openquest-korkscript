@@ -107,13 +107,12 @@ new Room(InventoryItems)
 // Helper / utility (no waits)
 // =========================
 
-// Separate because setObjectOwner() can kill an object's script in SCUMM.
-// No waits here -> function.
-function InventoryItems::loadGun()
+
+function InventoryItems::loadGun(%this)
 {
-    setObjectState(gun, 2);
-    setObjectOwner(bullets, 0);
-    startSound(loadingGunSnd);
+    gun.state = 2;
+    bullets.owner.removeInventory(bullets);
+    loadingGunSnd.play();
     egoSay("The weapon has been loaded.");
 }
 
@@ -129,18 +128,24 @@ function InvGun::onLookAt(%this, %verb, %objA, %objB)
 function InvGun::getPreposition(%this, %verb)
 {
     if (%verb.internalName $= "Give")
-        $sntcPrepo[0] = "to";
+        return "to";
     else
-        $sntcPrepo[0] = "on";
+        return "on";
 }
 
 function InvGun::onUse(%this, %verb, %objA, %objB)
 {
+    if (!isObject(%objB))
+    {
+        %this.onDefaultAction(%verb, %objA, %objB);
+        return;
+    }
+
     switch$ (%objB.getName())
     {
         case "carol":
             egoSay("Terminating this lifeform could attract unwarranted attention.");
-            if (getObjectState(gun) < 2)
+            if (gun.state < 2)
             {
                 waitForMessage();
                 egoSay("And the weapon is not loaded anyway.");
@@ -148,7 +153,7 @@ function InvGun::onUse(%this, %verb, %objA, %objB)
             break;
 
         default:
-            ResRoom.defaultAction(%verb, %objA, %objB);
+            %this.onDefaultAction(%verb, %objA, %objB);
     }
 }
 
@@ -180,9 +185,9 @@ function InvBullets::onLookAt(%this, %verb, %objA, %objB)
 function InvBullets::getPreposition(%this, %verb, %objA, %objB)
 {
     if (%verb.internalName $= "Give")
-        $sntcPrepo[0] = "to";
+        return "to";
     else
-        $sntcPrepo[0] = "with";
+        return "with";
 }
 
 function InvBullets::onUsedWith(%this, %verb, %objA, %objB)
@@ -191,15 +196,21 @@ function InvBullets::onUsedWith(%this, %verb, %objA, %objB)
 }
 
 function InvBullets::onUse(%this, %verb, %objA, %objB)
-{    
-    switch$ (%objB.name)
+{
+    if (!isObject(%objB))
+    {
+        %this.onDefaultAction(%verb, %objA, %objB);
+        return;
+    }
+
+    switch$ (%objB.getName())
     {
         case "InvGun":
             %this.loadGun();
             break;
 
         default:
-            ResRoom.defaultAction(%verb, %objA, %objB);
+            %this.onDefaultAction(%verb, %objA, %objB);
     }
 }
 
@@ -212,13 +223,19 @@ function InvCard::onLookAt(%this, %verb, %objA, %objB)
 function InvCard::getPreposition(%this, %verb)
 {
     if (%verb.internalName $= "Give")
-        $sntcPrepo[0] = "to";
+        return "to";
     else
-        $sntcPrepo[0] = "on";
+        return "on";
 }
 
 function InvCard::onUse(%this, %verb, %objA, %objB)
 {
+    if (!isObject(%objB))
+    {
+        %this.onDefaultAction(%verb, %objA, %objB);
+        return;
+    }
+
     switch$ (%objB.getName())
     {
         case "InvScanner":
@@ -226,33 +243,39 @@ function InvCard::onUse(%this, %verb, %objA, %objB)
             break;
 
         default:
-            ResRoom.defaultAction(%verb, %objA, %objB);
+            %this.onDefaultAction(%verb, %objA, %objB);
             break;
     }
 }
 
 function InvCard::onGive(%this, %verb, %objA, %objB)
 {
+    if (!isObject(%objB))
+    {
+        %this.onDefaultAction(%verb, %objA, %objB);
+        return;
+    }
+
     switch$ (%objB.getName())
     {
         case "carol":
             carol.say(
-                "I see you've got mainframe clearance.\w" @
-                "I'm gonna be dusting in there soon.\w" @
+                "I see you've got mainframe clearance.\n" @
+                "I'm gonna be dusting in there soon.\n" @
                 "Try and keep it tidy.");
             break;
 
         case "commanderZif":
             Actors.pauseRoaming(commanderZif);
             commanderZif.say(
-                "Excellent work Zob, a key.\w" @
+                "Excellent work Zob, a key.\n" @
                 "Keep this, use it to infiltrate the mainframe.");
             waitForMessage();
             Actors.resumeRoaming(commanderZif);
             break;
 
         default:
-            ResRoom.defaultAction(%verb, %objA, %objB);
+            %this.onDefaultAction(%verb, %objA, %objB);
             break;
     }
 }
@@ -266,9 +289,9 @@ function InvBatteries::onLookAt(%this, %verb, %objA, %objB)
 function InvBatteries::getPreposition(%this, %verb)
 {
     if (%verb.internalName $= "Give")
-        $sntcPrepo[0] = "to";
+        return "to";
     else
-        $sntcPrepo[0] = "with";
+        return "with";
 }
 
 function InvBatteries::onUse(%this, %verb, %objA, %objB)
@@ -280,7 +303,7 @@ function InvBatteries::onUse(%this, %verb, %objA, %objB)
             break;
 
         default:
-            ResRoom.defaultAction(%verb, %objA, %objB);
+            %this.onDefaultAction(%verb, %objA, %objB);
             break;
     }
 }
@@ -295,7 +318,7 @@ function InvScanner::onLookAt(%this, %verb, %objA, %objB)
 
 function InvScanner::onUse(%this, %verb, %objA, %objB)
 {
-    if (getObjectState(scanner) == 2)
+    if (scanner.state == 2)
     {
         egoSay("The scanner no longer functions.");
         return;
@@ -307,7 +330,7 @@ function InvScanner::onUse(%this, %verb, %objA, %objB)
     $VAR_EGO.animate(scan); delayFiber(30);
     $VAR_EGO.animate(scan); delayFiber(30);
 
-    if (getActorRoom(VAR_EGO) == SecretRoom)
+    if ($VAR_EGO.getGroup() == SecretRoom.getId())
         egoSay("The artifact is in this room.");
     else
         egoSay("I am detecting the artifact near this location.");
@@ -328,24 +351,35 @@ function InvScanner::getPreposition(%this, %verb)
 
 function InvScanner::onGive(%this, %verb, %objA, %objB)
 {
-    switch$ (%objB)
+    if (!isObject(%objB))
+    {
+        %this.onDefaultAction(%verb, %objA, %objB);
+        return;
+    }
+
+    switch$ (%objB.getName())
     {
         case "commanderZif":
             Actors.pauseRoaming(commanderZif);
-            actorSay(commanderZif,"You're the scientist on this team, you use it.");
+            commanderZif.say("You're the scientist on this team, you use it.");
             waitForMessage();
             Actors.resumeRoaming(commanderZif);
             break;
 
         default:
-            ResRoom.defaultAction(%verb, %objA, %objB);
+            %this.onDefaultAction(%verb, %objA, %objB);
     }
     return;
 }
 
+function InvScanner::isOpenable(%this)
+{
+    return true;
+}
+
 function InvScanner::onOpen(%this, %verb, %objA, %objB)
 {
-    if (getObjectState(scanner) == 2)
+    if (scanner.state == 2)
     {
         egoSay("The casing appears to be broken.");
         return;
@@ -356,8 +390,7 @@ function InvScanner::onOpen(%this, %verb, %objA, %objB)
     // Drop batteries into inventory
     $VAR_EGO.pickupObject(InvBatteries);
 
-    setObjectState(%objA, 2);
-    drawObject(%objA, 2);
+    %objA.state = 2;
     egoSay("The batteries have fallen out.");
     return;
 }

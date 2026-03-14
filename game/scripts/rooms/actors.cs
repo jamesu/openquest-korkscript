@@ -71,7 +71,6 @@ function Actors::setup(%this)
 // This is called pre-entry to load the actor objects from this room
 function Actors::loadObjects(%this)
 {
-    Actors.loadObjects();
 }
 
 // -------------------------
@@ -123,7 +122,7 @@ function Actors::roam(%this, %a)
 
         %event = getRandomNumber(1);
 
-        switch$ (%event)
+        switch (%event)
         {
             case 1:
                 // pick a new reachable point not currently occupied
@@ -233,7 +232,7 @@ function Actors::setupActors(%this)
     %actor.setPalette(29, 122); // scummvm fix
 
     // Ego
-    $VAR_EGO = ensignZob;
+    $VAR_EGO = ensignZob.getId();
 
     // ---- Commander Zif ----
     %actor = commanderZif;
@@ -278,11 +277,6 @@ function Actors::setupActors(%this)
     //$VAR_EGO.pickupObject( InvGun );
     //$VAR_EGO.pickupObject( InvBullets );
     $invOffset = 0;
-}
-
-function loadObjects(%this)
-{
-	// precache object images?
 }
 
 // -------------------------
