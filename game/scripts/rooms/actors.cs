@@ -362,7 +362,7 @@ function Actors::zobTalkToZif(%this)
                     egoSay("Yes, I believe two persons are required.");
                     waitForMessage();
                     %commanderZif.say("In which case I shall follow you, ensign.");
-                    OfficeRoom.hasTalkedAboutPlate = 1;
+                    $OfficeRoom::hasTalkedAboutPlate = 1;
             }
 
             waitForMessage();

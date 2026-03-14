@@ -233,7 +233,7 @@ function OfficeRoom::onEntry(%this)
     }
     else
     {
-        $VAR_EGO.setPosition(296,110, OfficeRoom);
+        $VAR_EGO.putAt(296,110, OfficeRoom);
         $VAR_EGO.walkTo(250,110);
         if (lightSwitch.state == 1)
         {
@@ -341,10 +341,6 @@ function OfficeRoom::onEntry(%this)
         Actors.startRoaming(commanderZif, 20,260, 105,130);
     }
 }
-
-// Local setter helpers (no waits)
-function OfficeRoom::setTalkedAboutPlant(%this) { $OfficeRoom::hasTalkedAboutPlant = 1; }
-function OfficeRoom::setTalkedAboutPlate(%this) { $OfficeRoom::hasTalkedAboutPlate = 1; }
 
 // Carol dialog (uses waits/cutscenes) -> script
 function OfficeRoom::zobTalkToCarol(%this)
@@ -502,7 +498,6 @@ function ObjPlant::onLookAt(%this, %verb, %objA, %objB)
 
 function ObjPlant::onMove(%this, %verb, %objA, %objB)
 {
-    if (0) {
     if (!$OfficeRoom::hasSeenBullets)
     {
         egoSay("Moving this would accomplish nothing.");
@@ -524,30 +519,22 @@ function ObjPlant::onMove(%this, %verb, %objA, %objB)
         endCutscene();
         return;
     }
-    }
-
-    echo("PLANT MOVE? STATE IS:" @ %this.state);
 
     if (%this.state == 1)
     {
-        echo("SHOULD BE MOVING...");
         beginCutscene(0);
         //{
             $VAR_EGO.animate(raiseArm);
             Office_movePlantSnd.play();
             nop();
             delayFiber(20);
-            echo("123");
             %this.state = 2;
-            echo("456");
             delayFiber(30);
-            echo("789");
             $VAR_EGO.animate(lowerArm);
             delayFiber(30);
         //}
         endCutscene();
 
-        echo("CLEARNING STATE FLAGS");
         egoSay("There is a small box down here.");
         OfficeRoom.stateFlags &= ~$OFFICE_FLAG_PLANT_NOT_MOVED;
         waitForMessage();
@@ -676,8 +663,8 @@ function ObjPlate::onMove(%this)
 
     if ($OfficeRoom::hasTalkedAboutPlate)
     {
-        Actors::pauseRoaming(commanderZif);
-        beginCutscene();
+        Actors.pauseRoaming(commanderZif);
+        beginCutscene(0);
         //{
             // try { ... }
             commanderZif.walkTo( 267,116); waitForActor(commanderZif);
@@ -712,7 +699,7 @@ function ObjPlate::onMove(%this)
         //}
         endCutscene();
 
-        Actors::resumeRoaming(commanderZif);
+        Actors.resumeRoaming(commanderZif);
         return;
     }
 

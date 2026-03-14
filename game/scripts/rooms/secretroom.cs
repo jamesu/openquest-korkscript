@@ -368,7 +368,8 @@ function node::onUsedWith(%this, %verb, %objA, %objB)
 
 function exitToOfficeRoom::onWalkTo(%this, %verb, %objA, %objB)
 {
-    walkActorTo($VAR_EGO, 50,100); waitForActor($VAR_EGO);
+    $VAR_EGO.walkTo(50,100); 
+    waitForActor($VAR_EGO);
     screenEffect(0x0082);
     startRoom(OfficeRoom);
 }

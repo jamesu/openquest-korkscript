@@ -115,6 +115,7 @@ new SimSet(Verbs)
     
        displayText = "Walk to";
        hotKey = "w";
+       enabled = 0;
     };
     
     new VerbDisplay([Give]) {

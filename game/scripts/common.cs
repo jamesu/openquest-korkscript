@@ -279,7 +279,7 @@ function ResRoom::mouseWatch(%this)
 
         if (!isObject(%vrb)) 
         {
-            %vrb = isObject($selVerb) ? $selVerb : Verbs-->WalkTo;
+            %vrb = isObject($selVerb) ? $selVerb : Verbs->WalkTo;
         }
 
         if ($sntcPrepo !$= "")
@@ -993,7 +993,7 @@ function ResRoom::main(%this, %bootParam)
             startRoom(OfficeRoom);
 
         case 2:
-            OfficeRoom->exitToSecretRoom.setState(7);
+            exitToSecretRoom.state = 7;
             $OfficeRoom::didOfficeIntro = 1;
             startRoom(OfficeRoom);
 
