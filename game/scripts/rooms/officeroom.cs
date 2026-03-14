@@ -46,6 +46,8 @@ new Sound(Office_movePlantSnd)    { path = "sounds/move_plant.wav"; };
 new Sound(Office_openDoorSnd)     { path = "sounds/open_door.wav"; };
 new Sound(Office_openedDoorSnd)   { path = "sounds/opened_door.wav"; };
 
+$OFFICE_FLAG_PLANT_NOT_MOVED = 0x2;
+
 // =========================
 // Room: OfficeRoom
 // (Actors are shown by the room; objects are also displayables.)
@@ -59,21 +61,20 @@ new Room(OfficeRoom)
     zPlane[1] = "graphics/rooms/back01_mask2.bmp";
     zPlane[2] = "graphics/rooms/back01_mask3.bmp";
 
+    stateFlags = $OFFICE_FLAG_PLANT_NOT_MOVED; // default state flags
+
     // ---------- Objects ----------
     // Order matters: bullets before plant to draw above it.
     new RoomObject(ObjBullets)
     {
         anchorPoint = 112, 80;dir = EAST;
         displayText = "ammunition";
-        className = Pickable;  // mirrors { Pickable }
-        stateOffset[0] = -8, 16;
-        stateBitmap[0] = "graphics/background_items/bullets.bmp";
         state = 1;
         trans = 0;
 
-        // Parent gating (exists only when plant is state 2)
-        parent       = plant;
-        parent_state = 2;
+        // Lock state dependent on flag
+        stateLockFlag = $OFFICE_FLAG_PLANT_NOT_MOVED;
+        stateLockValue = 0;
 
         new RoomObjectState()
         {
@@ -501,6 +502,7 @@ function ObjPlant::onLookAt(%this, %verb, %objA, %objB)
 
 function ObjPlant::onMove(%this, %verb, %objA, %objB)
 {
+    if (0) {
     if (!$OfficeRoom::hasSeenBullets)
     {
         egoSay("Moving this would accomplish nothing.");
@@ -522,26 +524,39 @@ function ObjPlant::onMove(%this, %verb, %objA, %objB)
         endCutscene();
         return;
     }
+    }
+
+    echo("PLANT MOVE? STATE IS:" @ %this.state);
 
     if (%this.state == 1)
     {
+        echo("SHOULD BE MOVING...");
         beginCutscene(0);
         //{
             $VAR_EGO.animate(raiseArm);
             Office_movePlantSnd.play();
+            nop();
             delayFiber(20);
+            echo("123");
             %this.state = 2;
+            echo("456");
             delayFiber(30);
+            echo("789");
             $VAR_EGO.animate(lowerArm);
             delayFiber(30);
         //}
         endCutscene();
 
+        echo("CLEARNING STATE FLAGS");
         egoSay("There is a small box down here.");
+        OfficeRoom.stateFlags &= ~$OFFICE_FLAG_PLANT_NOT_MOVED;
+        waitForMessage();
     }
     else
     {
+        echo("NOT MOVING");
         egoSay("It's fine over there.");
+        waitForMessage();
     }
     return;
 }

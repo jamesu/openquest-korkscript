@@ -465,6 +465,7 @@ function DisplayBase::onUse(%this, %vrb, %objA, %objB)
 {
     if (%objA.isPerson())
     {
+        // NOTE: this is a debug thing
         if (%objA.getId() == commanderZif.getId() || 
             %objA.getId() == ensignZob.getId())
         {
@@ -546,7 +547,7 @@ function DisplayBase::onOpen(%this, %vrb, %objA, %objB)
         return;
     }
 
-    nop();
+    //nop();
     //echo("SET OBJ:" @ %objA.getName() SPC "STATE -> " @ %objA.state);
     %objA.state = %objA.state == 1 ? 2 : 1;
     echo("STATE NOW:" @ %objA.state);

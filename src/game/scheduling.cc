@@ -100,13 +100,13 @@ ConsoleMethodValue(SimObject, spawnFiber, 4, 20, "flagMask, func, ...")
 {
    SimFiberManager::ScheduleInfo initialInfo = {};
    initialInfo.waitMode = SimFiberManager::WAIT_REMOVE; // should be in this state so can be cleaned up if no wait
-   initialInfo.param.flagMask = (U64)vmPtr->valueAsInt(argv[1]);
+   initialInfo.param.flagMask = (U64)vmPtr->valueAsInt(argv[2]);
    
    // params are:       spawnFiber, obj, func, ...
    // params should be: func, obj, ...
    std::array<KorkApi::ConsoleValue, 20> params;
-   params[0] = argv[3];
-   params[1] = argv[2];
+   params[0] = argv[3]; // func
+   params[1] = argv[1]; // this
    if (argc > 4)
    {
       std::copy(argv+4, argv+4+(argc-4), params.begin()+2);

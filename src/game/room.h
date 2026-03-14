@@ -109,6 +109,7 @@ public:
     StringTableEntry mZPlaneFiles[RoomRender::NumZPlanes];
 
     U32 mTransFlags;
+    U32 mStateFlags;
    
    RoomRender mRenderState;
    BoxInfo mBoxes;
@@ -159,13 +160,13 @@ public:
    StringTableEntry mClassName;
    
    Direction mDirection;
-   U32 mState;
+   U32 mDefinedState;
    U32 mTransFlags;
    Point2I mHotspot; // from 
-   
-   // Parent dependency
-   StringTableEntry mParentName;
-   U32 mParentState;
+
+   U32 mStateLockFlag;
+   U32 mStateLockValue;
+   U32 mEvalState;
    
    SimObjectPtr<Actor> mOwner;
 

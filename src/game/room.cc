@@ -107,6 +107,7 @@ Room::Room()
    mTransFlags = 0;
    mNSLinkMask = LinkClassName;
    mRenderState.transitionEnded = false;
+   mStateFlags = 0;
 
    for (U32 i=0; i<RoomRender::NumZPlanes; i++)
    {
@@ -541,6 +542,7 @@ void Room::initPersistFields()
    addField("image", TypeString, Offset(mImageFileName, Room));
    addField("boxFile", TypeString, Offset(mBoxFileName, Room));
    addField("zPlane", TypeString, Offset(mZPlaneFiles, Room), RoomRender::NumZPlanes);
+   addField("stateFlags", TypeS32, Offset(mStateFlags, Room));
 }
 
 
@@ -650,9 +652,13 @@ ConsoleMethodValue(Room, forceTransitionMode, 5, 5, "mode, param, time")
 
 RoomObject::RoomObject()
 {
-   mState = 1;
+   mDefinedState = 1;
    mTransFlags = 0;
    mOwner = nullptr;
+
+   mEvalState = 1;
+   mStateLockFlag = 0;
+   mStateLockValue = 0;
 }
 
 void RoomObject::updateResources()
@@ -699,7 +705,7 @@ bool RoomObject::setState(void* userPtr,
       {
          return false;
       }
-      *outputStorage->data.storageRegister = KorkApi::ConsoleValue::makeUnsigned(inObject->mState);
+      *outputStorage->data.storageRegister = KorkApi::ConsoleValue::makeUnsigned(inObject->mDefinedState);
    }
    else if (outputStorage->isField)
    {
@@ -711,7 +717,7 @@ bool RoomObject::setState(void* userPtr,
       }
       
       U32 state = vmPtr->valueAsInt(*inputStorage->data.storageRegister);
-      outObject->mState = state;
+      outObject->mDefinedState = state;
       outObject->updateLayout(RectI(0,0,0,0));
    }
    else
@@ -724,12 +730,22 @@ bool RoomObject::setState(void* userPtr,
 
 void RoomObject::updateLayout(const RectI contentRect)
 {
-   if (mState == 0)
+   Room* baseRoom = dynamic_cast<Room*>(getGroup());
+   if (baseRoom)
+   {
+      mEvalState = (baseRoom->mStateFlags & mStateLockFlag) != 0 ? mStateLockValue : mDefinedState;
+   }
+   else
+   {
+      mEvalState = mDefinedState;
+   }
+
+   if (mEvalState == 0)
    {
       return;
    }
 
-   U32 curStateIndex = mState-1;
+   U32 curStateIndex = mEvalState-1;
    if (curStateIndex < objectList.size())
    {
       RoomObjectState* curState = dynamic_cast<RoomObjectState*>(objectList[curStateIndex]);
@@ -743,7 +759,7 @@ void RoomObject::updateLayout(const RectI contentRect)
 void RoomObject::onPickedUpBy(Actor* act)
 {
    mOwner = act;
-   mState = 1;
+   mDefinedState = 1;
    mInputEnabled = false;
 }
 
@@ -755,20 +771,20 @@ void RoomObject::onDroppedBy(Actor* act)
 void RoomObject::onDropped()
 {
    mOwner = nullptr;
-   mState = 0;
+   mDefinedState = 0;
    mInputEnabled = true;
 }
 
 void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
 {
-   if (mState == 0)
+   if (mEvalState == 0)
    {
       return;
    }
    
    bool debug = true;
 
-   U32 curStateIndex = mState-1;
+   U32 curStateIndex = mEvalState-1;
    if (curStateIndex < objectList.size())
    {
       Vector2 origin = { 0.0, 0.0 };
@@ -796,12 +812,12 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
 
 void RoomObject::enumerateRenderables(RoomRender::ObjectInfo& outState)
 {
-   if (mState == 0)
+   if (mEvalState == 0)
    {
       return;
    }
 
-   U32 curStateIndex = mState-1;
+   U32 curStateIndex = mEvalState-1;
    if (curStateIndex < objectList.size())
    {
       RoomObjectState* curState = dynamic_cast<RoomObjectState*>(objectList[curStateIndex]);
@@ -821,7 +837,7 @@ void RoomObject::initPersistFields()
    registerClassNameFields(false);
    
    addField("descName", TypeString, Offset(mDescription, RoomObject));
-   addProtectedField("state", TypeS32, Offset(mState, RoomObject), setState, nullptr, "");
+   addProtectedField("state", TypeS32, Offset(mDefinedState, RoomObject), setState, nullptr, "");
    addField("dir", TypeS32, Offset(mDirection, RoomObject));
    addField("trans", TypeS32, Offset(mTransFlags, RoomObject));
    addField("hotSpot", TypePoint2I, Offset(mHotspot, RoomObject));
