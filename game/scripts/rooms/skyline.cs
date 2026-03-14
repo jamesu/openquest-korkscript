@@ -44,7 +44,7 @@ function Skyline::onEntry(%this)
         %actor.setWalkSpeed(2,1);
         %actor.setTalkColor(ZIF_COLOR);
         %actor.setWidth(20);
-        %actor.setIgnoreBoxes(true);
+        %actor.ignoreBoxes = true;
         %actor.setAnimSpeed(4);
         
         %actor.putAt(-50,80,Skyline);

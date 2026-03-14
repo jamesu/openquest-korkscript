@@ -51,6 +51,11 @@ new Room(InventoryItems)
         {
            image = "graphics/inventory_items/gun_40.bmp";
          };
+        
+        new RoomObjectState()
+        {
+           image = "graphics/inventory_items/gun_40.bmp";
+         };
     };
 
     new RoomObject(InvBullets)
@@ -108,10 +113,10 @@ new Room(InventoryItems)
 // =========================
 
 
-function InventoryItems::loadGun(%this)
+function DisplayBase::loadGun(%this)
 {
-    gun.state = 2;
-    bullets.owner.removeInventory(bullets);
+    InvGun.state = 2;
+    InvBullets.owner.removeInventory(InvBullets);
     loadingGunSnd.play();
     egoSay("The weapon has been loaded.");
 }
@@ -131,6 +136,20 @@ function InvGun::getPreposition(%this, %verb)
         return "to";
     else
         return "on";
+}
+
+function InvGun::onUsedWith(%this, %verb, %objA, %objB)
+{
+    %bullets = InvBullets.getId();
+
+    if (%objB == %bullets)
+    {
+        %this.loadGun();
+    }
+    else
+    {
+        %objA.onDefaultAction(%verb, %objA, %objB);
+    }
 }
 
 function InvGun::onUse(%this, %verb, %objA, %objB)
@@ -159,10 +178,16 @@ function InvGun::onUse(%this, %verb, %objA, %objB)
 
 function InvGun::onGive(%this, %verb, %objA, %objB)
 {
-    switch$ (%objB)
+    if (!isObject(%objB))
+    {
+        %this.onDefaultAction(%verb, %objA, %objB);
+        return;
+    }
+
+    switch$ (%objB.getName())
     {
         case "commanderZif":
-            if (!SecretRoom.hasShotAtNode)
+            if (!$SecretRoom::hasShotAtNode)
             {
                 egoSay("And lose my advantage?");
                 return;
@@ -192,25 +217,15 @@ function InvBullets::getPreposition(%this, %verb, %objA, %objB)
 
 function InvBullets::onUsedWith(%this, %verb, %objA, %objB)
 {
-    %this.onUse(%verb, %objA, %objB);
-}
+    %gun = InvGun.getId();
 
-function InvBullets::onUse(%this, %verb, %objA, %objB)
-{
-    if (!isObject(%objB))
+    if (%objB == %gun)
     {
-        %this.onDefaultAction(%verb, %objA, %objB);
-        return;
+        %this.loadGun();
     }
-
-    switch$ (%objB.getName())
+    else
     {
-        case "InvGun":
-            %this.loadGun();
-            break;
-
-        default:
-            %this.onDefaultAction(%verb, %objA, %objB);
+        %objA.onDefaultAction(%verb, %objA, %objB);
     }
 }
 

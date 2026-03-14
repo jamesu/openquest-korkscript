@@ -218,7 +218,7 @@ function Actors::setupActors(%this)
     %ensignZobCost    = ZobCostume;
     %commanderZifCost = ZifCostume;
     %carolCost        = CarolCostume;
-    %bluecupCost      = BlueCupCostunme;
+    %bluecupCost      = BlueCupCostume;
     %cubeCost         = CubeCostume;
 
     // ---- ensign Zob ----
@@ -249,7 +249,7 @@ function Actors::setupActors(%this)
     %actor.setCostume(%carolCost);
     %actor.displayText = ("indigenous lifeform");
     %actor.setWidth(20);
-    %actor.setIgnoreBoxes(true);
+    %actor.ignoreBoxes = true;
     %actor.setAnimSpeed(7);
     %actor.setTalkColor($CAROL_COLOR);
 
@@ -258,24 +258,28 @@ function Actors::setupActors(%this)
     %actor.setCostume(%bluecupCost);
     %actor.displayText = ("blue cup");
     %actor.setAnimSpeed(2);
-    %actor.putActorAt(159,97,SecretRoom);
-    %actor.setElevation(55);
+    %actor.putAt(159,97,SecretRoom);
+    %actor.elevation = 55;
     %actor.setWidth(0);
+    %actor.ignoreBoxes = true;
 
     // ---- Cube (as actor) ----
     %actor = cubeActor;
     %actor.setCostume(%cubeCost);
     %actor.displayText = ("cube");
     %actor.setAnimSpeed(2);
-    %actor.putActorAt(cubeActor,160,98,SecretRoom);
-    %actor.setElevation(55);
+    %actor.putAt(160,98,SecretRoom);
+    %actor.elevation = 55;
     %actor.setWidth(0);
+    %actor.ignoreBoxes = true;
 
     // ---- Inventory ----
     $VAR_EGO.pickupObject( InvScanner );
-    //$VAR_EGO.pickupObject( InvCard );
-    //$VAR_EGO.pickupObject( InvGun );
+    $VAR_EGO.pickupObject( InvCard );
+    $VAR_EGO.pickupObject( InvGun );
     //$VAR_EGO.pickupObject( InvBullets );
+
+    InvGun.state = 2;
     $invOffset = 0;
 }
 

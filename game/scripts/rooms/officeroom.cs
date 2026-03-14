@@ -570,7 +570,7 @@ function ObjCabinetDrawer::onPickUp(%this, %verb, %objA, %objB)
         return;
     }
 
-    if (InventoryItems->gun.owner == 0)
+    if (InvGun.owner == 0)
     {
         beginCutscene(0);
         //{

@@ -46,13 +46,6 @@ new Room(SecretRoom)
     zPlane[1] = "graphics/rooms/back02_mask2.bmp";
     zPlane[2] = "graphics/rooms/back02_mask3.bmp";
 
-    // Displayable objects
-    new RoomObject(blueCup)
-    {
-        displayText = "blue cup";
-        dir  = SOUTH;
-    };
-
     new RoomObject(computerTerminal)
     {
         anchorPoint = 176, 56;contentSize = 16, 24;
@@ -116,7 +109,12 @@ function SecretRoom::outro(%this)
         actorFace(commanderZif, ensignZob);
         actorFace(ensignZob, commanderZif);
 
-        setObjectOwner(InventoryItems->gun, commanderZif);
+        if (isObject(InvGun.owner))
+        {
+            InvGun.owner.removeInventory(InvGun);
+        }
+
+        commanderZif.pickupObject(InvGun);
 
         ensignZob.animate(  raiseArm);  delayFiber(15);
         commanderZif.animate(raiseArm); delayFiber(15);
@@ -138,7 +136,7 @@ function SecretRoom::outro(%this)
         for (%i = 11; %i > 0; %i--)
         {
             delayFiber(2);
-            bluecupActor.setElevation(%i * 5);
+            bluecupActor.elevation = %i * 5;
         }
 
         delayFiber(100);
@@ -197,7 +195,7 @@ function SecretRoom::outro(%this)
             bluecupActor.putAt(     0,  0, InventoryItems);
             setCurrentActor(commanderZif);
             setActorDirection(180);
-            Actors::setZifOffThePhone();
+            Actors.setZifOffThePhone();
         }
     //}
     endCutscene();
@@ -205,6 +203,7 @@ function SecretRoom::outro(%this)
     // Kill mouseWatch and queue quit
     ResRoom.stopMouseWatch();
 
+    echo("Game over, thanks for playing!");
     %this.gameOver = true;
 }
 
@@ -212,7 +211,7 @@ function SecretRoom::inputHandler(%this, %area, %cmd, %btn)
 {
     if (%this.gameOver)
     {
-        // TODO: quit
+        quit();
     }
     else
     {
@@ -226,12 +225,12 @@ function SecretRoom::inputHandler(%this, %area, %cmd, %btn)
 // =========================
 
 // blueCup
-function blueCup::onLookAt(%this, %verb, %objA, %objB)
+function BlueCupClass::onLookAt(%this, %verb, %objA, %objB)
 {
     egoSay("The holy artifact!");
 }
 
-function blueCup::onPickUp(%this, %verb, %objA, %objB)
+function BlueCupClass::onPickUp(%this, %verb, %objA, %objB)
 {
     if ($SecretRoom::cubeDisappeared)
         egoSay("The artifact is still being held in place.");
@@ -256,7 +255,7 @@ function computerTerminal::onUse(%this, %verb, %objA, %objB)
         beginCutscene(2);
         //{
             // try { ... }
-            $VAR_EGO.animate(raiseArm);  // (as in original)
+            $VAR_EGO.animate(raiseArm);
             delayFiber(25);
             $VAR_EGO.animate(lowerArm);
             delayFiber(25);
@@ -316,7 +315,9 @@ function keySlot::onLookAt(%this, %verb, %objA, %objB)
 
 function keySlot::onUsedWith(%this, %verb, %objA, %objB)
 {
-    if (%objB == InventoryItems->card)
+    %card = InvCard.getId();
+
+    if (%objB == %card)
     {
         beginCutscene(0);
         //{
@@ -324,9 +325,13 @@ function keySlot::onUsedWith(%this, %verb, %objA, %objB)
             $VAR_EGO.animate(raiseArm); delayFiber(25);
             $VAR_EGO.animate(lowerArm);
             $SecretRoom::terminalActivated = 1;
-            setObjectOwner(InventoryItems->card, 0);
+            %card.owner.removeInventory(%card);
         //}
         endCutscene();
+    }
+    else
+    {
+        %objA.onDefaultAction(%verb, %objA, %objB);
     }
 }
 
@@ -338,9 +343,11 @@ function node::onLookAt(%this, %verb, %objA, %objB)
 
 function node::onUsedWith(%this, %verb, %objA, %objB)
 {
-    if (%objB == InventoryItems->gun)
+    %gun = InvGun.getId();
+    echo("NODE ONUSEDWITH" SPC %objB SPC %objB.getName());
+    if (%objB == %gun)
     {
-        if (getObjectState(InventoryItems->gun) != 2)
+        if (%gun.state != 2)
         {
             egoSay("The weapon is not loaded.");
             return;
@@ -363,6 +370,10 @@ function node::onUsedWith(%this, %verb, %objA, %objB)
 
         egoSay("I am not familiar with the aiming reticule.");
         return;
+    }
+    else
+    {
+        %objA.onDefaultAction(%verb, %objA, %objB);
     }
 }
 

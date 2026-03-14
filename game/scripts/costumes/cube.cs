@@ -32,6 +32,7 @@ new SimSet(cube_ImageSets)
     {
         format = "../../graphics/cube/cube_??.bmp";
         offset = "-17 -17";
+        flags  = $TRANSPARENT;
     };
 };
 

@@ -32,6 +32,7 @@ new SimSet(bluecup_ImageSets)
     {
         format = "../../graphics/bluecup/bluecup_??.bmp";
         offset = "-12 -10";
+        flags  = $TRANSPARENT;
     };
 };
 

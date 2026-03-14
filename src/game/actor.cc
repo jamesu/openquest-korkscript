@@ -224,6 +224,8 @@ void Actor::initPersistFields()
    registerClassNameFields(true);
 
    addField("displayText", TypeString, Offset(mDisplayText, Actor));
+   addField("ignoreBoxes", TypeBool, Offset(mIgnoreBoxes, Actor));
+   addField("elevation", TypeS32, Offset(mElevation, Actor));
 
    initDisplayFields();
 }
@@ -237,6 +239,8 @@ Actor::Actor()
    mLayer = 0;
    mLastBox = -1;
    mTalking = false;
+   mIgnoreBoxes = false;
+   mElevation = 0;
    
    mDisplayOffset = Point2I(0,0);
 
@@ -277,8 +281,16 @@ void Actor::setPosition(Point2I pos)
    {
       auto selectableFunc = +[](const BoxInfo::Box&){ return true; };
       BoxInfo::AdjustBoxResult result;
-      if (room->mBoxes.FindNearestBoxAndSnapPoint(pos, selectableFunc, true, 0, result))
-      {  
+      if (mIgnoreBoxes)
+      {
+         mAnchor = pos;
+         mLastBox = -1;
+         mWalkState.mWalkTarget = mAnchor;
+         mWalkState.mRealWalkTarget = pos;
+         mWalkState.mRealWalkTargetBox = -1;
+      }
+      else if (room->mBoxes.FindNearestBoxAndSnapPoint(pos, selectableFunc, true, 0, result))
+      {
          // Found a good result, go for it!
          mAnchor = result.pos;
          mLastBox = result.box;
@@ -304,7 +316,7 @@ void Actor::updateLayout(const RectI contentRect)
 {
    // NOTE: this could be slightly off depending on offset at runtime, 
    // its acceptable for input.
-   mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y);
+   mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y) - Point2F(0.0f, mElevation);
    RectI boundsRect = mLiveCostume.getCurrentBounds(mCostume->mState);
    resize(boundsRect.point, boundsRect.extent);
 }
@@ -345,7 +357,12 @@ void Actor::walkTo(Point2I pos)
    {
       auto selectableFunc = +[](const BoxInfo::Box&){ return true; };
       BoxInfo::AdjustBoxResult result;
-      if (room->mBoxes.FindContainingBox(pos, selectableFunc, true, 0, result))
+      if (mIgnoreBoxes)
+      {
+         mWalkState.mRealWalkTarget = pos;
+         mWalkState.mRealWalkTargetBox = -1;
+      }
+      else if (room->mBoxes.FindContainingBox(pos, selectableFunc, true, 0, result))
       {
          mWalkState.mRealWalkTarget = result.pos;
          mWalkState.mRealWalkTargetBox = result.box;
@@ -377,6 +394,11 @@ void Actor::onFixedTick(F32 dt)
         auto selectableFunc = +[](const BoxInfo::Box&){ return true; };
         Room* room = dynamic_cast<Room*>(getGroup());
         BoxInfo::AdjustBoxResult result;
+        
+        if (mIgnoreBoxes)
+        {
+           mLastBox = -1;
+        }
         if (room->mBoxes.FindContainingBox(mAnchor, selectableFunc, true, 0, result) &&
             result.box >= 0)
         {
@@ -400,7 +422,7 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
 {
   if (mCostume)
   {
-     mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y) + Point2F(mDisplayOffset.x, mDisplayOffset.y);
+     mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y) + Point2F(mDisplayOffset.x, mDisplayOffset.y) - Point2F(0.0f, mElevation);
      //mLiveCostume.w
      mLiveCostume.render(mCostume->mState);
      

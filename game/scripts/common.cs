@@ -481,13 +481,7 @@ function DisplayBase::onUse(%this, %vrb, %objA, %objB)
     {
         if (%objB)
         {
-            // NOTE: in scummc version, this is implemented via a verb. We just use a named function here.
-            if (%vrb.getInternalName() $= Use && 
-                %objB.isMethod(%objB, onUsedWith))
-            { 
-                %objB.onUsedWith(objA);
-            }
-            else if (%objB.isPerson()) 
+            if (%objB.isPerson()) 
             {
                 egoSay("I can't use that on someone!");
             }
@@ -659,6 +653,8 @@ function BaseRoom::onSentence(%this, %verb, %objA, %objB)
         break;
     }
 
+    %method = %verb.getInternalName();
+
     // Walk near room object/actor if needed
     %targetObject = 0;
     if (isObject(%objA))
@@ -668,6 +664,26 @@ function BaseRoom::onSentence(%this, %verb, %objA, %objB)
     else if (isObject(%objB))
     {
         %targetObject = %objB;
+    }
+
+    // Handle case where objB supports usedWith
+    // NOTE: this was handled within action handler before.
+    if (%method $= Use &&
+        isObject(%objB) && 
+        %objB.isMethod(onUsedWith))
+    {
+        echo("ONUSEDWITH CASE");
+        echo("A=" @ %objA.getName());
+        echo("B=" @ %objB.getName());
+        %targetObject = %objB;
+        // Flip these and change method
+        %objB = %objA;
+        %objA = %targetObject;
+        %method = "UsedWith";
+    }
+    else
+    {
+        %method = %verb.getInternalName();
     }
 
     if (isObject(%targetObject) && 
@@ -683,12 +699,12 @@ function BaseRoom::onSentence(%this, %verb, %objA, %objB)
     }
 
     // Dispatch to object verb or fallback
-    %handler = on @ %verb.getInternalName();
+    %handler = on @ %method;
     echo("CHECK DOES OBJA HAVE:" @ %handler);
     echo("OBJB IS:" @ %objB);
-    if (%objA.isMethod(%handler))
+    if (%targetObject.isMethod(%handler))
     {
-        %objA.spawnFiber(0, %handler, %verb, %objA, %objB);
+        %targetObject.spawnFiber(0, %handler, %verb, %objA, %objB);
         // NOTE: in this case, we're assuming "cursor off" == "busy" 
         // We would probably be better off just having a "wait" for fiber to return thing here.
         do { breakFiber();  } while (!$cursorOn);
@@ -696,7 +712,7 @@ function BaseRoom::onSentence(%this, %verb, %objA, %objB)
     else
     {
         echo("USING DEFAULT");
-        %defaultObj = (%act ? %act : %objA);
+        %targetObject = (%act ? %act : %objA);
         %defaultObj.onDefaultAction(%verb, %defaultObj, %objB);
     }
 

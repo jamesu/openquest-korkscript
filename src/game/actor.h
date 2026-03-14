@@ -147,7 +147,9 @@ public:
    U16 mTickSpeed;
    U8 mLayer;
    S32 mLastBox;
+   S32 mElevation;
    bool mTalking;
+   bool mIgnoreBoxes;
    
    ActorWalkState mWalkState;
    MessageDisplayParams mTalkParams;
