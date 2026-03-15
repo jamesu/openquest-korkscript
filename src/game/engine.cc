@@ -28,6 +28,28 @@ ConsoleGetType( TypeColor )
    return getPointDataImpl<Color>(vmPtr, inputStorage, outputStorage, fieldUserPtr, flag, requestedType);
 }
 
+void UtilDrawOutlinedText(const char *text, S32 posX, S32 posY, S32 fontSize, Color color, S32 outlineSize, Color outlineColor)
+{
+   if (outlineSize > 0)
+   {
+      Vector2 offsets[8] = {
+          {-1,-1},{0,-1},{1,-1},
+          {-1, 0},        {1, 0},
+          {-1, 1},{0, 1},{1, 1}
+      };
+
+      for (int i = 0; i < 8; i++)
+      {
+          DrawText(text,
+              posX + offsets[i].x * outlineSize,
+              posY + offsets[i].y * outlineSize,
+              fontSize,
+              outlineColor);
+      }
+   }
+   
+   DrawText(text, posX, posY, fontSize, color);
+}
 
 void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpacing, bool centered, Color color)
 {
@@ -98,7 +120,7 @@ void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpac
    for (U32 i=0; i<numLines; i++)
    {
       LineInfo& line = lineInfo[i];
-      ::DrawText(line.ptr, pos.x + line.offsetX, pos.y + offsetY, fontSize, color);
+      UtilDrawOutlinedText(line.ptr, pos.x + line.offsetX, pos.y + offsetY, fontSize, color, 1, BLACK);
       offsetY += fontSize + lineSpacing;
    }
 }
