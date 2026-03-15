@@ -752,6 +752,7 @@ void RoomObject::updateLayout(const RectI contentRect)
       if (curState)
       {
          resize(mAnchor, curState->mExtent);
+         mHotSpot = curState->mHotSpot; // update hotspot
       }
    }
 }

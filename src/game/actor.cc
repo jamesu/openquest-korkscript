@@ -226,6 +226,14 @@ void Actor::initPersistFields()
    addField("displayText", TypeString, Offset(mDisplayText, Actor));
    addField("ignoreBoxes", TypeBool, Offset(mIgnoreBoxes, Actor));
    addField("elevation", TypeS32, Offset(mElevation, Actor));
+   addField("width", TypeS32, Offset(mWidth, Actor));
+   
+   
+   addField("initAnim", TypeString, Offset(mInitAnim, Actor));
+   addField("standAnim", TypeString, Offset(mStandAnim, Actor));
+   addField("walkAnim", TypeString, Offset(mWalkAnim, Actor));
+   addField("startTalkAnim", TypeString, Offset(mStartTalkAnim, Actor));
+   addField("stopTalkAnim", TypeString, Offset(mStopTalkAnim, Actor));
 
    initDisplayFields();
 }
@@ -241,6 +249,7 @@ Actor::Actor()
    mTalking = false;
    mIgnoreBoxes = false;
    mElevation = 0;
+   mWidth = 40;
    
    mDisplayOffset = Point2I(0,0);
 
@@ -253,6 +262,7 @@ Actor::Actor()
    mTalkParams.relative = true;
    mTalkParams.centered = true;
    
+   mInitAnim = StringTable->insert("init");
    mStandAnim = StringTable->insert("stand");
    mWalkAnim = StringTable->insert("walk");
    mStartTalkAnim = StringTable->insert("talkStart");
@@ -319,6 +329,13 @@ void Actor::updateLayout(const RectI contentRect)
    mLiveCostume.position = Point2F(mAnchor.x, mAnchor.y) - Point2F(0.0f, mElevation);
    RectI boundsRect = mLiveCostume.getCurrentBounds(mCostume->mState);
    resize(boundsRect.point, boundsRect.extent);
+}
+
+void Actor::setInit()
+{
+   mWalkState.mAction = ActorWalkState::ACTION_IDLE;
+   mWalkState.mWalkTarget = mWalkState.mRealWalkTarget = mAnchor;
+   startAnim(mInitAnim);
 }
 
 void Actor::setStanding()
@@ -536,7 +553,7 @@ void Actor::setCostume(SimWorld::Costume* costume)
   }
   
   // Reset anim to init to be consistent
-  mLiveCostume.setAnim(costume->mState, StringTable->insert("init"), SOUTH);
+  mLiveCostume.setAnim(costume->mState, mInitAnim, SOUTH);
 }
 
 void Actor::startTalk()
@@ -713,19 +730,15 @@ ConsoleMethodValue(Actor, setFrozen, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, setStanding, 2, 2, "")
+ConsoleMethodValue(Actor, setInit, 2, 2, "")
 {
    object->setStanding();
    return KorkApi::ConsoleValue();
 }
 
-ConsoleMethodValue(Actor, setIgnoreTurns, 3, 3, "")
+ConsoleMethodValue(Actor, setStanding, 2, 2, "")
 {
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, setElevation, 3, 3, "")
-{
+   object->setStanding();
    return KorkApi::ConsoleValue();
 }
 
@@ -734,11 +747,6 @@ ConsoleMethodValue(Actor, setTalkColor, 3, 3, "")
    Color outColor = {};
    vmPtr->castToField(1, &argv[2], &outColor, argv[2].typeId, TypeColor);
    object->mTalkParams.displayColor = outColor;
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, setInitFrame, 3, 3, "")
-{
    return KorkApi::ConsoleValue();
 }
 
@@ -753,11 +761,6 @@ ConsoleMethodValue(Actor, setScale, 3, 3, "")
 }
 
 ConsoleMethodValue(Actor, setZClip, 3, 3, "")
-{
-   return KorkApi::ConsoleValue();
-}
-
-ConsoleMethodValue(Actor, setIgnoreBoxes, 3, 3, "")
 {
    return KorkApi::ConsoleValue();
 }
@@ -853,6 +856,25 @@ ConsoleMethodValue(Actor, removeInventory, 3, 3, "")
             KorkApi::FiberId fiberId = gFiberManager->spawnFiber(gGlobals.currentRoom, 2, cv, initialInfo);
          }
       }
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleMethodValue(Actor, faceObject, 3, 3, "")
+{
+   DisplayBase* targetObject = nullptr;
+   if (Sim::findObject(argv[2], targetObject))
+   {
+      Point2I delta = targetObject->getHotSpot() - object->getAnchorPosition();
+      
+      S32 ax = std::abs(delta.x);
+      S32 ay = std::abs(delta.y);
+      
+      S32 preferredAxis = ax > ay + 5 ? 0 : 1;
+      
+      CostumeRenderer::DirectionValue curDir = ActorWalkState::dirFromDominantAxis(preferredAxis == 0 ? delta.x : delta.y, preferredAxis);
+      object->setDirection(curDir);
    }
    
    return KorkApi::ConsoleValue();

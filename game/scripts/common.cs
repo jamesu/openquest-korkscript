@@ -691,11 +691,7 @@ function BaseRoom::onSentence(%this, %verb, %objA, %objB)
     {
         $VAR_EGO.walkToObject(%targetObject);
         waitForActor($VAR_EGO);
-
-        if (%targetObject.getClassName() $= "Actor")
-        {
-            $VAR_EGO.faceObject(%targetObject);
-        }
+        $VAR_EGO.faceObject(%targetObject);
     }
 
     // Dispatch to object verb or fallback

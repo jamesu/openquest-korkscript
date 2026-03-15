@@ -62,7 +62,7 @@ struct ActorWalkState
    inline int sign(int x);
    inline S32 clampStep(S32 delta, S32 step);
    inline U32 pickAxis(Point2I delta);
-   inline CostumeRenderer::DirectionValue dirFromDominantAxis(S32 value, U32 axis);
+   static inline CostumeRenderer::DirectionValue dirFromDominantAxis(S32 value, U32 axis);
    
    void updateTick(Actor& actor);
    void adjustWalkTarget(Actor& actor);
@@ -148,6 +148,7 @@ public:
    U8 mLayer;
    S32 mLastBox;
    S32 mElevation;
+   U32 mWidth;
    bool mTalking;
    bool mIgnoreBoxes;
    
@@ -155,6 +156,7 @@ public:
    MessageDisplayParams mTalkParams;
    Point2I mDisplayOffset;
    
+   StringTableEntry mInitAnim;
    StringTableEntry mStandAnim;
    StringTableEntry mWalkAnim;
    StringTableEntry mStartTalkAnim;
@@ -172,6 +174,7 @@ public:
    void updateLayout(const RectI contentRect);
    
    void setPosition(Point2I pos);
+   void setInit();
    void setStanding();
    void setFrozen();
 

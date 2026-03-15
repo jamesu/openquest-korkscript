@@ -279,8 +279,8 @@ function OfficeRoom::onEntry(%this)
             carol.say("Are you done in here?");
             waitForMessage();
 
-            actorFace(commanderZif, carol);
-            actorFace(ensignZob,   carol);
+            commanderZif.faceObject(carol);
+            ensignZob.faceObject(carol);
             delayFiber(50);
             commanderZif.say("An indigenous lifeform...");
             waitForMessage();

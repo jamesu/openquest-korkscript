@@ -79,18 +79,20 @@ function Actors::loadObjects(%this)
 function Actors::setZifOnThePhone(%this)
 {
 	%actor = commanderZif;
-    %actor.setStandFrame(standWithPhone);
-    %actor.setInitFrame(standWithPhone);
-    %actor.setTalkFrame(talkToPhoneStart, standWithPhone);
+    %actor.standAnim = standWithPhone;
+    %actor.initAnim = standWithPhone;
+    %actor.startTalkAnim = talkToPhoneStart;
+    %actor.endTalkAnim = standWithPhone;
     %actor.setStanding();
 }
 
 function Actors::setZifOffThePhone(%this)
 {
 	%actor = commanderZif;
-    %actor.setStandFrame(stand);
-    %actor.setInitFrame(init);
-    %actor.setTalkFrame(talkStart, talkStop);
+    %actor.standAnim = stand;
+    %actor.initAnim = init;
+    %actor.startTalkAnim = talkToPhoneStart;
+    %actor.endTalkAnim = talkStop;
     %actor.setStanding();
 }
 
@@ -212,8 +214,6 @@ function Actors::stopRoaming(%this, %a)
 // -------------------------
 function Actors::setupActors(%this)
 {
-    echo("setupActors()");
-
     // costumes
     %ensignZobCost    = ZobCostume;
     %commanderZifCost = ZifCostume;
@@ -227,9 +227,8 @@ function Actors::setupActors(%this)
     %actor.displayText = ("Ensign Zob");
     %actor.setWalkSpeed(2,1);
     %actor.setTalkColor($ZOB_COLOR);
-    %actor.setWidth(20);
+    %actor.width = 20;
     %actor.setAnimSpeed(4);
-    %actor.setPalette(29, 122); // scummvm fix
 
     // Ego
     $VAR_EGO = ensignZob.getId();
@@ -240,15 +239,14 @@ function Actors::setupActors(%this)
     %actor.displayText = ("Commander Zif");
     %actor.setWalkSpeed(2,1);
     %actor.setTalkColor($ZIF_COLOR);
-    %actor.setWidth(20);
+    %actor.width = 20;
     %actor.setAnimSpeed(4);
-    %actor.setPalette(29, 122); // scummvm fix
 
     // ---- Carol ----
     %actor = carol;
     %actor.setCostume(%carolCost);
     %actor.displayText = ("indigenous lifeform");
-    %actor.setWidth(20);
+    %actor.width = 20;
     %actor.ignoreBoxes = true;
     %actor.setAnimSpeed(7);
     %actor.setTalkColor($CAROL_COLOR);
@@ -260,7 +258,7 @@ function Actors::setupActors(%this)
     %actor.setAnimSpeed(2);
     %actor.putAt(159,97,SecretRoom);
     %actor.elevation = 55;
-    %actor.setWidth(0);
+    %actor.width = 0;
     %actor.ignoreBoxes = true;
 
     // ---- Cube (as actor) ----
@@ -270,16 +268,15 @@ function Actors::setupActors(%this)
     %actor.setAnimSpeed(2);
     %actor.putAt(160,98,SecretRoom);
     %actor.elevation = 55;
-    %actor.setWidth(0);
+    %actor.width = 0;
     %actor.ignoreBoxes = true;
 
     // ---- Inventory ----
     $VAR_EGO.pickupObject( InvScanner );
-    $VAR_EGO.pickupObject( InvCard );
-    $VAR_EGO.pickupObject( InvGun );
+    //$VAR_EGO.pickupObject( InvCard );
+    //$VAR_EGO.pickupObject( InvGun );
     //$VAR_EGO.pickupObject( InvBullets );
-
-    InvGun.state = 2;
+    //InvGun.state = 2;
     $invOffset = 0;
 }
 

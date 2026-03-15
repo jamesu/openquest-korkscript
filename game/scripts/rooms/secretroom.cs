@@ -106,8 +106,8 @@ function SecretRoom::outro(%this)
         walkActorToObj(commanderZif, ensignZob, 0);
         waitForMessage();
         waitForActor(commanderZif);
-        actorFace(commanderZif, ensignZob);
-        actorFace(ensignZob, commanderZif);
+        commanderZif.faceObject(ensignZob);
+        ensignZob.faceObject(commanderZif);
 
         if (isObject(InvGun.owner))
         {
@@ -126,6 +126,7 @@ function SecretRoom::outro(%this)
 
         walkActorToObj(commanderZif, node, 0); waitForActor(commanderZif);
         actorFace(ensignZob, commanderZif);
+        ensignZob.faceObject(commanderZif);
         commanderZif.say("I shall disable the suspension field thusly."); waitForMessage();
 
         delayFiber(100);
@@ -153,7 +154,7 @@ function SecretRoom::outro(%this)
         egoSay("Pass over the relic, and I shall place it in the containment vessel."); waitForMessage();
 
         commanderZif.walkTo( 100,115); waitForActor(commanderZif);
-        actorFace(commanderZif, ensignZob);
+        commanderZif.faceObject(ensignZob);
 
         commanderZif.say("Never!"); waitForMessage();
         commanderZif.say("The relic shall never leave my side."); waitForMessage();
@@ -267,7 +268,7 @@ function computerTerminal::onUse(%this, %verb, %objA, %objB)
 
             commanderZif.putAt( 40,100, SecretRoom);
             commanderZif.walkTo( 95,100); waitForActor(commanderZif);
-            actorFace(commanderZif, $VAR_EGO);
+            commanderZif.faceObject($VAR_EGO);
 
             commanderZif.say("Well done, ensign.");       waitForMessage();
             commanderZif.say("Now retrieve the relic!");  waitForMessage();
@@ -283,6 +284,7 @@ function computerTerminal::onUse(%this, %verb, %objA, %objB)
                 actorSay(0xFF, ""); // stopTalking
                 commanderZif.putAt( 90,100, SecretRoom);
                 actorFace(commanderZif, $VAR_EGO);
+                commanderZif.faceObject($VAR_EGO);
             }
 
             // Post-actions (in original after block)
