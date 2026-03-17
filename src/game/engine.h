@@ -210,7 +210,16 @@ static inline Camera2D MakeDefaultCamera()
 }
 
 void UtilDrawOutlinedText(const char *text, S32 posX, S32 posY, S32 fontSize, Color color, S32 outlineSize, Color outlineColor);
-void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpacing, bool centered, Color color);
+void UtilDrawTextLines(const char *text, 
+    Point2I pos, 
+    int fontSize, 
+    int lineSpacing, 
+    bool centered, 
+    Color color,
+    Point2I screenSize,
+    int margin = 8,
+    int maxLines = 10,
+    int maxTextWidth = -1);
 
 // engine objects and apis...
 

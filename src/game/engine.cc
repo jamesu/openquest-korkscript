@@ -51,77 +51,240 @@ void UtilDrawOutlinedText(const char *text, S32 posX, S32 posY, S32 fontSize, Co
    DrawText(text, posX, posY, fontSize, color);
 }
 
-void UtilDrawTextLines(const char *text, Point2I pos, int fontSize, int lineSpacing, bool centered, Color color)
+void UtilDrawTextLines(const char *text,
+                       Point2I pos,
+                       int fontSize,
+                       int lineSpacing,
+                       bool centered,
+                       Color color,
+                       Point2I screenSize,
+                       int margin,
+                       int maxLines,
+                       int maxTextWidth)
 {
-   static const U32 MaxLines = 10;
-   
    struct LineInfo
    {
+      const char *ptr;
       S32 offsetX;
-      const char* ptr;
    };
-   
-   if (text == nullptr)
-   {
+
+   if (text == nullptr || *text == '\0' || maxLines <= 0)
       return;
-   }
-   
+
+   // Fallback width: keep text inside margins.
+   if (maxTextWidth <= 0)
+      maxTextWidth = screenSize.x - margin * 2;
+
+   if (maxTextWidth < 1)
+      return;
+
+   // Working buffer
    char buffer[1024];
-   strncpy(buffer, text, sizeof(buffer)-1);
-   buffer[sizeof(buffer)-1] = '\0';
-   
-   char *line = buffer;
-   S32 offsetY = 0;
-   
-   U32 numLines = 1;
-   LineInfo lineInfo[MaxLines];
-   
-   lineInfo[0].ptr = buffer;
-   lineInfo[0].offsetX = 0;
-   
-   for (char *p = buffer; ; p++)
+   strncpy(buffer, text, sizeof(buffer) - 1);
+   buffer[sizeof(buffer) - 1] = '\0';
+
+   LineInfo lineInfo[64]; // hard upper bound for safety
+   const S32 lineCapacity = std::min(maxLines, (int)(sizeof(lineInfo) / sizeof(lineInfo[0])));
+
+   S32 numLines = 0;
+   char *p = buffer;
+
+   auto pushLine = [&](char *lineStart)
    {
-      if (*p == '\n' || *p == '\0')
+      if (numLines >= lineCapacity || lineStart == nullptr)
       {
-         char saved = *p;
-         *p = '\0';
-         
-         if (centered)
+         return;
+      }
+
+      // Trim leading spaces on wrapped lines.
+      while (*lineStart == ' ')
+      {
+         ++lineStart;
+      }
+
+      lineInfo[numLines].ptr = lineStart;
+      lineInfo[numLines].offsetX = 0;
+
+      if (centered)
+      {
+         S32 textLength = ::MeasureText(lineStart, fontSize);
+         lineInfo[numLines].offsetX = -textLength / 2;
+      }
+
+      ++numLines;
+   };
+
+   while (*p && numLines < lineCapacity)
+   {
+      char *lineStart = p;
+      char *lastBreakable = nullptr;
+      char *lastNonSpace = nullptr;
+      bool nextLine = false;
+
+      // Respect explicit newlines first.
+      while (*p && *p != '\n')
+      {
+         if (*p == ' ' || *p == '\t')
          {
-            int textLength = ::MeasureText(lineInfo[numLines-1].ptr,
-                                           fontSize);
-            lineInfo[numLines-1].offsetX = -textLength / 2;
+            lastBreakable = p;
          }
-         
-         if (numLines >= MaxLines)
+         else
+         {
+            lastNonSpace = p;
+         }
+
+         S32 currentWidth = ::MeasureText(lineStart, fontSize);
+
+         // Too wide: wrap.
+         if (currentWidth > maxTextWidth)
+         {
+            if (lastBreakable && lastBreakable >= lineStart)
+            {
+               // Wrap at last space/tab.
+               char *nextStart = lastBreakable + 1;
+               *lastBreakable = '\0';
+               pushLine(lineStart);
+               p = nextStart;
+            }
+            else
+            {
+               // No breakable space: hard-wrap inside a long word.
+               // Step back until it fits, leaving at least one char.
+               char *split = p;
+               while (split > lineStart + 1)
+               {
+                  char saved = *split;
+                  *split = '\0';
+                  S32 width = ::MeasureText(lineStart, fontSize);
+                  *split = saved;
+
+                  if (width <= maxTextWidth)
+                     break;
+
+                  --split;
+               }
+
+               if (split <= lineStart)
+               {
+                  split = lineStart + 1;
+               }
+
+               char saved = *split;
+               *split = '\0';
+               pushLine(lineStart);
+               *split = saved;
+               p = split;
+            }
+
+            nextLine = true;
             break;
-         
-         if (saved == '\0')
-            break;         // finished
-         
-         lineInfo[numLines].ptr = p+1;
-         lineInfo[numLines].offsetX = 0;
-         numLines++;
+         }
+
+         ++p;
+      }
+
+      if (!nextLine)
+      {
+
+         // End of explicit line or end of string.
+         if (*p == '\n')
+         {
+            *p = '\0';
+
+            // Trim trailing spaces.
+            if (lastNonSpace)
+            {
+               *(lastNonSpace + 1) = '\0';
+            }
+
+            pushLine(lineStart);
+            ++p;
+         }
+         else
+         {
+            // End of string.
+            if (lastNonSpace)
+            {
+               *(lastNonSpace + 1) = '\0';
+            }
+
+            pushLine(lineStart);
+         }
       }
    }
+
+   if (numLines == 0)
+      return;
+
+   // Height of the full text block.
+   const S32 lineAdvance = fontSize + lineSpacing;
+   const S32 textBlockHeight = numLines * lineAdvance;
    
-   // handle trailing line
-   if (centered)
+   S32 startY = pos.y - textBlockHeight;
+
+   // Clamp vertically so the whole block stays on-screen.
+   if (startY < margin)
    {
-      int textLength = ::MeasureText(lineInfo[numLines-1].ptr,
-                                     fontSize);
-      lineInfo[numLines-1].offsetX = -textLength / 2;
+      startY = margin;
    }
-   
-   // Make sure we have enough room for lines
-   offsetY -= (fontSize + lineSpacing) * numLines;
-   
-   // Draw all lines from top to bottom
-   for (U32 i=0; i<numLines; i++)
+
+   S32 bottomY = startY + textBlockHeight;
+   if (bottomY > screenSize.y - margin)
    {
-      LineInfo& line = lineInfo[i];
-      UtilDrawOutlinedText(line.ptr, pos.x + line.offsetX, pos.y + offsetY, fontSize, color, 1, BLACK);
-      offsetY += fontSize + lineSpacing;
+      startY -= (bottomY - (screenSize.y - margin));
+   }
+
+   if (startY < margin)
+   {
+      startY = margin;
+   }
+
+   // Draw all lines.
+   S32 drawY = startY;
+   for (S32 i = 0; i < numLines; ++i)
+   {
+      const LineInfo &line = lineInfo[i];
+      S32 lineWidth = ::MeasureText(line.ptr, fontSize);
+
+      S32 drawX;
+      if (centered)
+      {
+         drawX = pos.x + line.offsetX;
+
+         // Clamp centered line so it remains fully visible.
+         if (drawX < margin)
+         {
+            drawX = margin;
+         }
+         if (drawX + lineWidth > screenSize.x - margin)
+         {
+            drawX = screenSize.x - margin - lineWidth;
+         }
+      }
+      else
+      {
+         drawX = pos.x;
+
+         // Clamp left-aligned line.
+         if (drawX < margin)
+         {
+            drawX = margin;
+         }
+         if (drawX + lineWidth > screenSize.x - margin)
+         {
+            drawX = screenSize.x - margin - lineWidth;
+         }
+      }
+
+      // If a single line is still wider than maxTextWidth due to font oddities,
+      // keep it anchored at the margin rather than letting it go off-screen.
+      if (drawX < margin)
+      {
+         drawX = margin;
+      }
+
+      UtilDrawOutlinedText(line.ptr, drawX, drawY, fontSize, color, 1, BLACK);
+      drawY += lineAdvance;
    }
 }
 
@@ -135,7 +298,7 @@ void ActiveMessage::onStop()
    SimWorld::Actor* saveActor = actor;
    
    ticking = false;
-   tick = tickLength;
+   tick = tickLength+1;
    actor = nullptr;
    sound = nullptr;
 

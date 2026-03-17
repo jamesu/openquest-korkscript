@@ -455,7 +455,8 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
                            params.fontSize, 
                            params.lineSpacing,
                            params.centered,
-                           params.displayColor);
+                           params.displayColor,
+                           gGlobals.screenSize);
       }
       
 #endif
