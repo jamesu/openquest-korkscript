@@ -47,6 +47,8 @@ $SOUTH = 1;
 $EAST = 2;
 $WEST = 3;
 
+$BOXF_DISABLED = 0x1;
+
 new ImageSet(CursorImg)   { path = "graphics/cursor/cursor.bmp"; flags = TRANSPARENT; };
 
 // Cursor sprite shown as a room object (for hit/mask parity with SCUMMC)
@@ -1005,8 +1007,9 @@ function ResRoom::main(%this, %bootParam)
             startRoom(OfficeRoom);
 
         case 2:
-            exitToSecretRoom.state = 7;
             $OfficeRoom::didOfficeIntro = 1;
+            $OfficeRoom::exitToSecretRoomOpened = 1;
+            $OfficeRoom::hasMovedPlant = 1;
             startRoom(OfficeRoom);
 
         case 1:

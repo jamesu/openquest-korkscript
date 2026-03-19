@@ -1022,6 +1022,42 @@ ConsoleMethodValue(Room, unlock, 2, 2, "()")
    return KorkApi::ConsoleValue();
 }
 
+ConsoleFunctionValue(setBoxFlags, 3, 3, "")
+{
+   if (gGlobals.currentRoom == nullptr)
+   {
+      return;
+   }
+   
+   U32 boxToSet = vmPtr->valueAsInt(argv[1]);
+   U32 flagsToSet = vmPtr->valueAsInt(argv[2]);
+   
+   if (boxToSet < gGlobals.currentRoom->mBoxes.boxes.size())
+   {
+      gGlobals.currentRoom->mBoxes.boxes[boxToSet].flags |= flagsToSet;
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
+ConsoleFunctionValue(clearBoxFlags, 3, 3, "")
+{
+   if (gGlobals.currentRoom == nullptr)
+   {
+      return;
+   }
+   
+   U32 boxToSet = vmPtr->valueAsInt(argv[1]);
+   U32 flagsToClear = vmPtr->valueAsInt(argv[2]);
+   
+   if (boxToSet < gGlobals.currentRoom->mBoxes.boxes.size())
+   {
+      gGlobals.currentRoom->mBoxes.boxes[boxToSet].flags &= ~flagsToClear;
+   }
+   
+   return KorkApi::ConsoleValue();
+}
+
 ConsoleFunctionValue(loadRoom, 2, 3, "(room, force)")
 {
    char filename[1024];

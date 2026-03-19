@@ -24,6 +24,7 @@
 $OfficeRoom::hasSeenBullets        = 0;
 $OfficeRoom::hasTriedToMovePlant   = 0;
 $OfficeRoom::hasTalkedAboutPlant   = 0;
+$OfficeRoom::hasMovedPlant         = 0;
 $OfficeRoom::knowsCarol            = 0;
 $OfficeRoom::askedPassageway       = 0;
 $OfficeRoom::initedGame            = 0;
@@ -33,6 +34,7 @@ $OfficeRoom::hasPressedPlate       = 0;
 $OfficeRoom::hasTalkedAboutPlate   = 0;
 
 $OfficeRoom::didOfficeIntro        = 0;
+$OfficeRoom::exitToSecretRoomOpened = 0;
 
 // =========================
 // Room resources
@@ -218,11 +220,43 @@ new Room(OfficeRoom)
 // Entry / cutscene & helpers
 // =========================
 
+function OfficeRoom::onPreEntry(%this)
+{
+    echo("PRE ENTRY....");
+
+    // Restore plant state
+    if ($OfficeRoom::hasMovedPlant)
+    {
+        echo("MOVED OFFICE PLANT");
+        clearBoxFlags(4, $BOXF_DISABLED);
+        OfficeRoom.stateFlags &= ~$OFFICE_FLAG_PLANT_NOT_MOVED;
+    }
+    else
+    {
+        setBoxFlags(4, $BOXF_DISABLED);
+        OfficeRoom.stateFlags |= $OFFICE_FLAG_PLANT_NOT_MOVED;
+    }
+
+    // Restore door box state (box 8)
+    if ($OfficeRoom::exitToSecretRoomOpened)
+    {
+        echo("OPENED SECRET ROOM DOOR");
+        clearBoxFlags(8, $BOXF_DISABLED);
+        exitToSecretRoom.state  = 7;
+    }
+    else
+    {
+        setBoxFlags(8, $BOXF_DISABLED);
+        exitToSecretRoom.state  = 1;
+    }
+}
+
 // Entry uses waits/cutscene -> script
 function OfficeRoom::onEntry(%this)
 {
     %firstInit = !$OfficeRoom::initedGame;
     %quickInit = (%firstInit && $OfficeRoom::didOfficeIntro);
+
 
     if (!$OfficeRoom::initedGame)
     {
@@ -537,6 +571,8 @@ function ObjPlant::onMove(%this, %verb, %objA, %objB)
 
         egoSay("There is a small box down here.");
         OfficeRoom.stateFlags &= ~$OFFICE_FLAG_PLANT_NOT_MOVED;
+        clearBoxFlags(4, $BOXF_DISABLED);
+        $OfficeRoom::hasMovedPlant = 1;
         waitForMessage();
     }
     else
@@ -685,6 +721,8 @@ function ObjPlate::onMove(%this)
             $VAR_EGO.animate(    lowerArm);
             commanderZif.animate(lowerArm);
             delayFiber(30);
+            $OfficeRoom::exitToSecretRoomOpened = 1;
+            clearBoxFlags(8, $BOXF_DISABLED);
 
             commanderZif.say("Continue your investigation."); waitForMessage();
             commanderZif.walkTo( 200,120);
@@ -695,6 +733,7 @@ function ObjPlate::onMove(%this)
                 stopTalking();
                 commanderZif.putAt( 200,120, OfficeRoom);
                 exitToSecretRoom.state = 7;
+                clearBoxFlags(8, $BOXF_DISABLED);
             }
         //}
         endCutscene();

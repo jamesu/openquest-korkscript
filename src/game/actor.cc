@@ -130,6 +130,13 @@ void ActorWalkState::adjustWalkTarget(Actor& actor)
            mWalkTarget = mRealWalkTarget;
            mAction = ACTION_MOVING;
         }
+        else if (mNextBox >= 0 &&
+                 (theRoom->mBoxes.boxes[mNextBox].flags & BoxInfo::BOXF_DISABLED) != 0)
+        {
+           // Stop here
+           mWalkTarget = mRealWalkTarget;
+           mAction = ACTION_IDLE;
+        }
         else if (mNextBox >= 0)
         {
            // Find the connecting edge in the TARGET box
