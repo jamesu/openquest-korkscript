@@ -790,19 +790,23 @@ function BaseRoom::defaultInputHandler(%this, %area, %cmd, %btn)
         }
 
         %cmdName = %verb.internalName;
+        //echo("VERB CMD=", %cmdName);
+        //echo("VERB DISPLAY=", %verb.displayText);
 
         if (%cmdName $= invUp || 
             %cmdName $= invDown)
         {
             %invCount = $VAR_EGO.getInventoryCount();
-            $invOffset += ((%cmd $= invUp) ? -1 : 1) * $INVENTORY_COL;
+            %invDelta = ((%cmdName $= invUp) ? -1 : 1) * $INVENTORY_COL;
+            //echo("DELTA=", %invDelta);
+            $invOffset += %invDelta;
             $invOffsetMax = ((%invCount + $INVENTORY_COL - 1) / $INVENTORY_COL - $INVENTORY_LINE) * $INVENTORY_COL;
 
             if ($invOffset > $invOffsetMax) $invOffset = $invOffsetMax;
             if ($invOffset < 0)             $invOffset = 0;
 
-            echo("Inventory offset: " @ $invOffset);
-            Verbs::showVerbs(1);
+            //echo("Inventory offset: " @ $invOffset SPC "/" SPC %invCount);
+            Verbs.showVerbs(1);
 
 
             %this.inventoryUpdate();

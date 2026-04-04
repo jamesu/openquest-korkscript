@@ -30,7 +30,6 @@ bool ConsoleWidget::onAdd()
    if (Parent::onAdd())
    {
       Con::addConsumer(ConsumeLog, this);
-      gGlobals.consoleInput = true;
       return true;
    }
    return false;

@@ -232,7 +232,7 @@ new SimSet(Verbs)
 
     // Inventory scrollers
     new VerbDisplay([invUp]) {
-       displayText = "\x03";     // up arrow glyph
+       displayText = "^";     // up arrow glyph
           anchorPoint = 309, 165;
        backColor = $VBACK;
        color = $VCOL;
@@ -241,7 +241,7 @@ new SimSet(Verbs)
     };
 
     new VerbDisplay([invDown]) {
-       displayText = "\x02";     // down arrow glyph
+       displayText = "v";     // down arrow glyph
           anchorPoint = 309, 185;
        backColor = $VBACK;
        color = $VCOL;
