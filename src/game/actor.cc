@@ -543,6 +543,11 @@ void Actor::startAnim(StringTableEntry animName)
 
 void Actor::setDirection(CostumeRenderer::DirectionValue direction)
 {
+  if (mCostume == nullptr)
+  {
+     return;
+  }
+  
   mWalkState.mDirection = direction;
   if (mLiveCostume.curDirection != direction)
   {

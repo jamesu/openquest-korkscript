@@ -1008,6 +1008,14 @@ function ResRoom::main(%this, %bootParam)
     switch (%bootParam)
     {
 
+        case 4:
+            $SecretRoom::debugOutro = 1;
+            echo("Initing game...");
+            $OfficeRoom::initedGame = 1;
+            Verbs.setupVerbs();
+            Actors.setupActors();
+            startRoom(SecretRoom);
+
         case 3:
             $OfficeRoom::didOfficeIntro = 0;
             startRoom(OfficeRoom);

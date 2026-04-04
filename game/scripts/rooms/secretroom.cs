@@ -89,6 +89,15 @@ function SecretRoom::onEntry(%this)
 {
     $VAR_EGO.putAt(40,100, SecretRoom);
     $VAR_EGO.walkTo(92,100);
+
+    if ($SecretRoom::debugOutro)
+    {
+        echo("Debug outro");
+        $VAR_EGO.putAt(92,100);
+        commanderZif.putAt( 95,100, SecretRoom);
+        commanderZif.faceObject($VAR_EGO);
+        %this.outro();
+    }
 }
 
 // Uses waits/cutscene -> script
@@ -103,7 +112,7 @@ function SecretRoom::outro(%this)
         // try { ... }
         egoSay("I'm having problems hitting the target, Sir."); waitForMessage();
         commanderZif.say("You're not a soldier. Give it here.");
-        walkActorToObj(commanderZif, ensignZob, 0);
+        commanderZif.walkToObject(ensignZob);
         waitForMessage();
         waitForActor(commanderZif);
         commanderZif.faceObject(ensignZob);
@@ -124,7 +133,7 @@ function SecretRoom::outro(%this)
         commanderZif.say("Right, stand back."); waitForMessage();
         ensignZob.walkTo( 210,120); waitForActor(ensignZob);
 
-        walkActorToObj(commanderZif, node, 0); waitForActor(commanderZif);
+        commanderZif.walkToObject(node); waitForActor(commanderZif);
         actorFace(ensignZob, commanderZif);
         ensignZob.faceObject(commanderZif);
         commanderZif.say("I shall disable the suspension field thusly."); waitForMessage();
@@ -141,8 +150,7 @@ function SecretRoom::outro(%this)
         }
 
         delayFiber(100);
-        walkActorToObj(commanderZif, bluecupActor, 0); waitForActor(commanderZif);
-        setCurrentActor(commanderZif);
+        commanderZif.walkToObject(bluecupActor); waitForActor(commanderZif);
         commanderZif.setDirection($NORTH);
         delayFiber(100);
 
@@ -176,8 +184,7 @@ function SecretRoom::outro(%this)
         commanderZif.say("What a shame..."); waitForMessage();
         commanderZif.say("We could have ruled the cosmos together."); waitForMessage();
 
-        setCurrentActor(commanderZif);
-        setActorDirection(180);
+        setActorDirection(180); // commanderZif
         Actors.setZifOnThePhone();
         commanderZif.animate(lookAround); delayFiber(30);
 
@@ -194,18 +201,19 @@ function SecretRoom::outro(%this)
             ensignZob.putAt(     276,110, SecretRoom);
             commanderZif.putAt(  170,120, SecretRoom);
             bluecupActor.putAt(     0,  0, InventoryItems);
-            setCurrentActor(commanderZif);
-            setActorDirection(180);
+            setActorDirection(180); // commanderZif
             Actors.setZifOffThePhone();
         }
     //}
-    endCutscene();
+    //endCutscene();
 
     // Kill mouseWatch and queue quit
     ResRoom.stopMouseWatch();
 
     echo("Game over, thanks for playing!");
     %this.gameOver = true;
+
+    quit();
 }
 
 function SecretRoom::inputHandler(%this, %area, %cmd, %btn)

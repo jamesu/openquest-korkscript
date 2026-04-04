@@ -367,6 +367,7 @@ struct EngineGlobals
    bool consoleInput;
    bool cursorState;
    bool drawDebug;
+   bool quit;
 
    void setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, bool isTalk, U32 ovrTicks);
 };

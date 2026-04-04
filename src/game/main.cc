@@ -44,6 +44,11 @@ ConsoleFunctionValue(SetInput, 3, 3, "")
    return KorkApi::ConsoleValue();
 }
 
+ConsoleFunctionValue(quit, 1, 1, "")
+{
+   gGlobals.quit = true;
+   return KorkApi::ConsoleValue();
+}
 
 static Rectangle GetLetterboxViewport(int sw, int sh, int vw, int vh)
 {
@@ -155,7 +160,8 @@ int main(int argc, char **argv)
       const float fixedDt = 1.0f / (((float)TICK_HZ) / gTimerNext);
       double accumulator = fixedDt;
       
-      while (!WindowShouldClose())
+      while (!WindowShouldClose() &&
+             !gGlobals.quit)
       {
          float frameDt = GetFrameTime();
          if (frameDt > (float)MAX_FRAME_DT) frameDt = (float)MAX_FRAME_DT;
@@ -246,8 +252,8 @@ int main(int argc, char **argv)
    }
    
    delete gGlobals.inputHandler;
-   Con::shutdown();
    Sim::shutdown();
+   Con::shutdown();
    
    gGlobals.engineTick.unregisterTickable();
    CloseAudioDevice();
