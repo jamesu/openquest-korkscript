@@ -371,7 +371,7 @@ function OfficeRoom::onEntry(%this)
     if (%firstInit)
     {
         Verbs.showVerbs(1);
-        delayFiber(getRandomNumberRange(20,60));
+        delayFiber(getRandom(20,60));
         Actors.startRoaming(commanderZif, 20,260, 105,130);
     }
 }

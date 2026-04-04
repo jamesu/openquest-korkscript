@@ -950,6 +950,11 @@ ConsoleFunctionValue(screenEffect, 2, 2, "")
    return KorkApi::ConsoleValue();
 }
 
+ConsoleFunctionValue(getCurrentRoom, 1, 1, "")
+{
+   return KorkApi::ConsoleValue::makeUnsigned(gGlobals.currentRoom ? gGlobals.currentRoom->getId() : 0);
+}
+
 ConsoleFunctionValue(startRoom, 2, 2, "")
 {
    Room* roomObject = nullptr;

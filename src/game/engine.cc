@@ -410,6 +410,39 @@ ConsoleFunctionValue(userPutState, 2, 2, "(value)")
    return KorkApi::ConsoleValue();
 }
 
+static S32 randI(S32 min, S32 max)
+{
+   if (min > max)
+   {
+      S32 t = min;
+      min = max;
+      max = t;
+   }
+
+   return min + (rand() % (max - min + 1));
+}
+
+static F32 randF()
+{
+   return (F32)rand() / (F32)RAND_MAX;
+}
+
+ConsoleFunctionValue(getRandom, 1, 3, "(min?, max?)")
+{
+   if (argc == 2)
+   {
+      return KorkApi::ConsoleValue::makeNumber(randI(0, getMax(vmPtr->valueAsInt(argv[1]), 0)));
+   }
+   else if (argc == 3)
+   {
+      S32 min = vmPtr->valueAsInt(argv[1]);
+      S32 max = vmPtr->valueAsInt(argv[2]);
+      return KorkApi::ConsoleValue::makeNumber(randI(min, max));
+   }
+
+   return KorkApi::ConsoleValue::makeNumber(randF());
+}
+
 
 RaylibInputRouter::RaylibInputRouter(SimWorld::DisplayBase* root)
 : mRoot(root)

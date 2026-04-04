@@ -22,14 +22,6 @@
 // Globals / constants
 // =========================
 
-// Roaming fields
-$RM_STATE  = 0;
-$RM_MIN_X  = 1;
-$RM_MAX_X  = 2;
-$RM_MIN_Y  = 3;
-$RM_MAX_Y  = 4;
-$RM_NUM    = 5;
-
 // Roaming states
 $RM_STOPPED = 0;
 $RM_PAUSED  = 1;
@@ -100,29 +92,35 @@ function Actors::setZifOffThePhone(%this)
 // Roaming scripts
 // -------------------------
 
-// Core roaming loop (uses waits) -> script
-function Actors::roam(%this, %a)
+function Actor::roam(%this)
 {
     %event = 0; %dstX = 0; %dstY = 0; %paused = 0;
-    echo("Roaming function for " @ %a @ " started");
+    echo("Roaming function for " @ %this @ " started. Ego=" @ $VAR_EGO);
 
-    while( %this.roaming[%a, $RM_STATE] > $RM_STOPPED )
+    while (%this.roamState > $RM_STOPPED)
     {
         %paused = 0;
 
         // Pause if EGO == this actor or state <= PAUSED
-        while( $VAR_EGO != %a && %this.roaming[%a, $RM_STATE] > $RM_PAUSED )
+        while ($VAR_EGO != %this && 
+            %this.roamState <= $RM_PAUSED)
         {
-            if(!%paused)
+            if (!%paused)
             {
                 %paused = 1;
-                echo("Roaming function for " @ %a @ " paused");
+                echo("Roaming function for " @ %this @ " paused");
             }
+
             breakFiber();
         }
-        if (%paused) echo("Roaming function for " @ %a @ " resumed");
 
-        %event = getRandomNumber(1);
+        if (%paused) 
+        {
+            echo("Roaming function for " @ %this @ " resumed");
+        }
+
+        %event = getRandom(0,1);
+        echo("EVT=", %event);
 
         switch (%event)
         {
@@ -131,82 +129,130 @@ function Actors::roam(%this, %a)
                 do
                 {
                     breakFiber();
-                    %dstX = getRandom( %this.roaming[%a,$RM_MIN_X], %this.roaming[%a,$RM_MAX_X] );
-                    %dstY = getRandom( %this.roaming[%a,$RM_MIN_Y], %this.roaming[%a,$RM_MAX_Y] );
+                    %dstX = getRandom( %this.roamMinX, %this.roamMaxX );
+                    %dstY = getRandom( %this.roamMinY, %this.roamMaxY );
                 }
-                while( %a.getRoom() == $VAR_ROOM && getActorAt(%dstX,%dstY) );
+                while (%this.getGroup() == getCurrentRoom() && 
+                       getActorAt(%dstX,%dstY) != 0);
 
-                echo("" @ %a @ " roam to " @ %dstX @ "x" @ %dstY @ "");
-                %a.walkTo(%dstX, %dstY);
+                echo("" @ %this @ " roam to " @ %dstX @ "x" @ %dstY @ "");
+                %this.walkTo(%dstX, %dstY);
+                waitForActor(%this);
         }
 
         delayFiber( getRandom(50,200) );
     }
 
-    echo("Roaming function for " @ %a @ " finished");
+    echo("Roaming function for " @ %this @ " finished");
 }
 
-// startRoaming uses delay/startScript -> script
+
+function Actor::stopRoamingFiber(%this)
+{
+    if (isFiberRunning(%this.roamFiberID))
+    {
+        stopFiber(%this.roamFiberID);
+    }
+    %this.roamFiberID = 0;
+}
+
+function Actor::resetRoamingFiber(%this)
+{
+    if (isFiberRunning(%this.roamFiberID))
+    {
+        stopFiber(%this.roamFiberID);
+    }
+    %this.roamFiberID = %this.spawnFiber(0, roam);
+}
+
 function Actors::startRoaming(%this, %a, %x_min, %x_max, %y_min, %y_max)
 {
-    if(%a >= 0xF)
+    if(!isObject(%a))
     {
         echo("Invalid actor id (" @ %a @ "), can't make it roam.");
         return;
     }
 
+    if (%a.roamFiberID != 0)
+    {
+        %a.stopRoamingFiber();
+    }
+
     echo("Starting roam function for " @ %a @ "");
 
-    // lazy-dim nibble 2D
-    /* TOFIX if(%this.roaming !$= "")
+    // Reset state
+    if (true)
     {
-        // Simulate dimNibble2(roaming,0xF,RM_NUM_FIELD)
-        for (%i = 0; %i < 0xF; %i++)
-            for (%j = 0; %j < $RM_NUM; %j++)
-                %this.roaming[%i,%j] = 0;
-    }*/
+        %a.roamState = 0;
+        %a.roamMinX = 0;
+        %a.roamMaxX = 0;
+        %a.roamMinY = 0;
+        %a.roamMaxY = 0;
+        %a.roamingInit = true;
+    }
 
-    %this.roaming[%a,$RM_MIN_X] = %x_min; %this.roaming[%a,$RM_MAX_X] = %x_max;
-    %this.roaming[%a,$RM_MIN_Y] = %y_min; %this.roaming[%a,$RM_MAX_Y] = %y_max;
+    %a.roamMinX = %x_min; %a.roamMaxX = %x_max;
+    %a.roamMinY = %y_min; %a.roamMaxY = %y_max;
 
-    if (%this.roaming[%a,$RM_STATE] > $RM_STOPPED)
+    if (%a.roamState > $RM_STOPPED)
     {
-        %this.roaming[%a,$RM_STATE] = $RM_RUNNING;
+        %a.roamState = $RM_RUNNING;
     }
     else
     {
-        %this.roaming[%a,$RM_STATE] = $RM_RUNNING;
-        // TOFIX startScript(1, Actors.roam, [%a]);
+        %a.roamState = $RM_RUNNING;
+        %a.resetRoamingFiber();
     }
 }
 
 function Actors::pauseRoaming(%this, %a)
 {
-    if(!(%a < 0xF && %this.roaming !$= "")) return;
-    if(!(%this.roaming[%a,$RM_STATE] > $RM_STOPPED)) return;
+    if (!isObject(%a))
+    {
+        return;
+    }
+
+    if(!(%a.roamState > $RM_STOPPED)) 
+    {
+        return;
+    }
 
     echo("Pausing roam function for " @ %a @ "");
     %a.setStanding();
-    %this.roaming[%a,$RM_STATE] = $RM_PAUSED;
+    %a.roamState = $RM_PAUSED;
 }
 
 function Actors::resumeRoaming(%this, %a)
 {
-    if(!(%a < 0xF && %this.roaming !$= "")) return;
-    if(!(%this.roaming[%a,$RM_STATE] > $RM_STOPPED)) return;
+    if (!isObject(%a))
+    {
+        return;
+    }
+    
+    if(!(%a.roamState > $RM_STOPPED)) 
+    {
+        return;
+    }
 
     echo("Resuming roam function for " @ %a @ "");
-    %this.roaming[%a,$RM_STATE] = $RM_RUNNING;
+    %a.roamState = $RM_RUNNING;
 }
 
 function Actors::stopRoaming(%this, %a)
 {
-    if(!(%a < 0xF && %this.roaming !$= "")) return;
-    if(!(%this.roaming[%a,$RM_STATE] > $RM_STOPPED)) return;
+    if (!isObject(%a))
+    {
+        return;
+    }
+    
+    if(!(%a.roamState > $RM_STOPPED)) 
+    {
+        return;
+    }
 
     echo("Stoping roam function for " @ %a @ "");
     %a.setStanding();
-    %this.roaming[%a,$RM_STATE] = $RM_STOPPED;
+    %a.roamState = $RM_STOPPED;
 }
 
 // -------------------------
@@ -273,10 +319,10 @@ function Actors::setupActors(%this)
 
     // ---- Inventory ----
     $VAR_EGO.pickupObject( InvScanner );
-    //$VAR_EGO.pickupObject( InvCard );
-    //$VAR_EGO.pickupObject( InvGun );
-    //$VAR_EGO.pickupObject( InvBullets );
-    //InvGun.state = 2;
+    $VAR_EGO.pickupObject( InvCard );
+    $VAR_EGO.pickupObject( InvGun );
+    $VAR_EGO.pickupObject( InvBullets );
+    InvGun.state = 2;
     $invOffset = 0;
 }
 
