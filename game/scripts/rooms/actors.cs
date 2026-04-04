@@ -319,10 +319,10 @@ function Actors::setupActors(%this)
 
     // ---- Inventory ----
     $VAR_EGO.pickupObject( InvScanner );
-    $VAR_EGO.pickupObject( InvCard );
-    $VAR_EGO.pickupObject( InvGun );
-    $VAR_EGO.pickupObject( InvBullets );
-    InvGun.state = 2;
+    //$VAR_EGO.pickupObject( InvCard );
+    //$VAR_EGO.pickupObject( InvGun );
+    //$VAR_EGO.pickupObject( InvBullets );
+    //InvGun.state = 2;
     $invOffset = 0;
 }
 
