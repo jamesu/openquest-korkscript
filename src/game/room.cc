@@ -1032,7 +1032,7 @@ ConsoleFunctionValue(setBoxFlags, 3, 3, "")
 {
    if (gGlobals.currentRoom == nullptr)
    {
-      return;
+      return KorkApi::ConsoleValue();
    }
    
    U32 boxToSet = vmPtr->valueAsInt(argv[1]);
@@ -1050,7 +1050,7 @@ ConsoleFunctionValue(clearBoxFlags, 3, 3, "")
 {
    if (gGlobals.currentRoom == nullptr)
    {
-      return;
+      return KorkApi::ConsoleValue();
    }
    
    U32 boxToSet = vmPtr->valueAsInt(argv[1]);

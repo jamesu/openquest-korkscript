@@ -24,6 +24,11 @@ SimFiberManager* gFiberManager = nullptr;
 TextureManager* gTextureManager = nullptr;
 EngineGlobals gGlobals;
 
+namespace
+{
+   constexpr U64 CUTSCENE_OVERRIDE_MASK = 0x1 | BIT(31);
+}
+
 void MyLogger(U32 level, const char *consoleLine, void*)
 {
    printf("%s\n", consoleLine);
@@ -203,6 +208,12 @@ int main(int argc, char **argv)
                {
                   SimWorld::RootUI::sMainInstance->setOverlay(gGlobals.consoleInput ? consoleObject : nullptr);
                }
+            }
+            
+            // Check cutscene skip
+            if (IsKeyReleased(KEY_SPACE))
+            {
+               gFiberManager->throwWithSuspendFlags(CUTSCENE_OVERRIDE_MASK);
             }
             
             SimWorld::RootUI::sMainInstance->updateLayout(RectI(Point2I(0,0), SimWorld::RootUI::sMainInstance->mMinContentSize));
