@@ -54,6 +54,7 @@ set(TORQUESIM_SRCS
 
 set(GAME_SRCS
   ./src/game/actor.cc
+  ./src/game/consoleWidget.cc
   ./src/game/costume.cc
   ./src/game/displayBase.cc
   ./src/game/engine.cc

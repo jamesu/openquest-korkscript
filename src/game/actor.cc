@@ -451,7 +451,7 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
      mLiveCostume.render(mCostume->mState);
      
      // Draw debug stuff
-     if (true)
+     if (gGlobals.drawDebug)
      {
         ::DrawCircleLines(mWalkState.mWalkTarget.x, mWalkState.mWalkTarget.y, 2, RED);
         ::DrawCircleLines(mWalkState.mRealWalkTarget.x, mWalkState.mRealWalkTarget.y, 5, GREEN);
@@ -523,9 +523,12 @@ void Actor::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
            }
         }
      }
-
-     RectI costumeBounds = mLiveCostume.getCurrentBounds(mCostume->mState);
-     ::DrawRectangleLines(costumeBounds.point.x, costumeBounds.point.y, costumeBounds.extent.x, costumeBounds.extent.y, BLUE);
+     
+     if (gGlobals.drawDebug)
+     {
+        RectI costumeBounds = mLiveCostume.getCurrentBounds(mCostume->mState);
+        ::DrawRectangleLines(costumeBounds.point.x, costumeBounds.point.y, costumeBounds.extent.x, costumeBounds.extent.y, BLUE);
+     }
   }
 }
 

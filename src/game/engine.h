@@ -364,7 +364,9 @@ struct EngineGlobals
    Point2I screenSize;
    
    bool userPut;
+   bool consoleInput;
    bool cursorState;
+   bool drawDebug;
 
    void setActiveMessage(MessageDisplayParams params, SimWorld::Actor* actor, SimWorld::Sound* sound, StringTableEntry message, bool isTalk, U32 ovrTicks);
 };

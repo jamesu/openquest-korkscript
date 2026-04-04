@@ -130,7 +130,9 @@ int main(int argc, char **argv)
       gGlobals.screenSize = Point2I(screenWidth, screenHeight);
       
       gGlobals.userPut = true;
+      gGlobals.consoleInput = false;
       gGlobals.cursorState = true;
+      gGlobals.drawDebug = false;
       
       gGlobals.roomRt = LoadRenderTexture(320, 200);
       for (U32 zPlane=0; zPlane<SimWorld::RoomRender::NumZPlanes; zPlane++)
@@ -182,10 +184,26 @@ int main(int argc, char **argv)
          if (SimWorld::RootUI::sMainInstance)
          {
             SimWorld::RootUI::sMainInstance->resize(Point2I(0,0), SimWorld::RootUI::sMainInstance->mMinContentSize);
+            
+            // Check console input
+            if (IsKeyReleased(KEY_GRAVE))
+            {
+               gGlobals.consoleInput = !gGlobals.consoleInput;
+               
+               SimWorld::DisplayBase* consoleObject = nullptr;
+               Sim::findObject("GuiConsole", consoleObject);
+               
+               if (consoleObject)
+               {
+                  SimWorld::RootUI::sMainInstance->setOverlay(gGlobals.consoleInput ? consoleObject : nullptr);
+               }
+            }
+            
             SimWorld::RootUI::sMainInstance->updateLayout(RectI(Point2I(0,0), SimWorld::RootUI::sMainInstance->mMinContentSize));
          }
-
-         if (gGlobals.userPut)
+         
+         
+         if (gGlobals.userPut && !gGlobals.consoleInput)
          {
             gGlobals.inputHandler->update(cam);
          }
@@ -218,7 +236,10 @@ int main(int argc, char **argv)
          EndMode2D();
          
          // Debug viewport outline
-         DrawRectangleLinesEx(vp, 1, GREEN);
+         if (gGlobals.drawDebug)
+         {
+            DrawRectangleLinesEx(vp, 1, GREEN);
+         }
          
          EndDrawing();
       }

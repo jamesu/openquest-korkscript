@@ -16,7 +16,7 @@ struct DisplayPair
    Point2I tl;
    Point2I br;
 
-   DisplayPair() {;}
+   DisplayPair() : tl(0,0), br(0,0) {;}
 };
 
 class DisplayBase : public SimGroup
@@ -78,7 +78,7 @@ public:
    
    virtual bool processInput(DBIEvent& event);
    
-   void renderChildren(Point2I offset, RectI drawRect, Camera2D& globalCamera);
+   virtual void renderChildren(Point2I offset, RectI drawRect, Camera2D& globalCamera);
    
    virtual void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera);
    
@@ -95,6 +95,8 @@ class RootUI : public DisplayBase
    typedef DisplayBase Parent;
 public:
    static RootUI* sMainInstance;
+
+   DisplayBase* mOverlay;
    
    RootUI();
    
@@ -105,9 +107,10 @@ public:
    bool processInput(DBIEvent& event) override;
    
    void onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera) override;
-   
-   
-   void setContent(DisplayBase* obj);
+
+   void renderChildren(Point2I offset, RectI drawRect, Camera2D& globalCamera) override;
+
+   void setOverlay(DisplayBase* overlay);
    
 public:
    DECLARE_CONOBJECT(RootUI);

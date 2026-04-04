@@ -189,6 +189,7 @@ RootUI* RootUI::sMainInstance;
 
 RootUI::RootUI()
 {
+   mOverlay = nullptr;
 }
 
 bool RootUI::onAdd()
@@ -211,6 +212,36 @@ void RootUI::onRemove()
   Parent::onRemove();
 }
 
+void RootUI::renderChildren(Point2I offset, RectI drawRect, Camera2D& globalCamera)
+{
+  for (SimObject* obj : objectList)
+  {
+     DisplayBase* dObj = dynamic_cast<DisplayBase*>(obj);
+     if (obj == mOverlay)
+     {
+        continue;
+     }
+     
+     if (dObj)
+     {
+        Point2I childPosition = dObj->getAnchorPosition();
+        RectI childClip(dObj->getBoundedPosition(), dObj->getBoundedExtent());
+        
+        if (childClip.intersect(drawRect))
+        {
+           dObj->onRender(childPosition, childClip, globalCamera);
+        }
+     }
+  }
+   
+   if (mOverlay)
+   {
+      Point2I childPosition = mOverlay->getAnchorPosition();
+      RectI childClip(mOverlay->getBoundedPosition(), mOverlay->getBoundedExtent());
+      mOverlay->onRender(childPosition, childClip, globalCamera);
+   }
+}
+
 bool RootUI::processInput(DBIEvent& event)
 {
    if (event.capturedControl && 
@@ -231,26 +262,36 @@ void RootUI::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamera)
    renderChildren(offset, drawRect, globalCamera);
 }
 
-void RootUI::setContent(DisplayBase* obj)
+void RootUI::setOverlay(DisplayBase* overlay)
 {
-   auto itr = std::find(objectList.begin(), objectList.end(), obj);
-   if (itr == objectList.end())
+   if (mOverlay == overlay)
    {
-      clear();
-      addObject(obj);
+      return;
+   }
+
+   auto itr = std::find(objectList.begin(), objectList.end(), mOverlay);
+   if (itr != objectList.end())
+   {
+      removeObject(*itr);
+   }
+
+   mOverlay = overlay;
+   
+   if (overlay)
+   {
+      addObject(mOverlay);
    }
 }
 
-ConsoleMethodValue(RootUI, setContent, 3, 3, "")
+ConsoleMethodValue(RootUI, setOverlay, 3, 3, "")
 {
    DisplayBase* displayObject = nullptr;
    if (Sim::findObject(argv[2], displayObject))
    {
-      object->setContent(displayObject);
+      object->setOverlay(displayObject);
    }
    
    return KorkApi::ConsoleValue();
 }
-
 
 END_SW_NS

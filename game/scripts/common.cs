@@ -996,6 +996,12 @@ function ResRoom::main(%this, %bootParam)
     %this.showCursor();
     %this.resetMouseWatch();
 
+    %console = new ConsoleWidget(GuiConsole) {
+        anchorPoint = 0,0;
+        contentSize = 320, 200;
+    };
+    //RootUI.setOverlay(%console);
+
     echo("Booting with param:" @ %bootParam);
 
     // Boot path

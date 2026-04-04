@@ -327,22 +327,25 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
          }
       }
       
-      for (BoxInfo::Box& box : mBoxes.boxes)
+      if (gGlobals.drawDebug)
       {
-         if (box.numPoints >= 4)
+         for (BoxInfo::Box& box : mBoxes.boxes)
          {
-            Point2I* points = mBoxes.points.data() + box.startPoint;
-            
-            Vector2 prevPoint = (Vector2){(float)points[0].x, (float)points[0].y};
-            Vector2 originPoint = prevPoint;
-            for (U32 i=1; i<box.numPoints; i++)
+            if (box.numPoints >= 4)
             {
-               Vector2 curPoint = (Vector2){(float)points[i].x, (float)points[i].y};
-               ::DrawLineV(prevPoint, curPoint, (Color){255,255,255,255});
-               prevPoint = curPoint;
+               Point2I* points = mBoxes.points.data() + box.startPoint;
+               
+               Vector2 prevPoint = (Vector2){(float)points[0].x, (float)points[0].y};
+               Vector2 originPoint = prevPoint;
+               for (U32 i=1; i<box.numPoints; i++)
+               {
+                  Vector2 curPoint = (Vector2){(float)points[i].x, (float)points[i].y};
+                  ::DrawLineV(prevPoint, curPoint, (Color){255,255,255,255});
+                  prevPoint = curPoint;
+               }
+               
+               ::DrawLineV(prevPoint, originPoint, (Color){255,255,255,255});
             }
-            
-            ::DrawLineV(prevPoint, originPoint, (Color){255,255,255,255});
          }
       }
       
@@ -783,8 +786,6 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
    {
       return;
    }
-   
-   bool debug = true;
 
    U32 curStateIndex = mEvalState-1;
    if (curStateIndex < objectList.size())
@@ -799,12 +800,12 @@ void RoomObject::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
          Rectangle dest = { (float)offset.x, (float)offset.y, (float)slot->mTexture.width, (float)slot->mTexture.height };
          
          RectI fullDest = WorldRectToScreen(RectI(offset, Point2I(slot->mTexture.width, slot->mTexture.height)), globalCam);
-         DrawTexturePro(slot->mTexture, src, dest, origin, 0.0f, debug? BLUE : WHITE);
+         DrawTexturePro(slot->mTexture, src, dest, origin, 0.0f, gGlobals.drawDebug ? BLUE : WHITE);
       }
    }
    
    // debug
-   if (debug)
+   if (gGlobals.drawDebug)
    {
       Point2I actualStart = (offset - mAnchor) + mBounds.point;
       DrawCircle(mAnchor.x, mAnchor.y, 2, RED);

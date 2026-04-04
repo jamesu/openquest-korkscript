@@ -139,7 +139,10 @@ void VerbDisplay::onRender(Point2I offset, RectI drawRect, Camera2D& globalCamer
       DrawText(mDisplayText, actualStart.x, actualStart.y, mFontSize, actualColor);
    }
    
-   DrawRectangleLines(actualStart.x, actualStart.y, mBounds.extent.x, mBounds.extent.y, mDisplayState == HIGHLIGHTED ? GREEN : RED);
+   if (gGlobals.drawDebug)
+   {
+      DrawRectangleLines(actualStart.x, actualStart.y, mBounds.extent.x, mBounds.extent.y, mDisplayState == HIGHLIGHTED ? GREEN : RED);
+   }
 }
 
 void VerbDisplay::updateLayout(const RectI contentRect)
