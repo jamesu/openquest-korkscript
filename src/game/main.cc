@@ -77,6 +77,9 @@ int main(int argc, char **argv)
    
    gFiberManager = new SimFiberManager();
    gFiberManager->registerObject("FiberManager");
+   gFiberManager->setThrowResumeGuardFlags(SCHEDULE_FLAG_MESSAGE |
+                                           SCHEDULE_FLAG_CAMERA_MOVING |
+                                           SCHEDULE_FLAG_SENTENCE_BUSY);
    gGlobals.engineTick.registerTickable();
 
    gGlobals.sentenceQueue = new SimWorld::SentenceQueueManager();
