@@ -105,8 +105,8 @@ new Costume(ZifCostume)
     {
         E[body] = zif_ImageSets->standE.pick(0);
         W[body] = zif_ImageSets->standW.pick(0);
-        N[body] = zif_ImageSets->standN.pick(0);
         S[body] = zif_ImageSets->standS.pick(0);
+        N[body] = zif_ImageSets->standN.pick(0);
     };
 
     // --- Anim: init (same as stand) ---
@@ -114,8 +114,8 @@ new Costume(ZifCostume)
     {
         E[body] = zif_ImageSets->standE.pick(0);
         W[body] = zif_ImageSets->standW.pick(0);
-        N[body] = zif_ImageSets->standN.pick(0);
         S[body] = zif_ImageSets->standS.pick(0);
+        N[body] = zif_ImageSets->standN.pick(0);
     };
 
     // --- Anim: talkStart ---
@@ -132,8 +132,8 @@ new Costume(ZifCostume)
     {
         E[body] = zif_ImageSets->standE.pick(0);
         W[body] = zif_ImageSets->standW.pick(0);
-        N[body] = zif_ImageSets->standN.pick(0);
         S[body] = zif_ImageSets->standS.pick(0);
+        N[body] = zif_ImageSets->standN.pick(0);
     };
 
     // --- Anim: raiseArm  (@24, one-shot) ---
@@ -142,8 +142,8 @@ new Costume(ZifCostume)
         id = 24;
         E[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
         W[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
-        N[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
         S[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
+        N[body] = zif_ImageSets->raiseArmE.pick(1,2), $NO_LOOP;
     };
 
     // --- Anim: lowerArm (@28, one-shot) ---
@@ -152,8 +152,8 @@ new Costume(ZifCostume)
         id = 28;
         E[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standE.pick(0), $NO_LOOP;
         W[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standW.pick(0), $NO_LOOP;
-        N[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standN.pick(0), $NO_LOOP;
         S[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standS.pick(0), $NO_LOOP;
+        N[body] = zif_ImageSets->raiseArmE.pick(1), zif_ImageSets->standN.pick(0), $NO_LOOP;
     };
 
     // --- Anim: standWithPhone (@32) ---
@@ -162,8 +162,8 @@ new Costume(ZifCostume)
         id = 32;
         E[body] = zif_ImageSets->standWithPhoneE.pick(0);
         W[body] = zif_ImageSets->standWithPhoneW.pick(0);
-        N[body] = zif_ImageSets->standWithPhoneN.pick(0);
         S[body] = zif_ImageSets->standWithPhoneS.pick(0);
+        N[body] = zif_ImageSets->standWithPhoneN.pick(0);
     };
 
     // --- Anim: talkToPhoneStart (@36) ---

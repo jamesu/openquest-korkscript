@@ -260,6 +260,7 @@ bool Costume::compileCostume()
    }
    
    Con::printf("Compile complete");
+   return true;
 }
 
 
@@ -440,6 +441,11 @@ void CostumeRenderer::LiveState::evalCmd(StaticState& state, LimbState& limbStat
    {
       // loop back to start
       limbState.nextCmd = 0;
+   }
+   else
+   {
+      // Mark the track finished so the last command is not re-evaluated forever.
+      limbState.nextCmd = limbState.track.numCommands;
    }
 }
 

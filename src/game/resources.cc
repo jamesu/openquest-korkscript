@@ -49,7 +49,7 @@ void ImageSet::ensureImageLoaded(U32 n)
    {
       for (U32 i=(U32)mLoadedImages.size(); i<=n; i++)
       {
-         std::string fpath = makeImageFilename(n);
+         std::string fpath = makeImageFilename(i);
          char dstName[4096];
          Con::expandPath(dstName, sizeof(dstName), fpath.c_str(), Con::getCurrentCodeBlockFullPath());
          if (Platform::isFile(dstName))
@@ -198,12 +198,18 @@ ConsoleGetType( TypeLimbControlVector )
           inputStorage->data.storageRegister->typeId == TypeLimbControlVector)
       {
          // Just copy data
-         U32* ptr = (U32*)ConsoleGetInputStoragePtr();
-         U32 numElements = ptr ? *ptr++ : 0;
+         const U8* ptr = (const U8*)ConsoleGetInputStoragePtr();
+         U32 numElements = 0;
+         if (ptr)
+         {
+            memcpy(&numElements, ptr, sizeof(U32));
+            ptr += sizeof(U32);
+         }
          U32 dataSize = (numElements * sizeof(CostumeAnim::LimbControl));
          outputStorage->FinalizeStorage(outputStorage, sizeof(U32) +  dataSize);
-         U32* returnBuffer = (U32*)ConsoleGetOutputStoragePtr();
-         *returnBuffer++ = numElements;
+         U8* returnBuffer = (U8*)ConsoleGetOutputStoragePtr();
+         memcpy(returnBuffer, &numElements, sizeof(U32));
+         returnBuffer += sizeof(U32);
          
          if (ptr)
          {
@@ -231,13 +237,20 @@ ConsoleGetType( TypeLimbControlVector )
 
                if (val.typeId == TypeLimbControlVector)
                {
-                  U32* storagePtr = (U32*)val.evaluatePtr(vmPtr->getAllocBase());
-                  U32 numElems = storagePtr[0];
-                  CostumeAnim::LimbControl* data = (CostumeAnim::LimbControl*)(storagePtr+1);
-                  
-                  for (S32 i=0; i<numElems; i++)
+                  const U8* storagePtr = (const U8*)val.evaluatePtr(vmPtr->getAllocBase());
+                  U32 numElems = 0;
+                  if (!storagePtr)
                   {
-                     vec->push_back(data[i]);
+                     continue;
+                  }
+                  memcpy(&numElems, storagePtr, sizeof(U32));
+                  storagePtr += sizeof(U32);
+                  
+                  for (U32 i=0; i<numElems; i++)
+                  {
+                     CostumeAnim::LimbControl limb = {};
+                     memcpy(&limb, storagePtr + (i * sizeof(CostumeAnim::LimbControl)), sizeof(CostumeAnim::LimbControl));
+                     vec->push_back(limb);
                   }
                }
                else
@@ -278,7 +291,7 @@ ConsoleGetType( TypeLimbControlVector )
    else if (requestedType == TypeLimbControlVector)
    {
       // Need to convert back to serialized variant
-      outputStorage->FinalizeStorage(outputStorage, (vec->size() * sizeof(S32)) + sizeof(CostumeAnim::LimbControl));
+      outputStorage->FinalizeStorage(outputStorage, sizeof(U32) + (vec->size() * sizeof(CostumeAnim::LimbControl)));
       U32* vecCount = (U32*)ConsoleGetOutputStoragePtr();
       *vecCount++ = vec->size();
       
@@ -313,18 +326,33 @@ ConsoleGetType( TypeLimbControlVector )
          CostumeAnim::LimbControl* control = &(*vec)[i];
          if (control->setCommand >= CostumeRenderer::CMD_END)
             continue;
-         
-         if (control->setId >= 0)
+
+         SimObject* targetObject = nullptr;
+         const char* targetName = nullptr;
+         if ((control->setCommand == CostumeRenderer::CMD_IMG ||
+              control->setCommand == CostumeRenderer::CMD_SOUND) &&
+             Sim::findObject(control->setId, targetObject))
+         {
+            targetName = targetObject->getName();
+         }
+
+         if (control->setCommand == CostumeRenderer::CMD_IMG && targetName)
          {
             snprintf(returnBuffer + returnLen, maxReturn - returnLen,
-                     "%s:%i", i == 0 ? "" : " ",
-                     CostumeRenderer::opcodeMap[control->setCommand],
-                     control->setId);
+                     "%sIMG:%s:%u", i == 0 ? "" : " ",
+                     targetName,
+                     control->setParam);
+         }
+         else if (control->setCommand == CostumeRenderer::CMD_SOUND && targetName)
+         {
+            snprintf(returnBuffer + returnLen, maxReturn - returnLen,
+                     "%sSOUND:%s", i == 0 ? "" : " ",
+                     targetName);
          }
          else
          {
             snprintf(returnBuffer + returnLen, maxReturn - returnLen,
-                     "%s:%u", i == 0 ? "" : " ",
+                     "%s%s:%u", i == 0 ? "" : " ",
                      CostumeRenderer::opcodeMap[control->setCommand],
                      control->setParam);
          }

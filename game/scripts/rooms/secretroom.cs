@@ -184,7 +184,7 @@ function SecretRoom::outro(%this)
         commanderZif.say("What a shame..."); waitForMessage();
         commanderZif.say("We could have ruled the cosmos together."); waitForMessage();
 
-        setActorDirection(180); // commanderZif
+        commanderZif.setDirection($SOUTH);
         Actors.setZifOnThePhone();
         commanderZif.animate(lookAround); delayFiber(30);
 
@@ -201,7 +201,7 @@ function SecretRoom::outro(%this)
             ensignZob.putAt(     276,110, SecretRoom);
             commanderZif.putAt(  170,120, SecretRoom);
             bluecupActor.putAt(     0,  0, InventoryItems);
-            setActorDirection(180); // commanderZif
+            commanderZif.setDirection($SOUTH);
             Actors.setZifOffThePhone();
         }
     //}

@@ -361,17 +361,18 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       }
       
       std::sort(sortedActors.begin(), sortedActors.end(), [](const Actor* a, const Actor* b){
-         if (a->mBounds.point.y != b->mBounds.point.y)
+         const S32 aDepth = a->getAnchorPosition().y;
+         const S32 bDepth = b->getAnchorPosition().y;
+
+         if (aDepth != bDepth)
          {
-            return a->mBounds.point.y < b->mBounds.point.y;
+            return aDepth < bDepth;
          }
 
          return a->getId() < b->getId();
       });
       
-      // Actors need to be masked by the current z planes.
-      // these need to be kept current
-      U32 lastActor = 0;
+      // Actors need to be depth-sorted globally, then masked per actor.
       int locMask = GetShaderLocation(gGlobals.shaderMask, "maskTex");
       int locRtSize = GetShaderLocation(gGlobals.shaderMask, "rtSizePx");
       int locOff    = GetShaderLocation(gGlobals.shaderMask, "roomOffsetPx");
@@ -381,51 +382,37 @@ void Room::onRender(Point2I offset, RectI drawRect, Camera2D& globalCam)
       Vector2 roomOff  = { 0.0f, 0.0f };
       Vector2 roomSize = { 320.0f, 200.0f };
       
-      for (U32 zPlane=0; zPlane<RoomRender::NumZPlanes; zPlane++)
-      {
-         // Start drawing using the zPlane RT as a mask
-         BeginBlendMode(BLEND_ALPHA);
-         BeginShaderMode(gGlobals.shaderMask);
-
-         Texture2D& tex = gGlobals.roomZPlaneRt[zPlane].texture; 
-         
-         SetTextureFilter(tex, TEXTURE_FILTER_POINT);
-         SetTextureWrap(tex, TEXTURE_WRAP_CLAMP);
-         
-         SetShaderValueTexture(gGlobals.shaderMask, locMask, tex);
-         
-         SetShaderValue(gGlobals.shaderMask, locRtSize, &rtSize, SHADER_UNIFORM_VEC2);
-         SetShaderValue(gGlobals.shaderMask, locOff,    &roomOff, SHADER_UNIFORM_VEC2);
-         SetShaderValue(gGlobals.shaderMask, locRoomSz, &roomSize, SHADER_UNIFORM_VEC2);
-      
-         
-         for (Actor* obj : sortedActors)
-         {
-            Actor* actor = dynamic_cast<Actor*>(obj);
-            if (actor && actor->mLayer == zPlane+1)
-            {
-               // NOTE: actors can have costume parts all over the place,
-               // so we just use the rooms clip rect here.
-               Point2I childPosition = actor->getAnchorPosition();
-               RectI childClip(actor->getBoundedPosition(), actor->getBoundedExtent());
-               actor->onRender(childPosition, childClip, localCamera);
-            }
-         }
-         
-         EndBlendMode();
-         EndShaderMode();
-         
-         //break;
-      }
-      
-      // Draw layer 0 on top
       for (Actor* obj : sortedActors)
       {
          Actor* actor = dynamic_cast<Actor*>(obj);
-         if (actor && actor->mLayer == 0)
+         if (!actor)
          {
-            Point2I childPosition = actor->getAnchorPosition();
-            RectI childClip(actor->getBoundedPosition(), actor->getBoundedExtent());
+            continue;
+         }
+
+         // NOTE: actors can have costume parts all over the place,
+         // so we just use the rooms clip rect here.
+         Point2I childPosition = actor->getAnchorPosition();
+         RectI childClip(actor->getBoundedPosition(), actor->getBoundedExtent());
+
+         if (actor->mLayer > 0 && actor->mLayer <= RoomRender::NumZPlanes)
+         {
+            BeginBlendMode(BLEND_ALPHA);
+            BeginShaderMode(gGlobals.shaderMask);
+
+            Texture2D& tex = gGlobals.roomZPlaneRt[actor->mLayer - 1].texture;
+            SetTextureFilter(tex, TEXTURE_FILTER_POINT);
+            SetTextureWrap(tex, TEXTURE_WRAP_CLAMP);
+            SetShaderValueTexture(gGlobals.shaderMask, locMask, tex);
+            SetShaderValue(gGlobals.shaderMask, locRtSize, &rtSize, SHADER_UNIFORM_VEC2);
+            SetShaderValue(gGlobals.shaderMask, locOff,    &roomOff, SHADER_UNIFORM_VEC2);
+            SetShaderValue(gGlobals.shaderMask, locRoomSz, &roomSize, SHADER_UNIFORM_VEC2);
+            actor->onRender(childPosition, childClip, localCamera);
+            EndShaderMode();
+            EndBlendMode();
+         }
+         else
+         {
             actor->onRender(childPosition, childClip, localCamera);
          }
       }
