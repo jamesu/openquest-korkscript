@@ -196,7 +196,6 @@ ConsoleMethodValue(VerbDisplay, setDisplaysText, 3, 3, "(text)")
 {
    object->mDisplayText = StringTable->insert(vmPtr->valueAsString(argv[2]));
    object->mRoomObject = nullptr;
-   object->mEnabled = true;
    object->mInputEnabled = true;
    object->updateLayout(RootUI::sMainInstance->getContentRect());
    return KorkApi::ConsoleValue();
@@ -208,7 +207,6 @@ ConsoleMethodValue(VerbDisplay, setDisplaysObject, 3, 3, "(object)")
    Sim::findObject(argv[2], roomObject);
    object->mDisplayText = StringTable->EmptyString;
    object->mRoomObject = roomObject;
-   object->mEnabled = true;
    object->mInputEnabled = true;
    object->updateLayout(RootUI::sMainInstance->mBounds);
    return KorkApi::ConsoleValue();

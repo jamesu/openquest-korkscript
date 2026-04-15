@@ -13,12 +13,12 @@ BEGIN_SW_NS
 
 IMPLEMENT_CONOBJECT(Sound);
 
-
 Sound::Sound()
 {
 	mPath = StringTable->EmptyString;
 	mSound = {};
 	mChannel = 0;
+	mPan = 0.5f; // Default to center pan
 }
 
 bool Sound::onAdd()
@@ -47,6 +47,7 @@ void Sound::play()
 	if (mChannel < AUDIO_CHANNEL_COUNT)
 	{
 		::SetSoundVolume(mSound, gGlobals.mChannelVolume[mChannel]);
+		::SetSoundPan(mSound, mPan);
 	}
 	::PlaySound(mSound);
 }
@@ -56,6 +57,7 @@ void Sound::initPersistFields()
 	Parent::initPersistFields();
 	addField("path", TypeString, Offset(mPath, Sound));
 	addField("channel", TypeS32, Offset(mChannel, Sound));
+	addField("pan", TypeF32, Offset(mPan, Sound)); // Add pan field
 }
 
 ConsoleMethodValue(Sound, play, 2, 2, "")

@@ -50,7 +50,8 @@ struct CostumeRenderer
       NORTH,
       SOUTH,
       WEST,
-      EAST
+      EAST,
+      DERIVED
    };
    
    /*

@@ -881,15 +881,23 @@ ConsoleMethodValue(Actor, faceObject, 3, 3, "")
    DisplayBase* targetObject = nullptr;
    if (Sim::findObject(argv[2], targetObject))
    {
-      Point2I delta = targetObject->getHotSpot() - object->getAnchorPosition();
-      
-      S32 ax = std::abs(delta.x);
-      S32 ay = std::abs(delta.y);
-      
-      S32 preferredAxis = ax > ay + 5 ? 0 : 1;
-      
-      CostumeRenderer::DirectionValue curDir = ActorWalkState::dirFromDominantAxis(preferredAxis == 0 ? delta.x : delta.y, preferredAxis);
-      object->setDirection(curDir);
+      RoomObject* ro = dynamic_cast<RoomObject*>(targetObject);
+      if (ro && ro->mDirection != CostumeRenderer::DERIVED)
+      {
+         object->setDirection(ro->mDirection);
+      }
+      else
+      {
+         Point2I delta = targetObject->getHotSpot() - object->getAnchorPosition();
+         
+         S32 ax = std::abs(delta.x);
+         S32 ay = std::abs(delta.y);
+         
+         S32 preferredAxis = ax > ay + 5 ? 0 : 1;
+         
+         CostumeRenderer::DirectionValue curDir = ActorWalkState::dirFromDominantAxis(preferredAxis == 0 ? delta.x : delta.y, preferredAxis);
+         object->setDirection(curDir);
+      }
    }
    
    return KorkApi::ConsoleValue();

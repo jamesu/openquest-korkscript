@@ -159,7 +159,7 @@ public:
    StringTableEntry mDescription;
    StringTableEntry mClassName;
    
-   Direction mDirection;
+   CostumeRenderer::DirectionValue mDirection;
    U32 mDefinedState;
    U32 mTransFlags;
    Point2I mHotspot; // from 

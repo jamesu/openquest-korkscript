@@ -650,6 +650,7 @@ RoomObject::RoomObject()
    mEvalState = 1;
    mStateLockFlag = 0;
    mStateLockValue = 0;
+   mDirection = CostumeRenderer::DERIVED;
 }
 
 void RoomObject::updateResources()
@@ -828,7 +829,7 @@ void RoomObject::initPersistFields()
    
    addField("descName", TypeString, Offset(mDescription, RoomObject));
    addProtectedField("state", TypeS32, Offset(mDefinedState, RoomObject), setState, nullptr, "");
-   addField("dir", TypeS32, Offset(mDirection, RoomObject));
+   addField("dir", TypeS8, Offset(mDirection, RoomObject));
    addField("trans", TypeS32, Offset(mTransFlags, RoomObject));
    addField("hotSpot", TypePoint2I, Offset(mHotspot, RoomObject));
    

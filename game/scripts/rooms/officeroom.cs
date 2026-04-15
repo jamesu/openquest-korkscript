@@ -69,7 +69,7 @@ new Room(OfficeRoom)
     // Order matters: bullets before plant to draw above it.
     new RoomObject(ObjBullets)
     {
-        anchorPoint = 112, 80;dir = EAST;
+        anchorPoint = 112, 80;dir = $EAST;
         displayText = "ammunition";
         state = 1;
         trans = 0;
@@ -87,7 +87,7 @@ new Room(OfficeRoom)
 
     new RoomObject(ObjPlant)
     {
-        anchorPoint = 104, 48;dir = EAST;
+        anchorPoint = 104, 48;dir = $EAST;
         displayText = "plant";
         state = 1;
         
@@ -115,7 +115,7 @@ new Room(OfficeRoom)
 
     new RoomObject(ObjCabinetDrawer)
     {
-        anchorPoint = 128, 72;dir = NORTH;
+        anchorPoint = 128, 72;dir = $NORTH;
         displayText = "cabinet";
         className = Openable;
         state = 1;
@@ -135,14 +135,14 @@ new Room(OfficeRoom)
 
     new RoomObject(ObjPlate)
     {
-        anchorPoint = 248, 64;dir = EAST;
+        anchorPoint = 248, 64;dir = $EAST;
         contentSize = 8, 16; hotSpot = -14, 30;
         displayText = "plate";
     };
 
     new RoomObject(exitToSecretRoom)
     {
-        anchorPoint = 248, 32;dir = EAST;
+        anchorPoint = 248, 32;dir = $EAST;
         displayText = "secret room";
         state = 1;
 
@@ -196,21 +196,21 @@ new Room(OfficeRoom)
     new RoomObject(lightSwitch)
     {
         anchorPoint = 34, 71;contentSize = 7, 9;
-        displayText = "light switch"; dir = WEST;
+        displayText = "light switch"; dir = $WEST;
         hotspot = 20, 40;
     };
 
     new RoomObject(powerSocket)
     {
         anchorPoint = 220, 84;contentSize = 11, 6;
-        displayText = "power socket"; dir = NORTH;
+        displayText = "power socket"; dir = $NORTH;
         hotspot = 5, 20;
     };
 
     new RoomObject(bulletinBoard)
     {
         anchorPoint = 65, 39;contentSize = 14, 24;
-        displayText = "bulletin board"; dir = WEST;
+        displayText = "bulletin board"; dir = $WEST;
         hotspot = 20, 46;
     };
 };
@@ -278,8 +278,9 @@ function OfficeRoom::onEntry(%this)
 
     if (!$OfficeRoom::didOfficeIntro)
     {
-        beginCutscene(2);
-        //{
+        try
+        {
+            beginCutscene(2);
             $OfficeRoom::didOfficeIntro = 1;
 
             // try { ... }
@@ -344,20 +345,20 @@ function OfficeRoom::onEntry(%this)
             ensignZob.walkTo( 115,120); waitForActor(ensignZob);
             ensignZob.say("I'll begin my search."); waitForMessage();
             commanderZif.say("Keep me updated, ensign."); waitForMessage();
-
-            // override { ... }
-            if ($VAR_OVERRIDE)
-            {
-                stopTalking();
-                carol.putAt(        76, 98, OfficeRoom);
-                commanderZif.putAt(160,120, OfficeRoom);
-                ensignZob.putAt(   115,120, OfficeRoom);
-                setActorStanding();
-                carol.animate(stand);
-                Actors.setZifOffThePhone();
-            }
-        //}
-        endCutscene();
+        
+            endCutscene();
+        }
+        catch ($CUTSCENE_OVERRIDE) 
+        {
+            endCutscene();
+            stopTalking();
+            carol.putAt(        76, 98, OfficeRoom);
+            commanderZif.putAt(160,120, OfficeRoom);
+            ensignZob.putAt(   115,120, OfficeRoom);
+            setActorStanding();
+            carol.animate(stand);
+            Actors.setZifOffThePhone();
+        }
     }
 
     if (%quickInit)
@@ -700,9 +701,10 @@ function ObjPlate::onMove(%this)
     if ($OfficeRoom::hasTalkedAboutPlate)
     {
         Actors.pauseRoaming(commanderZif);
-        beginCutscene(0);
-        //{
-            // try { ... }
+        try
+        {
+            beginCutscene(0);
+
             commanderZif.walkTo( 267,116); waitForActor(commanderZif);
             commanderZif.say("I'll operate the one over here."); waitForMessage();
             delayFiber(20);
@@ -727,16 +729,16 @@ function ObjPlate::onMove(%this)
             commanderZif.say("Continue your investigation."); waitForMessage();
             commanderZif.walkTo( 200,120);
 
-            // override { ... }
-            if ($VAR_OVERRIDE)
-            {
-                stopTalking();
-                commanderZif.putAt( 200,120, OfficeRoom);
-                exitToSecretRoom.state = 7;
-                clearBoxFlags(8, $BOXF_DISABLED);
-            }
-        //}
-        endCutscene();
+            endCutscene();
+        }
+        catch ($CUTSCENE_OVERRIDE) 
+        {
+            endCutscene();
+            stopTalking();
+            commanderZif.putAt( 200,120, OfficeRoom);
+            exitToSecretRoom.state = 7;
+            clearBoxFlags(8, $BOXF_DISABLED);
+        }
 
         Actors.resumeRoaming(commanderZif);
         return;
@@ -747,6 +749,7 @@ function ObjPlate::onMove(%this)
         beginCutscene(2);
         //{
             $OfficeRoom::hasPressedPlate = 1;
+            $VAR_EGO.setDirection($EAST);
             $VAR_EGO.animate(raiseArm); delayFiber(30);
             $VAR_EGO.animate(lowerArm); delayFiber(30);
         //}

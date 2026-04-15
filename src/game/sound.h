@@ -20,6 +20,7 @@ public:
    StringTableEntry mPath;
    U32 mChannel;
    ::Sound mSound;
+   F32 mPan;
 
    Sound();
 

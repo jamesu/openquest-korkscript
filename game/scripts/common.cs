@@ -44,8 +44,8 @@ $CUTSCENE_OVERRIDE = 0x1;
 
 $NORTH = 0;
 $SOUTH = 1;
-$EAST = 2;
-$WEST = 3;
+$WEST = 2;
+$EAST = 3;
 
 $BOXF_DISABLED = 0x1;
 
@@ -165,7 +165,7 @@ $sntcObjA = 0;  // primary object
 $sntcObjB = 0;  // secondary object
 
 // Cursor state
-$cursorOn      = 0;
+$cursorOn      = 1;
 $cursorLoaded  = 0;
 
 
@@ -360,11 +360,7 @@ function ResRoom::mouseWatch(%this)
 
 function BaseRoom::showCursor(%this)
 {
-    if ($cursorOn) 
-    {
-        return;
-    }
-
+    echo("SHOW CURSOR");
     cursorState(true);
     userPutState(true);
     $cursorOn = 1;
@@ -372,11 +368,7 @@ function BaseRoom::showCursor(%this)
 
 function BaseRoom::hideCursor(%this)
 {
-    if (!$cursorOn) 
-    {
-        return;
-    }
-
+    echo("HIDE CURSOR");
     cursorState(false);
     userPutState(false);
     $cursorOn = 0;
@@ -885,6 +877,8 @@ function BaseRoom::inventoryUpdate(%this)
                     %verb.setDisplaysObject(%obj.displayIcon);
                 else
                     %verb.setDisplaysObject(%obj);
+
+                %verb.setOn();
             }
             else
             {
@@ -1045,7 +1039,7 @@ function beginCutscene(%mode)
 {
     echo("DBG: BEGIN CUTSCENE:" @ %mode);
     pushFiberSuspendFlags(0x4);
-    cursorState(false);
+    BaseRoom::hideCursor(0);
 
     if(%mode > 0) 
     {
@@ -1060,6 +1054,6 @@ function endCutscene()
 {
     echo("DBG: END CUTSCENE");
     popFiberSuspendFlags();
-    cursorState(true);
+    BaseRoom::showCursor(0);
     Verbs.showVerbs(1);
 }

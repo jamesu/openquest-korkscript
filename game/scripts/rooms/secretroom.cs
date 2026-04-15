@@ -107,9 +107,10 @@ function SecretRoom::outro(%this)
 
     Actors.stopRoaming(commanderZif);
 
-    beginCutscene(1);
-    //{
-        // try { ... }
+    try
+    {
+        beginCutscene(1);
+
         egoSay("I'm having problems hitting the target, Sir."); waitForMessage();
         commanderZif.say("You're not a soldier. Give it here.");
         commanderZif.walkToObject(ensignZob);
@@ -194,18 +195,19 @@ function SecretRoom::outro(%this)
         commanderZif.say("%V{Secret_mwwwahSnd}Mwaaah huh huh huh huh huh huh..."); waitForMessage();
         Actors.setZifOffThePhone();
 
-        // override { ... }
-        if ($VAR_OVERRIDE)
-        {
-            actorSay(0xFF, ""); // stopTalking
-            ensignZob.putAt(     276,110, SecretRoom);
-            commanderZif.putAt(  170,120, SecretRoom);
-            bluecupActor.putAt(     0,  0, InventoryItems);
-            commanderZif.setDirection($SOUTH);
-            Actors.setZifOffThePhone();
-        }
-    //}
-    //endCutscene();
+        endCutscene();
+    }
+    catch ($CUTSCENE_OVERRIDE)
+    {
+        endCutscene();
+
+        actorSay(0xFF, ""); // stopTalking
+        ensignZob.putAt(     276,110, SecretRoom);
+        commanderZif.putAt(  170,120, SecretRoom);
+        bluecupActor.putAt(     0,  0, InventoryItems);
+        commanderZif.setDirection($SOUTH);
+        Actors.setZifOffThePhone();
+    }
 
     // Kill mouseWatch and queue quit
     ResRoom.stopMouseWatch();

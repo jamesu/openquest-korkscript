@@ -54,17 +54,28 @@ set(TORQUESIM_SRCS
 
 set(GAME_SRCS
   ./src/game/actor.cc
+  ./src/game/actor.h
   ./src/game/consoleWidget.cc
+  ./src/game/consoleWidget.h
   ./src/game/costume.cc
+  ./src/game/costume.h
   ./src/game/displayBase.cc
+  ./src/game/displayBase.h
   ./src/game/engine.cc
+  ./src/game/engine.h
   ./src/game/main.cc
   ./src/game/resourceManagers.cc
+  ./src/game/resourceManagers.h
   ./src/game/resources.cc
+  ./src/game/resources.h
   ./src/game/room.cc
+  ./src/game/room.h
   ./src/game/scheduling.cc
+  ./src/game/scheduling.h
   ./src/game/sound.cc
+  ./src/game/sound.h
   ./src/game/verbs.cc
+  ./src/game/verbs.h
   ./src/math/mathTypes.cc
   ./src/math/mathTypes.h
   ./src/math/mPoint.cc
